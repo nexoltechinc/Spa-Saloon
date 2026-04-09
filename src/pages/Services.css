@@ -1,0 +1,229 @@
+.services-page {
+  width: 100%;
+}
+
+/* Services Hero */
+.services-hero {
+  position: relative;
+  height: 60vh;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  background-color: #2b2622; /* Placeholder dark warm bg */
+  background-size: cover;
+  background-position: center;
+  padding-top: 80px; /* Accounts for navbar */
+}
+
+.services-hero-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.1) 100%);
+}
+
+.services-hero-content {
+  position: relative;
+  z-index: 10;
+  color: var(--color-warm-beige);
+}
+
+.services-hero-title {
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  font-style: italic;
+  margin-bottom: var(--space-sm);
+  line-height: 1.1;
+}
+
+.services-hero-subtitle {
+  font-size: 1.15rem;
+  opacity: 0.9;
+  max-width: 500px;
+}
+
+/* Navigation Submenu */
+.services-nav-wrapper {
+  background-color: var(--color-soft-ivory);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding: 1.5rem 0;
+}
+
+.services-nav {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin: 0;
+  padding: 0;
+}
+
+.services-nav a {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-taupe);
+  font-weight: 500;
+  padding-bottom: 0.5rem;
+}
+
+.services-nav a.active, .services-nav a:hover {
+  color: var(--color-deep-charcoal);
+  border-bottom: 2px solid var(--color-soft-gold);
+}
+
+/* Services List Section */
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  margin-bottom: 8rem;
+  position: relative;
+}
+
+.service-item.reverse {
+  flex-direction: row-reverse;
+}
+
+.service-image {
+  flex: 1;
+  height: 550px;
+  border-radius: var(--border-radius-md);
+  background-color: #d1cbc1;
+  background-size: cover;
+  background-position: center;
+}
+
+.service-details {
+  flex: 1;
+  padding: var(--space-md);
+}
+
+.service-details h2 {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-md);
+}
+
+.service-details p {
+  margin-bottom: var(--space-lg);
+  font-size: 1.1rem;
+}
+
+.service-price-card {
+  position: absolute;
+  bottom: 40px;
+  right: 45%;
+  background-color: #fff;
+  padding: 1.5rem 2rem;
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+}
+
+.service-item.reverse .service-price-card.pos-left {
+  right: auto;
+  left: 45%;
+}
+
+.service-price-card .price {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 2rem;
+  color: var(--color-soft-gold);
+  line-height: 1;
+}
+
+.service-price-card .duration {
+  font-family: var(--font-accent);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: var(--color-taupe);
+  margin-top: 0.5rem;
+}
+
+/* Packages Section */
+.package-card {
+  display: flex;
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-subtle);
+  margin-top: var(--space-lg);
+}
+
+.package-image {
+  flex: 1;
+  min-height: 400px;
+  background-color: #aebdb5;
+}
+
+.package-content {
+  flex: 1;
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.package-content h3 {
+  font-size: 2rem;
+  margin-bottom: var(--space-xs);
+}
+
+.package-duration {
+  font-family: var(--font-accent);
+  font-size: 0.8rem;
+  color: var(--color-taupe);
+  letter-spacing: 1px;
+  margin-bottom: var(--space-md);
+  display: block;
+}
+
+.btn-outline {
+  border: 1px solid var(--color-taupe);
+  color: var(--color-deep-charcoal);
+  background: transparent;
+  padding: 0.8rem 1.8rem;
+  border-radius: 50px;
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.btn-outline:hover {
+  border-color: var(--color-soft-gold);
+  color: var(--color-soft-gold);
+}
+
+@media (max-width: 900px) {
+  .service-item, .service-item.reverse {
+    flex-direction: column;
+    margin-bottom: 4rem;
+  }
+  
+  .service-price-card, .service-item.reverse .service-price-card.pos-left {
+    position: static;
+    margin-top: -30px;
+    margin-bottom: var(--space-md);
+    align-self: flex-start;
+    margin-left: var(--space-md);
+  }
+  
+  .package-card {
+    flex-direction: column;
+  }
+  
+  .package-content {
+    padding: var(--space-lg);
+  }
+  
+  .services-nav {
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+  }
+}

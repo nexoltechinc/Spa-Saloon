@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { CRM_AUTH_ENDPOINT, getCrmToken, setCrmToken } from '../config/crm';
 import './CrmLogin.css';
 
-const crmEndpoint = import.meta.env.VITE_CRM_AUTH_ENDPOINT;
-
 const CrmLogin = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -16,15 +17,16 @@ const CrmLogin = () => {
     setError('');
     setSuccess('');
 
-    if (!crmEndpoint) {
-      setError('Set VITE_CRM_AUTH_ENDPOINT in your .env file to connect your CRM.');
+    if (!CRM_AUTH_ENDPOINT) {
+      setCrmToken('crm-demo-session', rememberMe);
+      navigate('/crm/dashboard');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await fetch(crmEndpoint, {
+      const response = await fetch(CRM_AUTH_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,16 +43,21 @@ const CrmLogin = () => {
       const data = await response.json();
 
       if (data?.token) {
-        localStorage.setItem('crm_token', data.token);
+        setCrmToken(data.token, rememberMe);
       }
 
       setSuccess('Login successful. CRM connection is active.');
+      navigate('/crm/dashboard');
     } catch (submitError) {
       setError(submitError.message || 'Login failed. Please verify your CRM integration.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (getCrmToken()) {
+    return <Navigate to="/crm/dashboard" replace />;
+  }
 
   return (
     <section className="crm-login-page">
@@ -103,7 +110,9 @@ const CrmLogin = () => {
 
           <p className="crm-login-note">
             Integration endpoint:
-            <code>{crmEndpoint || ' VITE_CRM_AUTH_ENDPOINT is not configured'}</code>
+            <code>
+              {CRM_AUTH_ENDPOINT || 'Not configured: demo mode will open CRM dashboard directly'}
+            </code>
           </p>
         </div>
       </div>

@@ -1,22 +1,41 @@
-# Spa-Saloon
+# Spa Saloon
 
-Luxury spa website frontend with CRM login integration.
+Luxury spa website built with React and Vite.
 
-## Current Features
+## Features
 
-- CRM login page (`/crm-login`)
-- Sidebar shortcut: `Login to my CRM`
-- Reusable CRM sidebar component
-- Responsive CRM login UI
+- Marketing website with homepage, services, booking, and contact pages
+- Dedicated CRM login screen at `/crm-login`
+- Persistent sidebar shortcut: `Login to my CRM`
+- CRM auth integration via `VITE_CRM_AUTH_ENDPOINT`
+- CRM REST data integration via `VITE_CRM_API_BASE_URL` and `VITE_CRM_API_PREFIX`
 
-## Tech
+## Run Locally
 
-- React
-- React Router
+```bash
+npm install
+npm run dev
+```
 
-## CRM Integration
+## Build
 
-Set the environment variable below to connect your CRM auth endpoint:
+```bash
+npm run build
+```
 
-`VITE_CRM_AUTH_ENDPOINT=https://your-crm-domain.com/auth/login`
+## Environment Variables
 
+Copy `.env.example` to `.env` and configure:
+
+```bash
+VITE_CRM_AUTH_ENDPOINT=https://your-crm-domain.com/auth/login
+VITE_CRM_API_BASE_URL=https://your-crm-domain.com
+VITE_CRM_API_PREFIX=/api/crm
+```
+
+## Project Structure
+
+- `src/components` shared UI and layout pieces
+- `src/config` integration and app configuration
+- `src/pages` route-level pages
+- `src/assets` local assets
