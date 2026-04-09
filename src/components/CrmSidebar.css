@@ -1,0 +1,50 @@
+.crm-sidebar-wrapper {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 220;
+}
+
+.crm-sidebar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 0.95rem;
+  border-radius: 14px 0 0 14px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: #ffffff;
+  background: linear-gradient(135deg, #6c5e06 0%, #c5b358 100%);
+  box-shadow: 0 18px 40px rgba(108, 94, 6, 0.25);
+}
+
+.crm-sidebar-link:hover {
+  filter: brightness(1.05);
+}
+
+.crm-sidebar-link-active {
+  background: linear-gradient(135deg, #4e4303 0%, #9f8d32 100%);
+}
+
+@media (max-width: 960px) {
+  .crm-sidebar-wrapper {
+    top: auto;
+    bottom: 1.1rem;
+    right: 1.1rem;
+    transform: none;
+  }
+
+  .crm-sidebar-link {
+    border-radius: 999px;
+    padding: 0.75rem 1rem;
+    writing-mode: horizontal-tb;
+    transform: none;
+    font-size: 0.66rem;
+  }
+}

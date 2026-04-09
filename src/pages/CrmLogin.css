@@ -1,0 +1,161 @@
+.crm-login-page {
+  background: linear-gradient(180deg, #f7f4ec 0%, #f2ece0 100%);
+  min-height: 100vh;
+  padding: 8.5rem 0 5rem;
+}
+
+.crm-login-container {
+  display: flex;
+  justify-content: center;
+}
+
+.crm-login-panel {
+  width: min(100%, 560px);
+  background: #fff;
+  border-radius: 24px;
+  padding: 2.4rem;
+  box-shadow: 0 24px 60px rgba(26, 28, 25, 0.09);
+  border: 1px solid rgba(108, 94, 6, 0.12);
+}
+
+.crm-login-kicker {
+  margin: 0 0 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: #6c5e06;
+}
+
+.crm-login-panel h1 {
+  margin: 0 0 0.8rem;
+  font-family: var(--font-editorial);
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  color: #1a1c19;
+}
+
+.crm-login-intro {
+  margin: 0 0 1.6rem;
+  color: #52574d;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.crm-login-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.crm-login-form label {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #5c624f;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+}
+
+.crm-login-form input[type='email'],
+.crm-login-form input[type='password'] {
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(108, 94, 6, 0.2);
+  background: #fffdf9;
+  font-size: 0.97rem;
+  font-family: var(--font-sans);
+}
+
+.crm-login-form input[type='email']:focus,
+.crm-login-form input[type='password']:focus {
+  border-color: #6c5e06;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(197, 179, 88, 0.24);
+}
+
+.crm-login-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.2rem 0 0.9rem;
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.crm-login-checkbox input {
+  accent-color: #6c5e06;
+}
+
+.crm-login-button {
+  background: linear-gradient(135deg, #6c5e06 0%, #c5b358 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.95rem 1.2rem;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.crm-login-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(108, 94, 6, 0.24);
+}
+
+.crm-login-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.crm-login-feedback {
+  margin-top: 1rem;
+  font-size: 0.92rem;
+  font-family: var(--font-sans);
+}
+
+.crm-login-error {
+  color: #9f1f1f;
+}
+
+.crm-login-success {
+  color: #2d6a3d;
+}
+
+.crm-login-note {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  color: #6a6f60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.crm-login-note code {
+  display: inline-block;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: #f4f4ef;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  color: #4f5548;
+  word-break: break-all;
+}
+
+@media (max-width: 700px) {
+  .crm-login-page {
+    padding-top: 7.5rem;
+  }
+
+  .crm-login-panel {
+    padding: 1.5rem;
+    border-radius: 18px;
+  }
+}
