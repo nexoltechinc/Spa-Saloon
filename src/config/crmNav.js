@@ -7,4 +7,5 @@ export const CRM_NAV_ITEMS = [
   { label: 'Staff', path: '/crm/staff' },
   { label: 'Payments', path: '/crm/payments' },
   { label: 'Reports', path: '/crm/reports' },
+  { label: 'Settings', path: '/crm/settings' },
 ];

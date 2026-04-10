@@ -14,6 +14,8 @@ import CrmServices from './pages/CrmServices';
 import CrmStaff from './pages/CrmStaff';
 import CrmPayments from './pages/CrmPayments';
 import CrmReports from './pages/CrmReports';
+import CrmBranches from './pages/CrmBranches';
+import CrmSettings from './pages/CrmSettings';
 
 const Placeholder = ({ title }) => (
   <div style={{ paddingTop: '150px', textAlign: 'center', minHeight: '60vh' }}>
@@ -40,6 +42,22 @@ function App() {
           element={(
             <RequireCrmAuth>
               <CrmDashboard />
+            </RequireCrmAuth>
+          )}
+        />
+        <Route
+          path="/crm/branches"
+          element={(
+            <RequireCrmAuth>
+              <CrmBranches />
+            </RequireCrmAuth>
+          )}
+        />
+        <Route
+          path="/crm/settings"
+          element={(
+            <RequireCrmAuth>
+              <CrmSettings />
             </RequireCrmAuth>
           )}
         />

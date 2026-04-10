@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import { CRM_NAV_ITEMS } from '../config/crmNav';
+import CrmShell from '../components/CrmShell';
 import './CrmLeads.css';
 
 const initialLeads = [
@@ -121,6 +121,19 @@ const initialLeads = [
     ],
   },
 ];
+
+const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+
+const downloadCsv = (filename, rows) => {
+  const csv = rows.map((row) => row.map((cell) => escapeCsv(cell)).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
 
 const statusOptions = ['All Statuses', 'New', 'Contacted', 'Awaiting Response', 'Interested', 'Booked', 'Converted', 'Lost'];
 const sourceOptions = ['All Sources', 'Website Form', 'Inquiry Chatbot', 'Phone Inquiry', 'Walk-in Inquiry', 'Instagram Ad', 'Google Search'];
@@ -340,38 +353,143 @@ const CrmLeads = () => {
     }
   };
 
+  const handleExportLeads = () => {
+    const rows = [
+      ['Lead ID', 'Name', 'Phone', 'Email', 'Source', 'Service', 'Assigned Staff', 'Status', 'Created'],
+      ...filteredLeads.map((lead) => [
+        lead.id,
+        lead.name,
+        lead.phone,
+        lead.email,
+        lead.source,
+        lead.serviceInterest,
+        lead.assignedStaff,
+        lead.status,
+        formatDateLabel(lead.createdAt),
+      ]),
+    ];
+
+    downloadCsv(`leads-inquiries-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  const handleSendBookingLink = () => {
+    if (!selectedLead) return;
+
+    const link = `${window.location.origin}/booking?lead=${encodeURIComponent(selectedLead.id)}`;
+    void navigator.clipboard?.writeText(link);
+
+    setLeads((current) =>
+      current.map((lead) =>
+        lead.id === selectedLead.id
+          ? {
+              ...lead,
+              followUp: 'Booking link sent',
+              communicationHistory: [
+                `Booking link prepared: ${link}`,
+                ...lead.communicationHistory,
+              ],
+            }
+          : lead,
+      ),
+    );
+
+    void crmUpdate('leads', selectedLead.id, {
+      followUp: 'Booking link sent',
+      communicationHistory: [`Booking link prepared: ${link}`, ...selectedLead.communicationHistory],
+    }).catch((error) => {
+      setLoadError(error.message || 'Unable to store booking link status.');
+    });
+  };
+
+  const handleConvertToBooking = async () => {
+    if (!selectedLead) return;
+
+    const start = window.prompt('Appointment start time', '09:00') || '09:00';
+    const end = window.prompt('Appointment end time', '10:00') || '10:00';
+
+    try {
+      await crmCreate('appointments', {
+        customer: selectedLead.name,
+        phone: selectedLead.phone,
+        service: selectedLead.serviceInterest,
+        staff: selectedLead.assignedStaff === 'Unassigned' ? 'Unassigned' : selectedLead.assignedStaff,
+        start,
+        end,
+        status: 'Pending',
+        note: `Converted from lead ${selectedLead.id}`,
+        paymentStatus: 'Pending',
+        reminderScheduled: true,
+      });
+
+      handleStatusUpdate(selectedLead.id, 'Booked');
+      setLeads((current) =>
+        current.map((lead) =>
+          lead.id === selectedLead.id
+            ? {
+                ...lead,
+                followUp: 'Booking created',
+                communicationHistory: ['Converted to appointment', ...lead.communicationHistory],
+              }
+            : lead,
+        ),
+      );
+    } catch (error) {
+      setLoadError(error.message || 'Lead conversion failed.');
+    }
+  };
+
+  const handleConvertToCustomer = async () => {
+    if (!selectedLead) return;
+
+    try {
+      await crmCreate('customers', {
+        name: selectedLead.name,
+        phone: selectedLead.phone,
+        email: selectedLead.email,
+        tag: selectedLead.status === 'Converted' ? 'VIP' : 'Regular',
+        status: 'Active',
+        createdAt: new Date().toISOString(),
+        lastVisit: '',
+        nextAppointment: selectedLead.preferredSlot,
+        totalVisits: 0,
+        totalSpend: 0,
+        loyaltyPoints: 0,
+        preferredStaff: selectedLead.assignedStaff,
+        preferredTimes: selectedLead.preferredSlot,
+        preferences: [selectedLead.serviceInterest],
+        allergies: 'None reported',
+        followUpState: 'normal',
+        notes: `Converted from lead ${selectedLead.id}`,
+        paymentHistory: [],
+        receiptCount: 0,
+      });
+
+      handleStatusUpdate(selectedLead.id, 'Converted');
+      setLeads((current) =>
+        current.map((lead) =>
+          lead.id === selectedLead.id
+            ? {
+                ...lead,
+                followUp: 'Converted to customer',
+                communicationHistory: ['Converted to customer profile', ...lead.communicationHistory],
+              }
+            : lead,
+        ),
+      );
+    } catch (error) {
+      setLoadError(error.message || 'Customer conversion failed.');
+    }
+  };
+
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
 
   return (
-    <div className="crm-leads-shell">
-      <aside className="crm-leads-sidebar">
-        <div className="crm-leads-brand">
-          <p className="crm-leads-brand-title">The Sanctuary</p>
-          <p className="crm-leads-brand-subtitle">Premium Edition</p>
-        </div>
-
-        <nav className="crm-leads-menu">
-          {CRM_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `crm-leads-menu-item${isActive ? ' crm-leads-menu-item-active' : ''}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <button className="crm-leads-book-btn" type="button" onClick={() => navigate('/crm/appointments')}>
-          Book Session
-        </button>
-      </aside>
-
+    <CrmShell
+      shellClassName="crm-leads-shell"
+    >
       <main className="crm-leads-main">
         <header className="crm-leads-header">
           <div>
@@ -387,7 +505,7 @@ const CrmLeads = () => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
-            <button type="button" className="crm-leads-ghost-btn" onClick={() => navigate('/crm/reports')}>
+            <button type="button" className="crm-leads-ghost-btn" onClick={handleExportLeads}>
               Export
             </button>
             <button type="button" className="crm-leads-ghost-btn" onClick={() => setShowPendingOnly((value) => !value)}>
@@ -411,13 +529,6 @@ const CrmLeads = () => {
             </article>
           ))}
         </section>
-
-        {loadError ? (
-          <section className="crm-leads-empty-state" style={{ marginBottom: '1rem' }}>
-            <h2>CRM sync warning</h2>
-            <p>{loadError}</p>
-          </section>
-        ) : null}
 
         <section className="crm-leads-filter-bar">
           <label htmlFor="lead-status-filter">Status</label>
@@ -510,9 +621,9 @@ const CrmLeads = () => {
               <div className="crm-leads-empty-state">
                 <h2>No leads match this filter</h2>
                 <p>Try resetting status/source filters or add a new inquiry to start tracking demand.</p>
-                <button type="button" className="crm-leads-primary-btn" onClick={handleQuickCreateLead}>
-                  Add New Inquiry
-                </button>
+                  <button type="button" className="crm-leads-primary-btn" onClick={handleQuickCreateLead}>
+                    Add New Inquiry
+                  </button>
               </div>
             ) : (
               <div className="crm-leads-table-body">
@@ -624,13 +735,13 @@ const CrmLeads = () => {
                 </div>
 
                 <div className="crm-lead-actions">
-                  <button type="button" className="crm-leads-primary-btn" onClick={() => navigate('/crm/appointments')}>
+                  <button type="button" className="crm-leads-primary-btn" onClick={handleConvertToBooking}>
                     Convert to Booking
                   </button>
-                  <button type="button" className="crm-leads-secondary-btn" onClick={() => navigate('/crm/customers')}>
+                  <button type="button" className="crm-leads-secondary-btn" onClick={handleConvertToCustomer}>
                     Convert to Customer
                   </button>
-                  <button type="button" className="crm-leads-ghost-btn" onClick={() => navigate('/crm/appointments')}>
+                  <button type="button" className="crm-leads-ghost-btn" onClick={handleSendBookingLink}>
                     Send Booking Link
                   </button>
                   <button type="button" className="crm-leads-ghost-btn" onClick={() => handleStatusUpdate(selectedLead.id, 'Lost')}>
@@ -662,7 +773,7 @@ const CrmLeads = () => {
           </aside>
         </section>
       </main>
-    </div>
+    </CrmShell>
   );
 };
 

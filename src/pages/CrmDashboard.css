@@ -221,7 +221,7 @@
 .crm-main-grid {
   margin-top: 1.05rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 270px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 320px);
   gap: 0.9rem;
 }
 

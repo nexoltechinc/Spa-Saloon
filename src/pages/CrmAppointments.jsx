@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import { CRM_NAV_ITEMS } from '../config/crmNav';
+import CrmShell from '../components/CrmShell';
 import './CrmAppointments.css';
 
 const staffLanes = ['Sarah J.', 'Michael C.', 'Elena L.'];
@@ -262,38 +262,45 @@ const CrmAppointments = () => {
     }
   };
 
+  const handleRescheduleAppointment = () => {
+    if (!selectedAppointment) return;
+
+    const start = window.prompt('New start time', selectedAppointment.start) || selectedAppointment.start;
+    const end = window.prompt('New end time', selectedAppointment.end) || selectedAppointment.end;
+
+    setAppointments((current) =>
+      current.map((item) =>
+        item.id === selectedAppointment.id
+          ? {
+              ...item,
+              start,
+              end,
+              status: 'Confirmed',
+              note: `${item.note} Rescheduled via CRM.`,
+            }
+          : item,
+      ),
+    );
+
+    void crmUpdate('appointments', selectedAppointment.id, {
+      start,
+      end,
+      status: 'Confirmed',
+      note: `${selectedAppointment.note} Rescheduled via CRM.`,
+    }).catch((error) => {
+      setLoadError(error.message || 'Unable to reschedule appointment.');
+    });
+  };
+
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
 
   return (
-    <div className="crm-appt-shell">
-      <aside className="crm-appt-sidebar">
-        <div className="crm-appt-brand">
-          <p>Aura Sanctuary</p>
-          <span>Premium Wellness</span>
-        </div>
-
-        <nav className="crm-appt-menu">
-          {CRM_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `crm-appt-menu-item${isActive ? ' crm-appt-menu-item-active' : ''}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <button type="button" className="crm-appt-book-btn" onClick={() => navigate('/crm/customers')}>
-          Quick Booking
-        </button>
-      </aside>
-
+    <CrmShell
+      shellClassName="crm-appt-shell"
+    >
       <main className="crm-appt-main">
         <header className="crm-appt-header">
           <div>
@@ -361,13 +368,6 @@ const CrmAppointments = () => {
             </article>
           ))}
         </section>
-
-        {loadError ? (
-          <section className="crm-appt-empty" style={{ marginBottom: '1rem' }}>
-            <h3>CRM sync warning</h3>
-            <p>{loadError}</p>
-          </section>
-        ) : null}
 
         <section className="crm-appt-content">
           <article className="crm-appt-calendar-card">
@@ -481,7 +481,7 @@ const CrmAppointments = () => {
                   <button type="button" className="crm-appt-primary-btn" onClick={() => handleStatusChange(selectedAppointment.id, 'Arrived')}>
                     Check In
                   </button>
-                  <button type="button" className="crm-appt-secondary-btn" onClick={() => navigate('/crm/appointments')}>
+                  <button type="button" className="crm-appt-secondary-btn" onClick={handleRescheduleAppointment}>
                     Reschedule
                   </button>
                   <button type="button" className="crm-appt-secondary-btn" onClick={() => navigate('/crm/payments')}>
@@ -513,7 +513,7 @@ const CrmAppointments = () => {
           </aside>
         </section>
       </main>
-    </div>
+    </CrmShell>
   );
 };
 

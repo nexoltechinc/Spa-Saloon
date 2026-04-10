@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import { CRM_NAV_ITEMS } from '../config/crmNav';
+import CrmShell from '../components/CrmShell';
 import './CrmStaff.css';
 
 const staffSeed = [
@@ -132,6 +132,19 @@ const availabilityTone = (status) => {
     default:
       return 'neutral';
   }
+};
+
+const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+
+const downloadCsv = (filename, rows) => {
+  const csv = rows.map((row) => row.map((cell) => escapeCsv(cell)).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 };
 
 const normalizeStaff = (staff, index = 0) => ({
@@ -293,38 +306,78 @@ const CrmStaff = () => {
     }
   };
 
+  const handleExportStaff = () => {
+    const rows = [
+      ['Staff ID', 'Name', 'Role', 'Services', 'Working Hours', 'Availability', 'Today Appts', 'Status'],
+      ...filteredStaff.map((staff) => [
+        staff.id,
+        staff.name,
+        staff.role,
+        staff.services.join(' / '),
+        staff.workingHours,
+        staff.availability,
+        staff.appointmentsToday,
+        staff.status,
+      ]),
+    ];
+
+    downloadCsv(`staff-operations-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  const handleManageRoles = () => {
+    if (!selectedStaff) return;
+
+    const nextRole = window.prompt('Role', selectedStaff.role) || selectedStaff.role;
+    updateStaff(selectedStaff.id, { role: nextRole });
+  };
+
+  const handleAssignServices = () => {
+    if (!selectedStaff) return;
+
+    const services = window.prompt('Services (comma separated)', selectedStaff.services.join(', ')) || '';
+    updateStaff(selectedStaff.id, {
+      services: services.split(',').map((value) => value.trim()).filter(Boolean),
+    });
+  };
+
+  const handleUpdateAvailability = () => {
+    if (!selectedStaff) return;
+
+    const availability = window.prompt('Availability', selectedStaff.availability) || selectedStaff.availability;
+    const leaveStatus = window.prompt('Leave status', selectedStaff.leaveStatus) || selectedStaff.leaveStatus;
+    updateStaff(selectedStaff.id, { availability, leaveStatus });
+  };
+
+  const handleViewSchedule = () => {
+    if (!selectedStaff) return;
+
+    window.alert(
+      `${selectedStaff.name}\n\nToday:\n${selectedStaff.todaySchedule
+        .map((slot) => `${slot.time} - ${slot.item}`)
+        .join('\n')}`,
+    );
+  };
+
+  const handleEditProfile = () => {
+    if (!selectedStaff) return;
+
+    const name = window.prompt('Name', selectedStaff.name) || selectedStaff.name;
+    const phone = window.prompt('Phone', selectedStaff.phone) || selectedStaff.phone;
+    const email = window.prompt('Email', selectedStaff.email) || selectedStaff.email;
+    const notes = window.prompt('Notes', selectedStaff.notes) || selectedStaff.notes;
+
+    updateStaff(selectedStaff.id, { name, phone, email, notes });
+  };
+
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
 
   return (
-    <div className="crm-staff-shell">
-      <aside className="crm-staff-sidebar">
-        <div className="crm-staff-brand">
-          <p>The Sanctuary</p>
-          <span>Premium Wellness</span>
-        </div>
-
-        <nav className="crm-staff-menu">
-          {CRM_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `crm-staff-menu-item${isActive ? ' crm-staff-menu-item-active' : ''}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <button type="button" className="crm-staff-book-btn" onClick={() => navigate('/crm/appointments')}>
-          Book Now
-        </button>
-      </aside>
-
+    <CrmShell
+      shellClassName="crm-staff-shell"
+    >
       <main className="crm-staff-main">
         <header className="crm-staff-header">
           <div>
@@ -339,10 +392,10 @@ const CrmStaff = () => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
-            <button type="button" className="crm-staff-ghost-btn" onClick={() => navigate('/crm/staff')}>
+            <button type="button" className="crm-staff-ghost-btn" onClick={handleManageRoles}>
               Manage Roles
             </button>
-            <button type="button" className="crm-staff-ghost-btn" onClick={() => navigate('/crm/reports')}>
+            <button type="button" className="crm-staff-ghost-btn" onClick={handleExportStaff}>
               Export
             </button>
             <button type="button" className="crm-staff-primary-btn" onClick={handleQuickCreateStaff}>
@@ -363,13 +416,6 @@ const CrmStaff = () => {
             </article>
           ))}
         </section>
-
-        {loadError ? (
-          <section className="crm-staff-empty" style={{ marginBottom: '1rem' }}>
-            <h3>CRM sync warning</h3>
-            <p>{loadError}</p>
-          </section>
-        ) : null}
 
         <section className="crm-staff-filter-bar">
           <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
@@ -534,16 +580,16 @@ const CrmStaff = () => {
                 <p className="crm-staff-notes">{selectedStaff.notes}</p>
 
                 <div className="crm-staff-actions">
-                  <button type="button" className="crm-staff-primary-btn" onClick={() => setSelectedStaffId(selectedStaff.id)}>
+                  <button type="button" className="crm-staff-primary-btn" onClick={handleEditProfile}>
                     Edit Profile
                   </button>
-                  <button type="button" className="crm-staff-secondary-btn" onClick={() => navigate('/crm/staff')}>
+                  <button type="button" className="crm-staff-secondary-btn" onClick={handleAssignServices}>
                     Assign Services
                   </button>
-                  <button type="button" className="crm-staff-secondary-btn" onClick={() => setSelectedStaffId(selectedStaff.id)}>
+                  <button type="button" className="crm-staff-secondary-btn" onClick={handleUpdateAvailability}>
                     Update Availability
                   </button>
-                  <button type="button" className="crm-staff-ghost-btn" onClick={() => navigate('/crm/appointments')}>
+                  <button type="button" className="crm-staff-ghost-btn" onClick={handleViewSchedule}>
                     View Schedule
                   </button>
                 </div>
@@ -557,7 +603,7 @@ const CrmStaff = () => {
           </aside>
         </section>
       </main>
-    </div>
+    </CrmShell>
   );
 };
 

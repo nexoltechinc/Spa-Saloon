@@ -1,0 +1,44 @@
+.crm-sync-banner {
+  margin: 0.8rem 0 1rem;
+  border: 1px solid rgba(165, 63, 72, 0.18);
+  background: #fff7f7;
+  color: #8d4a52;
+  border-radius: 14px;
+  padding: 0.7rem 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  box-shadow: 0 8px 18px rgba(122, 54, 61, 0.05);
+}
+
+.crm-sync-banner-mark {
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-top: 0.28rem;
+  border-radius: 50%;
+  background: #c15c66;
+  flex: 0 0 auto;
+}
+
+.crm-sync-banner-body {
+  min-width: 0;
+}
+
+.crm-sync-banner-body h3,
+.crm-sync-banner-body p {
+  margin: 0;
+}
+
+.crm-sync-banner-body h3 {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8d4a52;
+}
+
+.crm-sync-banner-body p {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #8f6a6e;
+}

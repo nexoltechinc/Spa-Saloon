@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import { CRM_NAV_ITEMS } from '../config/crmNav';
+import CrmShell from '../components/CrmShell';
+import './CrmSettings.css';
 import './CrmCustomers.css';
 
 const customerSeed = [
@@ -96,6 +97,19 @@ const customerSeed = [
   },
 ];
 
+const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+
+const downloadCsv = (filename, rows) => {
+  const csv = rows.map((row) => row.map((cell) => escapeCsv(cell)).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 const typeFilters = ['All Types', 'VIP', 'Regular', 'New', 'Inactive'];
 const spendFilters = ['Any Spend', 'Above $500', 'Above $1000', 'Above $3000'];
 const visitFilters = ['Any Frequency', 'Monthly', 'Quarterly', 'Annually'];
@@ -163,6 +177,7 @@ const CrmCustomers = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerSeed[0].id);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [activePanel, setActivePanel] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -301,36 +316,108 @@ const CrmCustomers = () => {
     }
   };
 
+  const handleExportCustomers = () => {
+    const rows = [
+      ['Customer ID', 'Name', 'Phone', 'Email', 'Tag', 'Status', 'Visits', 'Spend', 'Loyalty Points'],
+      ...filteredCustomers.map((customer) => [
+        customer.id,
+        customer.name,
+        customer.phone,
+        customer.email,
+        customer.tag,
+        customer.status,
+        customer.totalVisits,
+        customer.totalSpend,
+        customer.loyaltyPoints,
+      ]),
+    ];
+
+    downloadCsv(`customers-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  const handleBookAppointment = () => {
+    if (!selectedCustomer) return;
+
+    const service = window.prompt('Service name', selectedCustomer.preferences[0] || 'Signature Facial') || 'Signature Facial';
+    const start = window.prompt('Start time', '10:00') || '10:00';
+    const end = window.prompt('End time', '11:00') || '11:00';
+    void crmCreate('appointments', {
+      customer: selectedCustomer.name,
+      phone: selectedCustomer.phone,
+      service,
+      staff: selectedCustomer.preferredStaff || 'Unassigned',
+      start,
+      end,
+      status: 'Confirmed',
+      note: `Booked from customer profile ${selectedCustomer.id}`,
+      paymentStatus: 'Pending',
+      reminderScheduled: true,
+    }).catch((error) => {
+      setLoadError(error.message || 'Customer booking failed.');
+    });
+  };
+
+  const handleRecordPayment = () => {
+    if (!selectedCustomer) return;
+
+    const amountDue = Number(window.prompt('Amount due', '120') || 120);
+    const amountPaid = Number(window.prompt('Amount paid', String(amountDue)) || amountDue);
+    const balanceRemaining = Math.max(amountDue - amountPaid, 0);
+
+    void crmCreate('payments', {
+      customerName: selectedCustomer.name,
+      appointmentId: selectedCustomer.nextAppointment || '',
+      serviceName: selectedCustomer.preferences[0] || 'Service',
+      amountDue,
+      amountPaid,
+      balanceRemaining,
+      method: 'Cash',
+      status: balanceRemaining <= 0 ? 'Paid' : 'Partial',
+      paymentDate: new Date().toISOString(),
+      recordedBy: 'Front Desk',
+      notes: `Recorded from customer profile ${selectedCustomer.id}`,
+      receiptStatus: amountPaid > 0 ? 'Pending' : 'Not Issued',
+    }).catch((error) => {
+      setLoadError(error.message || 'Customer payment failed.');
+    });
+  };
+
+  const handleSendFollowUp = () => {
+    if (!selectedCustomer) return;
+
+    setCustomers((current) =>
+      current.map((customer) =>
+        customer.id === selectedCustomer.id
+          ? {
+              ...customer,
+              followUpState: 'watch',
+              notes: `${customer.notes} Follow-up queued from customer screen.`,
+            }
+          : customer,
+      ),
+    );
+
+    void crmUpdate('customers', selectedCustomer.id, {
+      followUpState: 'watch',
+      notes: `${selectedCustomer.notes} Follow-up queued from customer screen.`,
+    }).catch((error) => {
+      setLoadError(error.message || 'Unable to store follow-up note.');
+    });
+  };
+
+  const handleOpenReceiptHistory = () => {
+    setActivePanel('receipts');
+  };
+
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
 
   return (
-    <div className="crm-customers-shell">
-      <aside className="crm-customers-sidebar">
-        <div className="crm-customers-brand">
-          <p className="crm-customers-brand-title">The Sanctuary</p>
-          <p className="crm-customers-brand-subtitle">Premium Suite</p>
-        </div>
-        <nav className="crm-customers-menu">
-          {CRM_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `crm-customers-menu-item${isActive ? ' crm-customers-menu-item-active' : ''}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <button className="crm-customers-book-btn" type="button" onClick={() => navigate('/crm/appointments')}>
-          Book Appointment
-        </button>
-      </aside>
-
+    <CrmShell
+      shellClassName="crm-customers-shell"
+    >
       <main className="crm-customers-main">
         <header className="crm-customers-header">
           <div>
@@ -345,7 +432,7 @@ const CrmCustomers = () => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
-            <button type="button" className="crm-customers-ghost-btn" onClick={() => navigate('/crm/reports')}>
+            <button type="button" className="crm-customers-ghost-btn" onClick={handleExportCustomers}>
               Export
             </button>
             <button type="button" className="crm-customers-ghost-btn" onClick={() => setFollowUpOnly((value) => !value)}>
@@ -369,13 +456,6 @@ const CrmCustomers = () => {
             </article>
           ))}
         </section>
-
-        {loadError ? (
-          <section className="crm-customers-empty" style={{ marginBottom: '1rem' }}>
-            <h3>CRM sync warning</h3>
-            <p>{loadError}</p>
-          </section>
-        ) : null}
 
         <section className="crm-customers-filter-bar">
           <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
@@ -505,16 +585,16 @@ const CrmCustomers = () => {
                 </div>
 
                 <div className="crm-customer-actions">
-                <button type="button" className="crm-customers-primary-btn" onClick={() => navigate('/crm/appointments')}>
+                <button type="button" className="crm-customers-primary-btn" onClick={handleBookAppointment}>
                   Book New Appointment
                 </button>
-                <button type="button" className="crm-customers-secondary-btn" onClick={() => navigate('/crm/payments')}>
+                <button type="button" className="crm-customers-secondary-btn" onClick={handleRecordPayment}>
                   Record Payment
                 </button>
-                <button type="button" className="crm-customers-ghost-btn" onClick={() => navigate('/crm/payments')}>
+                <button type="button" className="crm-customers-ghost-btn" onClick={handleOpenReceiptHistory}>
                   Open Receipt History
                 </button>
-                <button type="button" className="crm-customers-ghost-btn" onClick={() => navigate('/crm/leads')}>
+                <button type="button" className="crm-customers-ghost-btn" onClick={handleSendFollowUp}>
                   Send Follow-up
                 </button>
                 </div>
@@ -537,8 +617,44 @@ const CrmCustomers = () => {
             )}
           </aside>
         </section>
+
+        {activePanel === 'receipts' && selectedCustomer ? (
+          <div className="crm-settings-modal-backdrop" role="presentation" onClick={() => setActivePanel(null)}>
+            <article
+              className="crm-settings-modal-card"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Receipt history"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="crm-settings-modal-head">
+                <div>
+                  <p>Receipt History</p>
+                  <h3>{selectedCustomer.name}</h3>
+                </div>
+                <button type="button" className="crm-settings-modal-close" onClick={() => setActivePanel(null)}>
+                  Close
+                </button>
+              </div>
+              <div className="crm-settings-modal-list">
+                {selectedCustomer.paymentHistory.length ? (
+                  selectedCustomer.paymentHistory.map((item) => (
+                    <article key={item} className="crm-settings-modal-item">
+                      <strong>{item}</strong>
+                    </article>
+                  ))
+                ) : (
+                  <article className="crm-settings-modal-item">
+                    <strong>No receipts yet</strong>
+                    <p>This customer does not have receipt history in the CRM yet.</p>
+                  </article>
+                )}
+              </div>
+            </article>
+          </div>
+        ) : null}
       </main>
-    </div>
+    </CrmShell>
   );
 };
 

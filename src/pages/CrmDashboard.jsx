@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
-import { CRM_NAV_ITEMS } from '../config/crmNav';
+import { crmApiRequest, crmList, CRM_API_RESOURCES } from '../config/crmApi';
+import CrmShell from '../components/CrmShell';
 import './CrmDashboard.css';
 
 const appointmentData = [
@@ -58,10 +59,66 @@ const staffData = [
   { name: 'Sofia', status: 'Available', specialty: 'Nails' },
 ];
 
-const quickActions = ['Add Booking', 'Add Customer', 'Record Pay', 'Open POS'];
+const quickActions = [
+  { label: 'Add Booking', to: '/crm/appointments' },
+  { label: 'Add Customer', to: '/crm/customers' },
+  { label: 'Record Pay', to: '/crm/payments' },
+  { label: 'Open POS', to: '/crm/payments' },
+];
+
+const parseCurrency = (value) => {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/[^0-9.-]/g, ''));
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (value && typeof value === 'object') {
+    return parseCurrency(value.amount ?? value.total ?? value.value ?? value.displayValue ?? 0);
+  }
+  return 0;
+};
+
+const formatMoney = (amount) =>
+  `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const normalizePayment = (payment, index = 0) => ({
+  method: payment.method || payment.paymentMethod || payment.tender || 'Cash',
+  amount: parseCurrency(payment.amount ?? payment.total ?? payment.value ?? payment.displayValue ?? 0),
+  receipt: payment.receipt || payment.receiptNumber || payment.id || `RC-${String(index + 1).padStart(4, '0')}`,
+  status: payment.status || payment.paymentStatus || 'Recorded',
+});
+
+const extractPercent = (reports, names) => {
+  if (!Array.isArray(reports)) return null;
+  const match = reports.find((item) => {
+    const label = String(item.label || item.metric || item.name || '').toLowerCase();
+    return names.some((needle) => label.includes(needle));
+  });
+
+  if (!match) return null;
+  const raw = match.percent ?? match.percentage ?? match.value ?? match.displayValue ?? match.amount ?? match.total;
+  const numeric = parseCurrency(raw);
+  if (String(raw).includes('%')) return Math.max(0, Math.min(100, Number(String(raw).replace(/[^0-9.-]/g, '')) || 0));
+  if (numeric > 1 && numeric <= 100) return numeric;
+  return null;
+};
+
+const normalizeReportsPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    const candidate = payload.data || payload.items || payload.results || payload.records;
+    if (Array.isArray(candidate)) return candidate;
+    return [payload];
+  }
+  return [];
+};
 
 const CrmDashboard = () => {
   const navigate = useNavigate();
+  const [paymentRows, setPaymentRows] = useState([]);
+  const [paymentError, setPaymentError] = useState('');
+  const [salesSnapshot, setSalesSnapshot] = useState({ services: 85, products: 15 });
+  const [salesError, setSalesError] = useState('');
 
   const todayLabel = useMemo(
     () =>
@@ -73,38 +130,99 @@ const CrmDashboard = () => {
     [],
   );
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadDashboardData = async () => {
+      setPaymentError('');
+      setSalesError('');
+
+      try {
+        const [payments, reports] = await Promise.all([
+          crmList('payments'),
+          crmApiRequest(CRM_API_RESOURCES.reports),
+        ]);
+
+        if (!mounted) return;
+
+        const normalizedPayments = payments.map(normalizePayment);
+        setPaymentRows(normalizedPayments);
+
+        const methodTotals = normalizedPayments.reduce((acc, payment) => {
+          acc[payment.method] = (acc[payment.method] || 0) + payment.amount;
+          return acc;
+        }, {});
+
+        const topMethods = Object.entries(methodTotals)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2);
+
+        const reportRows = normalizeReportsPayload(reports);
+        const servicesPercent =
+          extractPercent(reportRows, ['services']) ??
+          extractPercent(reportRows, ['service']) ??
+          null;
+        const productsPercent =
+          extractPercent(reportRows, ['products']) ??
+          extractPercent(reportRows, ['product']) ??
+          null;
+
+        if (servicesPercent !== null || productsPercent !== null) {
+          const services = servicesPercent ?? Math.max(0, 100 - (productsPercent || 0));
+          const products = productsPercent ?? Math.max(0, 100 - services);
+          setSalesSnapshot({ services, products });
+        } else if (topMethods.length > 0) {
+          const total = topMethods.reduce((sum, [, amount]) => sum + amount, 0);
+          const services = total > 0 ? Math.round((topMethods[0][1] / total) * 100) : 0;
+          setSalesSnapshot({ services, products: Math.max(0, 100 - services) });
+        }
+      } catch (error) {
+        if (!mounted) return;
+        setPaymentError(error.message || 'Unable to load payment data from the CRM API.');
+        setSalesError(error.message || 'Unable to load sales snapshot data from the CRM API.');
+      }
+    };
+
+    void loadDashboardData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const paymentSummary = useMemo(() => {
+    const totals = paymentRows.reduce((acc, payment) => {
+      const method = payment.method || 'Cash';
+      acc[method] = (acc[method] || 0) + payment.amount;
+      return acc;
+    }, {});
+
+    const methods = Object.entries(totals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2);
+
+    return methods.length > 0
+      ? methods
+      : [
+          ['Credit Card', 0],
+          ['Cash', 0],
+        ];
+  }, [paymentRows]);
+
+  const totalPaymentAmount = useMemo(
+    () => paymentRows.reduce((sum, payment) => sum + payment.amount, 0),
+    [paymentRows],
+  );
+
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
 
   return (
-    <div className="crm-dashboard-shell">
-      <aside className="crm-dashboard-sidebar">
-        <div className="crm-brand-block">
-          <p className="crm-brand-title">The Sanctuary</p>
-          <p className="crm-brand-subtitle">Premium Wellness</p>
-        </div>
-
-        <nav className="crm-menu">
-          {CRM_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `crm-menu-item crm-menu-link${isActive ? ' crm-menu-item-active' : ''}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <button className="crm-book-now-btn" type="button" onClick={() => navigate('/crm/appointments')}>
-          Book Now
-        </button>
-      </aside>
-
+    <CrmShell
+      shellClassName="crm-dashboard-shell"
+    >
       <main className="crm-dashboard-main">
         <header className="crm-top-bar">
           <h1>Dashboard</h1>
@@ -114,7 +232,7 @@ const CrmDashboard = () => {
             type="search"
           />
           <div className="crm-top-meta">
-            <button className="crm-link-btn" type="button" onClick={() => navigate('/crm/appointments')}>
+            <button className="crm-link-btn" type="button" onClick={() => navigate('/crm/branches')}>
               Branches
             </button>
             <button className="crm-link-btn" type="button" onClick={() => navigate('/crm/staff')}>
@@ -123,10 +241,10 @@ const CrmDashboard = () => {
             <button className="crm-link-btn" type="button" onClick={() => navigate('/crm/leads')}>
               Alerts
             </button>
-            <button className="crm-link-btn" type="button" onClick={() => navigate('/crm/services')}>
+            <button className="crm-link-btn" type="button" onClick={() => navigate('/crm/settings')}>
               Settings
             </button>
-            <button className="crm-quick-btn" type="button" onClick={() => navigate('/crm/customers')}>
+            <button className="crm-quick-btn" type="button" onClick={() => navigate('/crm/appointments')}>
               Quick Action
             </button>
             <button className="crm-logout-btn" type="button" onClick={handleLogout}>
@@ -192,8 +310,13 @@ const CrmDashboard = () => {
               <h3>Concierge Actions</h3>
               <div className="crm-action-grid">
                 {quickActions.map((action) => (
-                  <button key={action} type="button" className="crm-action-btn">
-                    {action}
+                  <button
+                    key={action.label}
+                    type="button"
+                    className="crm-action-btn"
+                    onClick={() => navigate(action.to)}
+                  >
+                    {action.label}
                   </button>
                 ))}
               </div>
@@ -218,41 +341,45 @@ const CrmDashboard = () => {
         </section>
 
         <section className="crm-bottom-grid">
-          <article className="crm-summary-card">
-            <h3>Payment Methods</h3>
-            <div className="crm-summary-row">
-              <span>Credit Card</span>
-              <strong>$890.00</strong>
-            </div>
-            <div className="crm-progress-line">
-              <span style={{ width: '72%' }} />
-            </div>
-            <div className="crm-summary-row">
-              <span>Cash</span>
-              <strong>$360.00</strong>
-            </div>
-            <div className="crm-progress-line">
-              <span style={{ width: '32%' }} />
-            </div>
-          </article>
+            <article className="crm-summary-card">
+              <h3>Payment Methods</h3>
+              {paymentSummary.map(([method, amount], index) => {
+              const total = totalPaymentAmount || 1;
+              const width = Math.max(8, Math.round((amount / total) * 100));
+              return (
+                <div key={method} className="crm-summary-method">
+                  <div className="crm-summary-row">
+                    <span>{method}</span>
+                    <strong>{formatMoney(amount)}</strong>
+                  </div>
+                  <div className="crm-progress-line">
+                    <span style={{ width: `${width}%` }} />
+                  </div>
+                </div>
+              );
+              })}
+              <p className="crm-summary-note">
+                Total processed: {formatMoney(totalPaymentAmount)}
+              </p>
+            </article>
 
           <article className="crm-summary-card">
             <h3>Sales Snapshot</h3>
             <div className="crm-summary-row">
               <span>Services</span>
-              <strong>85%</strong>
+              <strong>{salesSnapshot.services}%</strong>
             </div>
             <div className="crm-summary-row">
               <span>Products</span>
-              <strong>15%</strong>
+              <strong>{salesSnapshot.products}%</strong>
             </div>
             <div className="crm-ring-wrap">
-              <div className="crm-ring">85%</div>
+              <div className="crm-ring">{salesSnapshot.services}%</div>
             </div>
           </article>
         </section>
       </main>
-    </div>
+    </CrmShell>
   );
 };
 

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import { CRM_NAV_ITEMS } from '../config/crmNav';
+import CrmShell from '../components/CrmShell';
 import './CrmServices.css';
 
 const serviceSeed = [
@@ -72,6 +72,19 @@ const categoryOptions = ['All Categories', 'Facial', 'Massage', 'Hair Treatment'
 const statusOptions = ['All Statuses', 'Active', 'Inactive'];
 const durationOptions = ['Any Duration', 'Under 60 min', '60-90 min', 'Over 90 min'];
 
+const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+
+const downloadCsv = (filename, rows) => {
+  const csv = rows.map((row) => row.map((cell) => escapeCsv(cell)).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 const formatCurrency = (amount) => `$${amount.toFixed(2)}`;
 const formatDate = (value) =>
   new Date(value).toLocaleString('en-US', {
@@ -114,6 +127,7 @@ const CrmServices = () => {
   const [durationFilter, setDurationFilter] = useState('Any Duration');
   const [bookableOnly, setBookableOnly] = useState(false);
   const [needsStaffOnly, setNeedsStaffOnly] = useState(false);
+  const [extraCategories, setExtraCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
@@ -189,6 +203,10 @@ const CrmServices = () => {
     return filteredServices.find((service) => service.id === selectedServiceId) || filteredServices[0] || null;
   }, [filteredServices, selectedServiceId]);
 
+  const availableCategories = useMemo(() => {
+    return ['All Categories', ...new Set([...categoryOptions.slice(1), ...extraCategories])];
+  }, [extraCategories]);
+
   const patchService = (serviceId, updates) => {
     setServices((current) => current.map((item) => (item.id === serviceId ? { ...item, ...updates } : item)));
 
@@ -229,36 +247,108 @@ const CrmServices = () => {
     }
   };
 
+  const handleExportServices = () => {
+    const rows = [
+      ['Service ID', 'Name', 'Category', 'Duration', 'Price', 'Assigned Staff', 'Booking', 'POS', 'Active'],
+      ...filteredServices.map((service) => [
+        service.id,
+        service.name,
+        service.category,
+        service.duration,
+        service.price,
+        service.assignedStaff.join(' / '),
+        service.bookingVisible ? 'Visible' : 'Hidden',
+        service.posAvailable ? 'Available' : 'Unavailable',
+        service.active ? 'Active' : 'Inactive',
+      ]),
+    ];
+
+    downloadCsv(`services-catalog-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  const handleManageCategories = () => {
+    const raw = window.prompt(
+      'Add categories (comma separated)',
+      extraCategories.length ? extraCategories.join(', ') : 'Body Treatment, Consultation',
+    );
+    if (!raw) return;
+
+    const values = raw
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    setExtraCategories((current) => Array.from(new Set([...current, ...values])));
+  };
+
+  const handleEditService = () => {
+    if (!selectedService) return;
+
+    const name = window.prompt('Service name', selectedService.name) || selectedService.name;
+    const description = window.prompt('Description', selectedService.description) ?? selectedService.description;
+    const duration = Number(window.prompt('Duration in minutes', String(selectedService.duration)) || selectedService.duration);
+    const price = Number(window.prompt('Price', String(selectedService.price)) || selectedService.price);
+
+    patchService(selectedService.id, {
+      name,
+      description,
+      duration,
+      price,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleAssignStaff = () => {
+    if (!selectedService) return;
+
+    const staff = window.prompt('Assigned staff (comma separated)', selectedService.assignedStaff.join(', ')) || '';
+    const assignedStaff = staff.split(',').map((value) => value.trim()).filter(Boolean);
+
+    patchService(selectedService.id, {
+      assignedStaff,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleUpdatePrice = () => {
+    if (!selectedService) return;
+
+    const price = Number(window.prompt('New price', String(selectedService.price)) || selectedService.price);
+    patchService(selectedService.id, {
+      price,
+      lastUpdated: new Date().toISOString(),
+    });
+  };
+
+  const handleDuplicateService = async () => {
+    if (!selectedService) return;
+
+    try {
+      const { id, ...serviceCopy } = selectedService;
+      const created = await crmCreate('services', {
+        ...serviceCopy,
+        name: `${selectedService.name} Copy`,
+        assignedStaff: [...selectedService.assignedStaff],
+        lastUpdated: new Date().toISOString(),
+      });
+
+      const normalized = normalizeService(created, services.length);
+      setServices((current) => [normalized, ...current]);
+      setSelectedServiceId(normalized.id);
+    } catch (error) {
+      setLoadError(error.message || 'Service duplication failed.');
+    }
+  };
+
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
 
   return (
-    <div className="crm-services-shell">
-      <aside className="crm-services-sidebar">
-        <div className="crm-services-brand">
-          <p>The Sanctuary</p>
-          <span>Global Premium</span>
-        </div>
-        <nav className="crm-services-menu">
-          {CRM_NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.label}
-              to={item.path}
-              className={({ isActive }) =>
-                `crm-services-menu-item${isActive ? ' crm-services-menu-item-active' : ''}`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <button type="button" className="crm-services-quick-btn" onClick={() => navigate('/crm/appointments')}>
-          Quick Booking
-        </button>
-      </aside>
-
+    <CrmShell
+      shellClassName="crm-services-shell"
+    >
       <main className="crm-services-main">
         <header className="crm-services-header">
           <div>
@@ -272,10 +362,10 @@ const CrmServices = () => {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
-            <button type="button" className="crm-services-ghost-btn" onClick={() => navigate('/crm/services')}>
+            <button type="button" className="crm-services-ghost-btn" onClick={handleManageCategories}>
               Manage Categories
             </button>
-            <button type="button" className="crm-services-ghost-btn" onClick={() => navigate('/crm/reports')}>
+            <button type="button" className="crm-services-ghost-btn" onClick={handleExportServices}>
               Export
             </button>
             <button type="button" className="crm-services-primary-btn" onClick={handleQuickCreateService}>
@@ -297,16 +387,9 @@ const CrmServices = () => {
           ))}
         </section>
 
-        {loadError ? (
-          <section className="crm-services-empty" style={{ marginBottom: '1rem' }}>
-            <h3>CRM sync warning</h3>
-            <p>{loadError}</p>
-          </section>
-        ) : null}
-
         <section className="crm-services-filter-bar">
           <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-            {categoryOptions.map((option) => <option key={option}>{option}</option>)}
+            {availableCategories.map((option) => <option key={option}>{option}</option>)}
           </select>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             {statusOptions.map((option) => <option key={option}>{option}</option>)}
@@ -444,16 +527,16 @@ const CrmServices = () => {
                 <p className="crm-services-updated">Last updated: {formatDate(selectedService.lastUpdated)}</p>
 
                 <div className="crm-services-actions">
-                  <button type="button" className="crm-services-primary-btn" onClick={() => navigate('/crm/services')}>
+                  <button type="button" className="crm-services-primary-btn" onClick={handleEditService}>
                     Edit Service
                   </button>
-                  <button type="button" className="crm-services-secondary-btn" onClick={() => navigate('/crm/services')}>
+                  <button type="button" className="crm-services-secondary-btn" onClick={handleAssignStaff}>
                     Assign Staff
                   </button>
-                  <button type="button" className="crm-services-secondary-btn" onClick={() => navigate('/crm/reports')}>
+                  <button type="button" className="crm-services-secondary-btn" onClick={handleUpdatePrice}>
                     Update Price
                   </button>
-                  <button type="button" className="crm-services-ghost-btn" onClick={() => setSelectedServiceId(selectedService.id)}>
+                  <button type="button" className="crm-services-ghost-btn" onClick={handleDuplicateService}>
                     Duplicate Service
                   </button>
                 </div>
@@ -467,7 +550,7 @@ const CrmServices = () => {
           </aside>
         </section>
       </main>
-    </div>
+    </CrmShell>
   );
 };
 
