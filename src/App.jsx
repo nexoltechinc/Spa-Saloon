@@ -7,12 +7,11 @@ import Booking from './pages/Booking';
 import Contact from './pages/Contact';
 import CrmLogin from './pages/CrmLogin';
 import CrmDashboard from './pages/CrmDashboard';
-import CrmLeads from './pages/CrmLeads';
 import CrmCustomers from './pages/CrmCustomers';
-import CrmAppointments from './pages/CrmAppointments';
 import CrmServices from './pages/CrmServices';
 import CrmStaff from './pages/CrmStaff';
 import CrmPayments from './pages/CrmPayments';
+import CrmReceipts from './pages/CrmReceipts';
 import CrmReports from './pages/CrmReports';
 import CrmBranches from './pages/CrmBranches';
 import CrmSettings from './pages/CrmSettings';
@@ -65,7 +64,7 @@ function App() {
           path="/crm/leads"
           element={(
             <RequireCrmAuth>
-              <CrmLeads />
+              <Navigate to="/crm/dashboard" replace />
             </RequireCrmAuth>
           )}
         />
@@ -73,7 +72,7 @@ function App() {
           path="/crm/inquiries"
           element={(
             <RequireCrmAuth>
-              <Navigate to="/crm/leads" replace />
+              <Navigate to="/crm/dashboard" replace />
             </RequireCrmAuth>
           )}
         />
@@ -89,7 +88,7 @@ function App() {
           path="/crm/appointments"
           element={(
             <RequireCrmAuth>
-              <CrmAppointments />
+              <Navigate to="/crm/dashboard" replace />
             </RequireCrmAuth>
           )}
         />
@@ -114,6 +113,22 @@ function App() {
           element={(
             <RequireCrmAuth>
               <CrmPayments />
+            </RequireCrmAuth>
+          )}
+        />
+        <Route
+          path="/crm/receipts"
+          element={(
+            <RequireCrmAuth>
+              <CrmReceipts />
+            </RequireCrmAuth>
+          )}
+        />
+        <Route
+          path="/crm/receipt"
+          element={(
+            <RequireCrmAuth>
+              <Navigate to="/crm/receipts" replace />
             </RequireCrmAuth>
           )}
         />

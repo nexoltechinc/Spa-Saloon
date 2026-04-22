@@ -1,66 +1,76 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import CrmShell from '../components/CrmShell';
+import StaffDetailPanel from '../components/staff/StaffDetailPanel';
+import StaffOperationsWorkspace from '../components/staff/StaffOperationsWorkspace';
+import StaffRow from '../components/staff/StaffRow';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import CrmShell from '../components/CrmShell';
 import './CrmStaff.css';
 
-const staffSeed = [
-  {
-    id: 'STF-201',
-    name: 'Julianne Moore',
-    role: 'Senior Massage Therapist',
-    phone: '+1 (555) 010-1001',
-    email: 'julianne.moore@sanctuary.com',
-    services: ['Deep Tissue', 'Hot Stone', 'Aromatherapy', 'Swedish Flow'],
-    workingHours: '9:00 AM - 6:00 PM',
-    availability: 'Available',
-    status: 'Active',
-    appointmentsToday: 4,
-    capacityToday: 5,
-    onDutyToday: true,
-    leaveStatus: 'None',
-    utilization: 80,
-    notes: 'Top-rated therapist. Prioritize VIP requests and sensitive client follow-ups.',
-    weeklySchedule: [
-      'Mon: 9:00 AM - 6:00 PM',
-      'Tue: 9:00 AM - 6:00 PM',
-      'Wed: 10:00 AM - 7:00 PM',
-      'Thu: 9:00 AM - 6:00 PM',
-      'Fri: 9:00 AM - 5:00 PM',
-    ],
-    todaySchedule: [
-      { time: '9:00 AM', item: 'Swedish Flow', state: 'done' },
-      { time: '1:30 PM', item: 'Deep Tissue', state: 'next' },
-      { time: '4:00 PM', item: 'Hot Stone Ritual', state: 'later' },
-    ],
-  },
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const SHIFT_OPTIONS = ['Available', 'Busy', 'On Break', 'Off Duty', 'On Leave'];
+const EMPLOYMENT_OPTIONS = ['Active', 'Inactive'];
+const BASE_SERVICES = ['Deep Tissue', 'Hot Stone', 'Aromatherapy', 'Facials', 'Peels', 'Consultation', 'Hydra Glow'];
+
+const baseWeeklyAvailability = WEEK_DAYS.map((day) => ({ day, off: true, note: 'Off' }));
+
+const fillWeeklyAvailability = (input = []) => {
+  const byDay = input.reduce((acc, entry) => {
+    if (entry?.day) acc[entry.day] = entry;
+    return acc;
+  }, {});
+
+  return baseWeeklyAvailability.map((day) => ({
+    ...day,
+    ...(byDay[day.day] || {}),
+  }));
+};
+
+const hiddenStaffIdentifiers = new Set([
+  'STF-201',
+  'julianne moore',
+  'julianne.moore@sanctuary.com',
+]);
+
+const shouldHideStaff = (staff) => {
+  const id = String(staff?.id || staff?.staffId || staff?._id || '').trim().toUpperCase();
+  const name = String(staff?.name || staff?.fullName || staff?.displayName || '').trim().toLowerCase();
+  const email = String(staff?.email || staff?.contactEmail || '').trim().toLowerCase();
+
+  return hiddenStaffIdentifiers.has(id) || hiddenStaffIdentifiers.has(name) || hiddenStaffIdentifiers.has(email);
+};
+
+const rawStaffSeed = [
   {
     id: 'STF-202',
     name: 'Marcus Chen',
-    role: 'Lead Aesthetician',
+    role: 'Senior Aesthetician',
     phone: '+1 (555) 010-1002',
     email: 'marcus.chen@sanctuary.com',
-    services: ['Facials', 'Peels'],
+    services: ['Facials', 'Peels', 'Hydra Glow'],
     workingHours: '10:00 AM - 7:00 PM',
-    availability: 'Busy',
-    status: 'Active',
+    employmentStatus: 'Active',
+    shiftStatus: 'Busy',
+    leaveStatus: 'None',
     appointmentsToday: 6,
     capacityToday: 6,
-    onDutyToday: true,
-    leaveStatus: 'None',
-    utilization: 100,
-    notes: 'Fully booked today. Route urgent bookings to Elena or Sofia.',
-    weeklySchedule: [
-      'Mon: 10:00 AM - 7:00 PM',
-      'Tue: 10:00 AM - 7:00 PM',
-      'Wed: 10:00 AM - 7:00 PM',
-      'Fri: 10:00 AM - 7:00 PM',
+    appointmentsCompletedWeek: 24,
+    notes: 'Fully booked today. Route urgent skin bookings to Noor where possible.',
+    clientHandlingNotes: 'Excellent with acne-recovery clients and post-treatment consults.',
+    weeklyAvailability: [
+      { day: 'Mon', start: '10:00', end: '19:00', off: false },
+      { day: 'Tue', start: '10:00', end: '19:00', off: false },
+      { day: 'Wed', start: '10:00', end: '19:00', off: false },
+      { day: 'Fri', start: '10:00', end: '19:00', off: false },
+      { day: 'Sat', start: '10:00', end: '15:00', off: false },
     ],
     todaySchedule: [
-      { time: '10:00 AM', item: 'Hydrafacial', state: 'done' },
-      { time: '12:30 PM', item: 'Peel Consultation', state: 'next' },
-      { time: '3:30 PM', item: 'Acne Recovery Facial', state: 'later' },
+      { id: 'M-1', time: '10:00 AM', customer: 'Alyssa K.', service: 'Hydra Glow', status: 'Completed', state: 'completed' },
+      { id: 'M-2', time: '12:30 PM', customer: 'Jenna L.', service: 'Peel Consultation', status: 'In Progress', state: 'current' },
+      { id: 'M-3', time: '2:30 PM', customer: 'Vera T.', service: 'Brightening Facial', status: 'Next Up', state: 'next' },
+      { id: 'M-4', time: '4:30 PM', customer: 'Hazel M.', service: 'Acne Recovery Facial', status: 'Scheduled', state: 'upcoming' },
+      { id: 'M-5', time: '6:00 PM', customer: 'Leah S.', service: 'Peel Follow-up', status: 'Scheduled', state: 'upcoming' },
     ],
   },
   {
@@ -69,69 +79,140 @@ const staffSeed = [
     role: 'Skin Consultant',
     phone: '+1 (555) 010-1003',
     email: 'sophia.rossi@sanctuary.com',
-    services: ['Consultation'],
+    services: ['Consultation', 'Facials'],
     workingHours: '11:00 AM - 5:00 PM',
-    availability: 'Off Duty',
-    status: 'Active',
-    appointmentsToday: 0,
-    capacityToday: 4,
-    onDutyToday: false,
+    employmentStatus: 'Active',
+    shiftStatus: 'On Break',
     leaveStatus: 'None',
-    utilization: 0,
-    notes: 'Off duty this morning. Available for PM consultations.',
-    weeklySchedule: [
-      'Tue: 11:00 AM - 5:00 PM',
-      'Wed: 11:00 AM - 5:00 PM',
-      'Thu: 11:00 AM - 5:00 PM',
-      'Sat: 10:00 AM - 2:00 PM',
+    appointmentsToday: 2,
+    capacityToday: 4,
+    appointmentsCompletedWeek: 11,
+    notes: 'Excellent conversion on consultation-to-treatment journeys.',
+    clientHandlingNotes: 'Preferred for sensitive skin consultations and calm onboarding.',
+    weeklyAvailability: [
+      { day: 'Tue', start: '11:00', end: '17:00', off: false },
+      { day: 'Wed', start: '11:00', end: '17:00', off: false },
+      { day: 'Thu', start: '11:00', end: '17:00', off: false },
+      { day: 'Sat', start: '10:00', end: '14:00', off: false },
     ],
     todaySchedule: [
-      { time: 'No active slots', item: 'Off duty', state: 'later' },
+      { id: 'S-1', time: '11:00 AM', customer: 'Nina C.', service: 'Consultation', status: 'Completed', state: 'completed' },
+      { id: 'S-2', time: '1:45 PM', customer: 'Talia N.', service: 'Skin Consult', status: 'Next Up', state: 'next' },
+      { id: 'S-gap', type: 'gap', label: '1h 15m free gap for reassignment' },
+      { id: 'S-3', time: '4:00 PM', customer: 'Mila H.', service: 'Facial Follow-up', status: 'Scheduled', state: 'upcoming' },
     ],
   },
   {
     id: 'STF-204',
+    name: 'Noor Hale',
+    role: 'Therapist',
+    phone: '+1 (555) 010-1005',
+    email: 'noor.hale@sanctuary.com',
+    services: ['Hydra Glow', 'Aromatherapy', 'Consultation'],
+    workingHours: '12:00 PM - 8:00 PM',
+    employmentStatus: 'Active',
+    shiftStatus: 'Off Duty',
+    leaveStatus: 'None',
+    appointmentsToday: 0,
+    capacityToday: 5,
+    appointmentsCompletedWeek: 6,
+    notes: 'Great backup for premium skincare and consultation-heavy days.',
+    clientHandlingNotes: 'Handles anxious first-time clients with high retention.',
+    weeklyAvailability: [
+      { day: 'Mon', start: '12:00', end: '20:00', off: false },
+      { day: 'Wed', start: '12:00', end: '20:00', off: false },
+      { day: 'Thu', start: '12:00', end: '20:00', off: false },
+      { day: 'Fri', start: '12:00', end: '20:00', off: false },
+    ],
+    todaySchedule: [],
+  },
+  {
+    id: 'STF-205',
     name: 'Elena Vance',
     role: 'Therapist',
     phone: '+1 (555) 010-1004',
     email: 'elena.vance@sanctuary.com',
     services: ['Deep Tissue', 'Aromatherapy'],
     workingHours: '9:00 AM - 4:00 PM',
-    availability: 'On Leave',
-    status: 'Inactive',
+    employmentStatus: 'Inactive',
+    shiftStatus: 'On Leave',
+    leaveStatus: 'Medical Leave (through Friday)',
     appointmentsToday: 0,
     capacityToday: 0,
-    onDutyToday: false,
-    leaveStatus: 'Sick Leave',
-    utilization: 0,
-    notes: 'Temporary leave through Friday. Keep inactive for booking.',
-    weeklySchedule: [
-      'Leave period active',
+    appointmentsCompletedWeek: 0,
+    notes: 'Temporary leave through Friday. Keep profile inactive for scheduling.',
+    clientHandlingNotes: 'Reassign her recurring clients to Marcus or Noor.',
+    weeklyAvailability: [
+      { day: 'Mon', off: true, note: 'Leave' },
+      { day: 'Tue', off: true, note: 'Leave' },
+      { day: 'Wed', off: true, note: 'Leave' },
+      { day: 'Thu', off: true, note: 'Leave' },
+      { day: 'Fri', off: true, note: 'Leave' },
     ],
-    todaySchedule: [
-      { time: 'Unavailable', item: 'Leave', state: 'later' },
-    ],
+    todaySchedule: [{ id: 'E-leave', type: 'gap', label: 'On leave today' }],
   },
 ];
 
-const roleOptions = ['All Roles', 'Senior Massage Therapist', 'Lead Aesthetician', 'Skin Consultant', 'Therapist', 'Receptionist', 'Manager'];
-const statusOptions = ['All Statuses', 'Active', 'Inactive'];
-const availabilityOptions = ['All Availability', 'Available', 'Busy', 'Off Duty', 'On Leave'];
-const serviceOptions = ['All Services', 'Deep Tissue', 'Hot Stone', 'Aromatherapy', 'Facials', 'Peels', 'Consultation'];
+const staffSeed = rawStaffSeed.map((staff) => ({
+  ...staff,
+  weeklyAvailability: fillWeeklyAvailability(staff.weeklyAvailability),
+}));
 
-const availabilityTone = (status) => {
-  switch (status) {
-    case 'Available':
-      return 'good';
-    case 'Busy':
-      return 'busy';
-    case 'Off Duty':
-      return 'off';
-    case 'On Leave':
-      return 'leave';
-    default:
-      return 'neutral';
+const toIsoDate = () => new Date().toISOString();
+
+const parseClock = (value) => {
+  if (!value || !String(value).includes(':')) return null;
+  const cleaned = String(value).trim().toUpperCase();
+  const match = cleaned.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)?$/);
+  if (!match) return null;
+
+  let hour = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period = match[3];
+
+  if (period) {
+    if (period === 'PM' && hour < 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
   }
+
+  return hour * 60 + minutes;
+};
+
+const formatGapLabel = (minutes) => {
+  if (minutes < 60) return `${minutes}m free gap`;
+  const hours = Math.floor(minutes / 60);
+  const rem = minutes % 60;
+  return rem > 0 ? `${hours}h ${rem}m free gap` : `${hours}h free gap`;
+};
+
+const enrichScheduleWithGaps = (schedule = []) => {
+  const clean = schedule.filter(Boolean);
+  if (clean.length <= 1) return clean;
+
+  const withGaps = [];
+
+  clean.forEach((slot, index) => {
+    withGaps.push(slot);
+    if (slot.type === 'gap') return;
+
+    const next = clean[index + 1];
+    if (!next || next.type === 'gap') return;
+
+    const start = parseClock(slot.time);
+    const nextStart = parseClock(next.time);
+    if (start === null || nextStart === null) return;
+
+    const gap = nextStart - start - 60;
+    if (gap >= 45) {
+      withGaps.push({
+        id: `${slot.id || slot.time}-gap-${next.id || next.time}`,
+        type: 'gap',
+        label: formatGapLabel(gap),
+      });
+    }
+  });
+
+  return withGaps;
 };
 
 const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
@@ -147,51 +228,285 @@ const downloadCsv = (filename, rows) => {
   URL.revokeObjectURL(url);
 };
 
-const normalizeStaff = (staff, index = 0) => ({
-  id: staff.id || staff._id || staff.staffId || `staff-${index + 1}`,
-  name: staff.name || staff.fullName || staff.displayName || 'Untitled Staff',
-  role: staff.role || staff.title || staff.position || 'Staff Member',
-  phone: staff.phone || staff.contactNumber || '',
-  email: staff.email || staff.contactEmail || '',
-  services: Array.isArray(staff.services)
-    ? staff.services
-    : Array.isArray(staff.assignedServices)
-      ? staff.assignedServices
-      : staff.services
-        ? [String(staff.services)]
-        : [],
-  workingHours: staff.workingHours || staff.shift || staff.schedule || '9:00 AM - 5:00 PM',
-  availability: staff.availability || staff.currentAvailability || 'Available',
-  status: staff.status || staff.activeStatus || 'Active',
-  appointmentsToday: Number(staff.appointmentsToday ?? staff.todayAppointments ?? staff.bookingsToday ?? 0),
-  capacityToday: Number(staff.capacityToday ?? staff.dailyCapacity ?? staff.capacity ?? 0),
-  onDutyToday: Boolean(staff.onDutyToday ?? staff.onDuty ?? true),
-  leaveStatus: staff.leaveStatus || staff.leave || 'None',
-  utilization: Number(staff.utilization ?? staff.utilisation ?? 0),
-  notes: staff.notes || staff.comment || '',
-  weeklySchedule: Array.isArray(staff.weeklySchedule)
-    ? staff.weeklySchedule
-    : Array.isArray(staff.weeklyAvailability)
-      ? staff.weeklyAvailability
-      : [],
-  todaySchedule: Array.isArray(staff.todaySchedule)
+const normalizeWeeklyAvailability = (staff) => {
+  if (Array.isArray(staff.weeklyAvailability) && staff.weeklyAvailability[0]?.day) {
+    return fillWeeklyAvailability(staff.weeklyAvailability);
+  }
+
+  if (Array.isArray(staff.weeklySchedule) && staff.weeklySchedule.length > 0) {
+    const parsed = staff.weeklySchedule
+      .map((entry) => {
+        const match = String(entry).match(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun):\s*(.+)\s-\s(.+)$/i);
+        if (!match) return null;
+        return {
+          day: match[1].slice(0, 1).toUpperCase() + match[1].slice(1, 3).toLowerCase(),
+          start: match[2].includes(':') ? match[2].trim() : '09:00',
+          end: match[3].includes(':') ? match[3].trim() : '17:00',
+          off: false,
+        };
+      })
+      .filter(Boolean);
+
+    return fillWeeklyAvailability(parsed);
+  }
+
+  const fallback = WEEK_DAYS.slice(0, 5).map((day) => ({ day, start: '09:00', end: '17:00', off: false }));
+  return fillWeeklyAvailability(fallback);
+};
+
+const normalizeTodaySchedule = (staff) => {
+  const source = Array.isArray(staff.todaySchedule)
     ? staff.todaySchedule
     : Array.isArray(staff.scheduleToday)
       ? staff.scheduleToday
-      : [],
-});
+      : [];
+
+  const mapped = source.map((slot, index) => {
+    if (slot?.type === 'gap') return slot;
+
+    const stateMap = {
+      done: 'completed',
+      later: 'upcoming',
+      next: 'next',
+      current: 'current',
+      completed: 'completed',
+      upcoming: 'upcoming',
+    };
+
+    return {
+      id: slot.id || `${staff.id || 'staff'}-slot-${index + 1}`,
+      time: slot.time || slot.at || 'TBD',
+      customer: slot.customer || slot.clientName || 'Client',
+      service: slot.service || slot.item || slot.serviceName || 'Service',
+      status: slot.status || (slot.state === 'current' ? 'In Progress' : 'Scheduled'),
+      state: stateMap[slot.state] || 'upcoming',
+    };
+  });
+
+  return enrichScheduleWithGaps(mapped);
+};
+
+const normalizeStaff = (staff, index = 0) => {
+  const employmentStatus = staff.employmentStatus || staff.status || staff.activeStatus || 'Active';
+  const shiftStatus = staff.shiftStatus || staff.availability || staff.currentAvailability || 'Available';
+
+  return {
+    id: staff.id || staff._id || staff.staffId || `staff-${index + 1}`,
+    name: staff.name || staff.fullName || staff.displayName || 'Untitled Staff',
+    role: staff.role || staff.title || staff.position || 'Staff Member',
+    phone: staff.phone || staff.contactNumber || '',
+    email: staff.email || staff.contactEmail || '',
+    services: Array.isArray(staff.services)
+      ? staff.services
+      : Array.isArray(staff.assignedServices)
+        ? staff.assignedServices
+        : staff.services
+          ? [String(staff.services)]
+          : [],
+    workingHours: staff.workingHours || staff.shift || staff.schedule || '9:00 AM - 5:00 PM',
+    employmentStatus,
+    shiftStatus,
+    leaveStatus: staff.leaveStatus || staff.leave || (shiftStatus === 'On Leave' ? 'On Leave' : 'None'),
+    appointmentsToday: Number(staff.appointmentsToday ?? staff.todayAppointments ?? staff.bookingsToday ?? 0),
+    capacityToday: Number(staff.capacityToday ?? staff.dailyCapacity ?? staff.capacity ?? 0),
+    appointmentsCompletedWeek: Number(staff.appointmentsCompletedWeek ?? staff.weeklyAppointments ?? staff.completedWeek ?? 0),
+    notes: staff.notes || staff.comment || '',
+    clientHandlingNotes: staff.clientHandlingNotes || staff.vipNotes || staff.specialNotes || '',
+    weeklyAvailability: normalizeWeeklyAvailability(staff),
+    todaySchedule: normalizeTodaySchedule(staff),
+    lastUpdated: staff.lastUpdated || staff.updatedAt || toIsoDate(),
+  };
+};
+
+const toShiftState = (status) => {
+  if (status === 'On Leave') return { onDuty: false, availableNow: false };
+  if (status === 'Off Duty') return { onDuty: false, availableNow: false };
+  if (status === 'On Break') return { onDuty: true, availableNow: false };
+  if (status === 'Busy') return { onDuty: true, availableNow: false };
+  return { onDuty: true, availableNow: true };
+};
+
+const getLoadDescriptor = (appointmentsToday, capacityToday) => {
+  const booked = Number(appointmentsToday || 0);
+  const capacity = Number(capacityToday || 0);
+
+  if (capacity <= 0) {
+    return {
+      label: booked > 0 ? 'Custom Load' : 'Capacity Not Set',
+      detail: booked > 0 ? `${booked} booked today` : 'No slots configured',
+      tone: 'neutral',
+      utilization: 0,
+      isFullyBooked: false,
+      isUnderutilized: false,
+    };
+  }
+
+  const utilization = Math.min(100, Math.round((booked / capacity) * 100));
+  const remaining = Math.max(capacity - booked, 0);
+
+  if (booked === 0) {
+    return {
+      label: 'No Bookings Today',
+      detail: `0 of ${capacity} booked • ${remaining} remaining`,
+      tone: 'light',
+      utilization,
+      isFullyBooked: false,
+      isUnderutilized: true,
+    };
+  }
+
+  if (booked >= capacity) {
+    return {
+      label: 'Fully Booked',
+      detail: `${booked} of ${capacity} booked • 0 remaining`,
+      tone: 'full',
+      utilization: 100,
+      isFullyBooked: true,
+      isUnderutilized: false,
+    };
+  }
+
+  if (utilization >= 85) {
+    return {
+      label: 'High Load',
+      detail: `${booked} of ${capacity} booked • ${remaining} remaining`,
+      tone: 'high',
+      utilization,
+      isFullyBooked: false,
+      isUnderutilized: false,
+    };
+  }
+
+  if (utilization >= 50) {
+    return {
+      label: 'Moderate Load',
+      detail: `${booked} of ${capacity} booked • ${remaining} remaining`,
+      tone: 'moderate',
+      utilization,
+      isFullyBooked: false,
+      isUnderutilized: false,
+    };
+  }
+
+  return {
+    label: utilization < 35 ? 'Underutilized' : 'Light Load',
+    detail: `${booked} of ${capacity} booked • ${remaining} remaining`,
+    tone: 'light',
+    utilization,
+    isFullyBooked: false,
+    isUnderutilized: true,
+  };
+};
+
+const getCoverageLabel = (activeCount, onDutyCount) => {
+  if (activeCount === 0) return { label: 'No Active Provider', tone: 'risk' };
+  if (onDutyCount === 0) return { label: 'No On-Duty Coverage', tone: 'risk' };
+  if (onDutyCount === 1) return { label: 'Reduced Coverage', tone: 'warning' };
+  return { label: 'Strong Coverage', tone: 'good' };
+};
+
+const buildCoverageMap = (staff) => {
+  const coverageByService = {};
+  const serviceUniverse = new Set(BASE_SERVICES);
+
+  staff.forEach((member) => {
+    member.services.forEach((service) => serviceUniverse.add(service));
+  });
+
+  [...serviceUniverse].forEach((service) => {
+    const providers = staff.filter((member) => member.services.includes(service));
+    const activeProviders = providers.filter((member) => member.employmentStatus === 'Active');
+    const onDutyProviders = activeProviders.filter((member) => member.onDuty);
+
+    const { label, tone } = getCoverageLabel(activeProviders.length, onDutyProviders.length);
+
+    coverageByService[service] = {
+      service,
+      activeCount: activeProviders.length,
+      onDutyCount: onDutyProviders.length,
+      label,
+      tone,
+      providerIds: providers.map((member) => member.id),
+      providerNames: providers.map((member) => member.name),
+      onDutyNames: onDutyProviders.map((member) => member.name),
+    };
+  });
+
+  return coverageByService;
+};
+
+const withOperationalFields = (member, coverageByService) => {
+  const shiftInfo = toShiftState(member.shiftStatus);
+  const employmentActive = member.employmentStatus === 'Active';
+  const onDuty = employmentActive && shiftInfo.onDuty;
+  const availableNow = onDuty && shiftInfo.availableNow;
+
+  const nextAppointment = member.todaySchedule.find((slot) => slot.type !== 'gap' && ['current', 'next', 'upcoming'].includes(slot.state)) || null;
+  const appointmentsRemaining = member.todaySchedule.filter((slot) => slot.type !== 'gap' && ['next', 'upcoming'].includes(slot.state)).length;
+
+  const load = getLoadDescriptor(member.appointmentsToday, member.capacityToday);
+
+  const onlyProviderServices = member.services.filter((service) => coverageByService[service]?.activeCount === 1 && coverageByService[service]?.providerIds.includes(member.id));
+
+  const coverageWarnings = member.services
+    .map((service) => {
+      const coverage = coverageByService[service];
+      if (!coverage) return null;
+
+      if (coverage.activeCount === 0) return { label: `${service}: no active provider`, tone: 'risk' };
+      if (coverage.onDutyCount === 0) return { label: `${service}: nobody on duty`, tone: 'risk' };
+      if (coverage.onDutyCount === 1) return { label: `${service}: only one on duty`, tone: 'warning' };
+
+      return null;
+    })
+    .filter(Boolean);
+
+  const rowWarnings = [
+    ...onlyProviderServices.map((service) => ({ label: `Only provider: ${service}`, tone: 'risk' })),
+    ...(member.shiftStatus === 'On Leave' ? [{ label: 'On leave', tone: 'neutral' }] : []),
+    ...(load.isFullyBooked ? [{ label: 'Fully booked', tone: 'warning' }] : []),
+    ...(load.isUnderutilized && onDuty ? [{ label: 'Underutilized', tone: 'neutral' }] : []),
+  ];
+
+  return {
+    ...member,
+    onDuty,
+    availableNow,
+    nextAppointment,
+    appointmentsRemaining,
+    load,
+    utilization: load.utilization,
+    onlyProviderServices,
+    coverageWarnings,
+    rowWarnings,
+    reassignmentReady: onDuty && !load.isFullyBooked && member.shiftStatus !== 'On Leave',
+  };
+};
+
+const roleCapabilities = {
+  owner: { manageStaff: true },
+  manager: { manageStaff: true },
+  receptionist: { manageStaff: false },
+  admin: { manageStaff: true },
+};
+
+const defaultRole = 'manager';
 
 const CrmStaff = () => {
   const navigate = useNavigate();
+
   const [staffList, setStaffList] = useState(staffSeed);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All Roles');
-  const [statusFilter, setStatusFilter] = useState('All Statuses');
-  const [availabilityFilter, setAvailabilityFilter] = useState('All Availability');
+  const [employmentFilter, setEmploymentFilter] = useState('All Employment');
+  const [shiftFilter, setShiftFilter] = useState('All Shift Status');
   const [serviceFilter, setServiceFilter] = useState('All Services');
   const [onDutyOnly, setOnDutyOnly] = useState(false);
   const [fullyBookedOnly, setFullyBookedOnly] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState(staffSeed[0].id);
+  const [detailTab, setDetailTab] = useState('overview');
+  const [operationTab, setOperationTab] = useState('today');
+  const [activeRole] = useState(defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
@@ -206,7 +521,8 @@ const CrmStaff = () => {
         const data = await crmList('staff');
         if (!mounted) return;
 
-        const normalized = data.length > 0 ? data.map(normalizeStaff) : staffSeed;
+        const visibleStaff = Array.isArray(data) ? data.filter((staff) => !shouldHideStaff(staff)) : [];
+        const normalized = visibleStaff.length > 0 ? visibleStaff.map(normalizeStaff) : staffSeed;
         setStaffList(normalized);
         setSelectedStaffId((current) => (normalized.some((staff) => staff.id === current) ? current : normalized[0]?.id || ''));
       } catch (error) {
@@ -226,46 +542,118 @@ const CrmStaff = () => {
     };
   }, []);
 
-  const summaryCards = useMemo(() => {
-    const total = staffList.length;
-    const active = staffList.filter((item) => item.status === 'Active').length;
-    const onDuty = staffList.filter((item) => item.onDutyToday).length;
-    const fullyBooked = staffList.filter((item) => item.capacityToday > 0 && item.appointmentsToday >= item.capacityToday).length;
-    const available = staffList.filter((item) => item.availability === 'Available').length;
-    const inactive = staffList.filter((item) => item.status === 'Inactive').length;
+  const permissions = roleCapabilities[activeRole] || roleCapabilities.manager;
 
-    return [
-      { label: 'Total Staff', value: total, subtext: '+1 this quarter' },
-      { label: 'Active Staff', value: active, subtext: `${Math.round((active / total) * 100) || 0}% active` },
-      { label: 'On Duty Today', value: onDuty, subtext: '2 available now' },
-      { label: 'Fully Booked', value: fullyBooked, subtext: '37% utilization peak' },
-      { label: 'Available Staff', value: available, subtext: '2 on break' },
-      { label: 'Inactive Staff', value: inactive, subtext: '1 on leave' },
-    ];
+  const preparsedStaff = useMemo(() => {
+    return staffList.map((member) => {
+      const shiftInfo = toShiftState(member.shiftStatus);
+      const employmentActive = member.employmentStatus === 'Active';
+      return {
+        ...member,
+        onDuty: employmentActive && shiftInfo.onDuty,
+      };
+    });
   }, [staffList]);
 
+  const coverageByService = useMemo(() => buildCoverageMap(preparsedStaff), [preparsedStaff]);
+
+  const enrichedStaff = useMemo(() => {
+    return staffList.map((member) => withOperationalFields(member, coverageByService));
+  }, [coverageByService, staffList]);
+
+  const roleOptions = useMemo(() => ['All Roles', ...new Set(enrichedStaff.map((member) => member.role))], [enrichedStaff]);
+  const serviceOptions = useMemo(() => ['All Services', ...new Set(enrichedStaff.flatMap((member) => member.services))], [enrichedStaff]);
+
+  const summaryCards = useMemo(() => {
+    const total = enrichedStaff.length;
+    const active = enrichedStaff.filter((item) => item.employmentStatus === 'Active').length;
+    const onDuty = enrichedStaff.filter((item) => item.onDuty).length;
+    const fullyBooked = enrichedStaff.filter((item) => item.load.isFullyBooked).length;
+    const available = enrichedStaff.filter((item) => item.availableNow).length;
+    const inactive = total - active;
+
+    return [
+      { label: 'Total Staff', value: total, subtext: `${total} profiles in this location` },
+      { label: 'Active Staff', value: active, subtext: 'Employment active and schedulable' },
+      { label: 'On Duty Today', value: onDuty, subtext: 'Active on current shift' },
+      { label: 'Fully Booked', value: fullyBooked, subtext: 'No remaining slots today' },
+      { label: 'Available Staff', value: available, subtext: 'Free now for new bookings' },
+      { label: 'Inactive Staff', value: inactive, subtext: 'Not schedulable in operations' },
+    ];
+  }, [enrichedStaff]);
+
   const filteredStaff = useMemo(() => {
-    return staffList.filter((staff) => {
-      const matchSearch = !searchTerm || `${staff.name} ${staff.role} ${staff.services.join(' ')}`.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchRole = roleFilter === 'All Roles' || staff.role === roleFilter;
-      const matchStatus = statusFilter === 'All Statuses' || staff.status === statusFilter;
-      const matchAvailability = availabilityFilter === 'All Availability' || staff.availability === availabilityFilter;
-      const matchService = serviceFilter === 'All Services' || staff.services.includes(serviceFilter);
-      const matchOnDuty = !onDutyOnly || staff.onDutyToday;
-      const matchFullyBooked = !fullyBookedOnly || (staff.capacityToday > 0 && staff.appointmentsToday >= staff.capacityToday);
+    return enrichedStaff.filter((staff) => {
+      const searchable = `${staff.name} ${staff.role} ${staff.services.join(' ')}`.toLowerCase();
+      const matchesSearch = !searchTerm || searchable.includes(searchTerm.toLowerCase());
+      const matchesRole = roleFilter === 'All Roles' || staff.role === roleFilter;
+      const matchesEmployment = employmentFilter === 'All Employment' || staff.employmentStatus === employmentFilter;
+      const matchesShift = shiftFilter === 'All Shift Status' || staff.shiftStatus === shiftFilter;
+      const matchesService = serviceFilter === 'All Services' || staff.services.includes(serviceFilter);
+      const matchesOnDuty = !onDutyOnly || staff.onDuty;
+      const matchesFullyBooked = !fullyBookedOnly || staff.load.isFullyBooked;
 
-      return matchSearch && matchRole && matchStatus && matchAvailability && matchService && matchOnDuty && matchFullyBooked;
+      return matchesSearch && matchesRole && matchesEmployment && matchesShift && matchesService && matchesOnDuty && matchesFullyBooked;
     });
-  }, [availabilityFilter, fullyBookedOnly, onDutyOnly, roleFilter, searchTerm, serviceFilter, staffList, statusFilter]);
+  }, [employmentFilter, enrichedStaff, fullyBookedOnly, onDutyOnly, roleFilter, searchTerm, serviceFilter, shiftFilter]);
 
-  const selectedStaff = useMemo(() => {
-    return filteredStaff.find((item) => item.id === selectedStaffId) || filteredStaff[0] || null;
+  useEffect(() => {
+    if (filteredStaff.length === 0) {
+      setSelectedStaffId('');
+      return;
+    }
+
+    if (!filteredStaff.some((staff) => staff.id === selectedStaffId)) {
+      setSelectedStaffId(filteredStaff[0].id);
+    }
   }, [filteredStaff, selectedStaffId]);
 
-  const updateStaff = (staffId, updates) => {
-    setStaffList((current) => current.map((item) => (item.id === staffId ? { ...item, ...updates } : item)));
+  const selectedStaff = useMemo(() => filteredStaff.find((item) => item.id === selectedStaffId) || null, [filteredStaff, selectedStaffId]);
 
-    void crmUpdate('staff', staffId, updates).catch((error) => {
+  const hasActiveFilters = Boolean(searchTerm) ||
+    roleFilter !== 'All Roles' ||
+    employmentFilter !== 'All Employment' ||
+    shiftFilter !== 'All Shift Status' ||
+    serviceFilter !== 'All Services' ||
+    onDutyOnly ||
+    fullyBookedOnly;
+
+  const syncCompatibleFields = (updates) => {
+    const next = { ...updates };
+
+    if (updates.employmentStatus) {
+      next.status = updates.employmentStatus;
+    }
+
+    if (updates.shiftStatus) {
+      next.availability = updates.shiftStatus;
+      if (updates.shiftStatus === 'On Leave' && !updates.leaveStatus) {
+        next.leaveStatus = 'On Leave';
+      }
+      if (updates.shiftStatus !== 'On Leave' && updates.leaveStatus === 'On Leave') {
+        next.leaveStatus = 'None';
+      }
+    }
+
+    if (updates.leaveStatus && updates.leaveStatus !== 'None' && !updates.shiftStatus) {
+      next.shiftStatus = 'On Leave';
+      next.availability = 'On Leave';
+    }
+
+    if (updates.leaveStatus === 'None' && !updates.shiftStatus) {
+      next.shiftStatus = 'Available';
+      next.availability = 'Available';
+    }
+
+    next.lastUpdated = toIsoDate();
+    return next;
+  };
+
+  const updateStaff = (staffId, updates) => {
+    const stamped = syncCompatibleFields(updates);
+    setStaffList((current) => current.map((item) => (item.id === staffId ? { ...item, ...stamped } : item)));
+
+    void crmUpdate('staff', staffId, stamped).catch((error) => {
       setLoadError(error.message || 'Staff update failed.');
     });
   };
@@ -275,32 +663,34 @@ const CrmStaff = () => {
     if (!name) return;
 
     const role = window.prompt('Role', 'Therapist') || 'Therapist';
-    const services = window.prompt('Services (comma separated)', 'Massage') || '';
+    const services = window.prompt('Services (comma separated)', 'Deep Tissue') || '';
     const workingHours = window.prompt('Working hours', '9:00 AM - 5:00 PM') || '9:00 AM - 5:00 PM';
 
-    try {
-      const created = await crmCreate('staff', {
-        name,
-        role,
-        phone: '',
-        email: '',
-        services: services.split(',').map((value) => value.trim()).filter(Boolean),
-        workingHours,
-        availability: 'Available',
-        status: 'Active',
-        appointmentsToday: 0,
-        capacityToday: 0,
-        onDutyToday: false,
-        leaveStatus: 'None',
-        utilization: 0,
-        notes: 'Created from CRM quick add',
-        weeklySchedule: [],
-        todaySchedule: [],
-      });
+    const payload = normalizeStaff({
+      name,
+      role,
+      phone: '',
+      email: '',
+      services: services.split(',').map((value) => value.trim()).filter(Boolean),
+      workingHours,
+      employmentStatus: 'Active',
+      shiftStatus: 'Available',
+      leaveStatus: 'None',
+      appointmentsToday: 0,
+      capacityToday: 4,
+      appointmentsCompletedWeek: 0,
+      notes: 'Created from CRM quick add',
+      clientHandlingNotes: '',
+      weeklyAvailability: WEEK_DAYS.slice(0, 5).map((day) => ({ day, start: '09:00', end: '17:00', off: false })),
+      todaySchedule: [],
+    }, staffList.length);
 
+    try {
+      const created = await crmCreate('staff', payload);
       const normalized = normalizeStaff(created, staffList.length);
       setStaffList((current) => [normalized, ...current]);
       setSelectedStaffId(normalized.id);
+      setDetailTab('overview');
     } catch (error) {
       setLoadError(error.message || 'Staff creation failed.');
     }
@@ -308,16 +698,17 @@ const CrmStaff = () => {
 
   const handleExportStaff = () => {
     const rows = [
-      ['Staff ID', 'Name', 'Role', 'Services', 'Working Hours', 'Availability', 'Today Appts', 'Status'],
+      ['Staff ID', 'Name', 'Role', 'Services', 'Employment', 'Shift', 'Load', 'Next Appointment', 'Leave Status'],
       ...filteredStaff.map((staff) => [
         staff.id,
         staff.name,
         staff.role,
         staff.services.join(' / '),
-        staff.workingHours,
-        staff.availability,
-        staff.appointmentsToday,
-        staff.status,
+        staff.employmentStatus,
+        staff.shiftStatus,
+        staff.load.detail,
+        staff.nextAppointment ? `${staff.nextAppointment.time} - ${staff.nextAppointment.service}` : 'No upcoming appointment',
+        staff.leaveStatus,
       ]),
     ];
 
@@ -326,36 +717,69 @@ const CrmStaff = () => {
 
   const handleManageRoles = () => {
     if (!selectedStaff) return;
-
     const nextRole = window.prompt('Role', selectedStaff.role) || selectedStaff.role;
     updateStaff(selectedStaff.id, { role: nextRole });
   };
 
   const handleAssignServices = () => {
     if (!selectedStaff) return;
-
     const services = window.prompt('Services (comma separated)', selectedStaff.services.join(', ')) || '';
-    updateStaff(selectedStaff.id, {
-      services: services.split(',').map((value) => value.trim()).filter(Boolean),
-    });
+    updateStaff(selectedStaff.id, { services: services.split(',').map((value) => value.trim()).filter(Boolean) });
   };
 
   const handleUpdateAvailability = () => {
     if (!selectedStaff) return;
 
-    const availability = window.prompt('Availability', selectedStaff.availability) || selectedStaff.availability;
+    const employmentStatus = window.prompt('Employment status (Active, Inactive)', selectedStaff.employmentStatus) || selectedStaff.employmentStatus;
+    const shiftStatus = window.prompt('Shift status (Available, Busy, On Break, Off Duty, On Leave)', selectedStaff.shiftStatus) || selectedStaff.shiftStatus;
     const leaveStatus = window.prompt('Leave status', selectedStaff.leaveStatus) || selectedStaff.leaveStatus;
-    updateStaff(selectedStaff.id, { availability, leaveStatus });
+
+    updateStaff(selectedStaff.id, { employmentStatus, shiftStatus, leaveStatus });
   };
 
   const handleViewSchedule = () => {
     if (!selectedStaff) return;
 
+    const lines = selectedStaff.todaySchedule
+      .filter((slot) => slot.type !== 'gap')
+      .map((slot) => `${slot.time} - ${slot.customer} (${slot.service})`)
+      .join('\n');
+
+    window.alert(`${selectedStaff.name} - Today\n\n${lines || 'No schedule today.'}`);
+  };
+
+  const handleViewTodayAppointments = () => {
+    if (!selectedStaff) return;
+
+    const lines = selectedStaff.todaySchedule
+      .filter((slot) => slot.type !== 'gap' && ['next', 'upcoming', 'current'].includes(slot.state))
+      .map((slot) => `${slot.time} - ${slot.customer} (${slot.service})`)
+      .join('\n');
+
+    window.alert(`${selectedStaff.name}\nUpcoming Appointments\n\n${lines || 'No upcoming appointments.'}`);
+  };
+
+  const handleReassignAppointments = () => {
+    if (!selectedStaff) return;
+
+    const candidates = enrichedStaff
+      .filter((member) => member.id !== selectedStaff.id)
+      .filter((member) => member.reassignmentReady)
+      .filter((member) => member.services.some((service) => selectedStaff.services.includes(service)))
+      .map((member) => member.name);
+
     window.alert(
-      `${selectedStaff.name}\n\nToday:\n${selectedStaff.todaySchedule
-        .map((slot) => `${slot.time} - ${slot.item}`)
-        .join('\n')}`,
+      candidates.length > 0
+        ? `Potential reassignment candidates:\n\n${candidates.join('\n')}`
+        : 'No ready reassignment candidates currently available.',
     );
+  };
+
+  const handleViewCoverageImpact = () => {
+    if (!selectedStaff) return;
+
+    const warnings = selectedStaff.coverageWarnings.map((item) => `- ${item.label}`).join('\n');
+    window.alert(warnings ? `Coverage impact for ${selectedStaff.name}:\n\n${warnings}` : `${selectedStaff.name} currently has stable coverage signals.`);
   };
 
   const handleEditProfile = () => {
@@ -364,10 +788,38 @@ const CrmStaff = () => {
     const name = window.prompt('Name', selectedStaff.name) || selectedStaff.name;
     const phone = window.prompt('Phone', selectedStaff.phone) || selectedStaff.phone;
     const email = window.prompt('Email', selectedStaff.email) || selectedStaff.email;
-    const notes = window.prompt('Notes', selectedStaff.notes) || selectedStaff.notes;
+    const notes = window.prompt('Internal notes', selectedStaff.notes) || selectedStaff.notes;
+    const clientHandlingNotes = window.prompt('Client handling notes', selectedStaff.clientHandlingNotes) || selectedStaff.clientHandlingNotes;
 
-    updateStaff(selectedStaff.id, { name, phone, email, notes });
+    updateStaff(selectedStaff.id, { name, phone, email, notes, clientHandlingNotes });
   };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setRoleFilter('All Roles');
+    setEmploymentFilter('All Employment');
+    setShiftFilter('All Shift Status');
+    setServiceFilter('All Services');
+    setOnDutyOnly(false);
+    setFullyBookedOnly(false);
+  };
+
+  const onDutyStaffNames = enrichedStaff.filter((member) => member.onDuty).map((member) => member.name);
+  const availableStaffNames = enrichedStaff.filter((member) => member.availableNow).map((member) => member.name);
+
+  const coverageRows = Object.values(coverageByService)
+    .sort((a, b) => a.service.localeCompare(b.service))
+    .slice(0, 8);
+
+  const recentActivity = enrichedStaff
+    .slice(0, 6)
+    .map((member) => ({
+      id: `${member.id}-activity`,
+      title: `${member.name}: ${member.load.label}`,
+      detail: member.nextAppointment
+        ? `Next: ${member.nextAppointment.time} ${member.nextAppointment.service}`
+        : 'No upcoming appointment scheduled.',
+    }));
 
   const handleLogout = () => {
     clearCrmToken();
@@ -375,37 +827,35 @@ const CrmStaff = () => {
   };
 
   return (
-    <CrmShell
-      shellClassName="crm-staff-shell"
-    >
+    <CrmShell shellClassName="crm-staff-shell">
       <main className="crm-staff-main">
         <header className="crm-staff-header">
           <div>
             <h1>Staff Management</h1>
-            <p>Manage your team, their schedules, and service assignments with operational clarity.</p>
+            <p>Manage team shifts, service coverage, and booking readiness with operational clarity.</p>
           </div>
 
           <div className="crm-staff-header-actions">
             <input
               type="search"
-              placeholder="Search staff or services..."
+              placeholder="Search staff by name, role, or service..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
-            <button type="button" className="crm-staff-ghost-btn" onClick={handleManageRoles}>
-              Manage Roles
+            <button type="button" className={`crm-staff-chip${onDutyOnly ? ' crm-staff-chip-active' : ''}`} onClick={() => setOnDutyOnly((value) => !value)}>
+              On Duty Today
             </button>
-            <button type="button" className="crm-staff-ghost-btn" onClick={handleExportStaff}>
-              Export
-            </button>
-            <button type="button" className="crm-staff-primary-btn" onClick={handleQuickCreateStaff}>
-              Add Staff Member
-            </button>
-            <button type="button" className="crm-staff-logout-btn" onClick={handleLogout}>
-              Logout
-            </button>
+            {hasActiveFilters ? (
+              <button type="button" className="crm-staff-ghost-btn" onClick={clearFilters}>Clear Filters</button>
+            ) : null}
+            <button type="button" className="crm-staff-ghost-btn" onClick={handleManageRoles}>Manage Roles</button>
+            <button type="button" className="crm-staff-ghost-btn" onClick={handleExportStaff}>Export</button>
+            <button type="button" className="crm-staff-primary-btn" onClick={handleQuickCreateStaff}>Add Staff Member</button>
+            <button type="button" className="crm-staff-logout-btn" onClick={handleLogout}>Logout</button>
           </div>
         </header>
+
+        {loadError ? <p className="crm-staff-error">{loadError}</p> : null}
 
         <section className="crm-staff-summary">
           {summaryCards.map((card) => (
@@ -421,185 +871,90 @@ const CrmStaff = () => {
           <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
             {roleOptions.map((option) => <option key={option}>{option}</option>)}
           </select>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            {statusOptions.map((option) => <option key={option}>{option}</option>)}
+          <select value={employmentFilter} onChange={(event) => setEmploymentFilter(event.target.value)}>
+            <option>All Employment</option>
+            {EMPLOYMENT_OPTIONS.map((option) => <option key={option}>{option}</option>)}
           </select>
-          <select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value)}>
-            {availabilityOptions.map((option) => <option key={option}>{option}</option>)}
+          <select value={shiftFilter} onChange={(event) => setShiftFilter(event.target.value)}>
+            <option>All Shift Status</option>
+            {SHIFT_OPTIONS.map((option) => <option key={option}>{option}</option>)}
           </select>
           <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}>
             {serviceOptions.map((option) => <option key={option}>{option}</option>)}
           </select>
-          <button
-            type="button"
-            className={`crm-staff-chip${onDutyOnly ? ' crm-staff-chip-active' : ''}`}
-            onClick={() => setOnDutyOnly((value) => !value)}
-          >
-            On-Duty Today
-          </button>
-          <button
-            type="button"
-            className={`crm-staff-chip${fullyBookedOnly ? ' crm-staff-chip-active' : ''}`}
-            onClick={() => setFullyBookedOnly((value) => !value)}
-          >
+          <button type="button" className={`crm-staff-chip${fullyBookedOnly ? ' crm-staff-chip-active' : ''}`} onClick={() => setFullyBookedOnly((value) => !value)}>
             Fully Booked
           </button>
         </section>
 
         <section className="crm-staff-content">
-          <article className="crm-staff-table-card">
-            <header>
-              <p>Name & Role</p>
-              <p>Services Assigned</p>
-              <p>Working Hours</p>
-              <p>Today&apos;s Appts</p>
-              <p>Status</p>
-              <p>Active</p>
-            </header>
+          <div className="crm-staff-primary-column">
+            <article className="crm-staff-table-card">
+              <header>
+                <p>Name &amp; Role</p>
+                <p>Services</p>
+                <p>Shift Hours</p>
+                <p>Next Appointment</p>
+                <p>Today&apos;s Load</p>
+                <p>Shift Status</p>
+                <p>Employment</p>
+                <p>Action</p>
+              </header>
 
-            {isLoading ? (
-              <div className="crm-staff-empty">
-                <h3>Loading staff</h3>
-                <p>Fetching the latest staff roster from the CRM backend.</p>
-              </div>
-            ) : filteredStaff.length === 0 ? (
-              <div className="crm-staff-empty">
-                <h3>No staff match this filter</h3>
-                <p>Adjust the segment bar or add a new staff member to restore coverage.</p>
-              </div>
-            ) : (
-              <div className="crm-staff-table-body">
-                {filteredStaff.map((staff) => {
-                  const selected = selectedStaff?.id === staff.id;
-                  const utilizationText = `${staff.appointmentsToday}/${staff.capacityToday || 0}`;
-                  return (
-                    <button
-                      type="button"
+              {isLoading ? (
+                <div className="crm-staff-empty">
+                  <h3>Loading staff</h3>
+                  <p>Fetching the latest staff roster from the CRM backend.</p>
+                </div>
+              ) : filteredStaff.length === 0 ? (
+                <div className="crm-staff-empty">
+                  <h3>No staff match this filter</h3>
+                  <p>Adjust the filters or add a new staff profile to restore coverage.</p>
+                </div>
+              ) : (
+                <div className="crm-staff-table-body">
+                  {filteredStaff.map((staff) => (
+                    <StaffRow
                       key={staff.id}
-                      className={`crm-staff-row${selected ? ' crm-staff-row-active' : ''}`}
-                      onClick={() => setSelectedStaffId(staff.id)}
-                    >
-                      <div>
-                        <p className="crm-staff-name">{staff.name}</p>
-                        <p className="crm-staff-subline">{staff.role}</p>
-                      </div>
+                      staff={staff}
+                      isSelected={selectedStaff?.id === staff.id}
+                      onSelect={(id) => setSelectedStaffId(id)}
+                      onOpen={(id) => {
+                        setSelectedStaffId(id);
+                        setDetailTab('overview');
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </article>
 
-                      <div className="crm-staff-service-tags">
-                        {staff.services.slice(0, 3).map((service) => <span key={service}>{service}</span>)}
-                      </div>
-
-                      <p className="crm-staff-cell">{staff.workingHours}</p>
-                      <p className="crm-staff-cell">{utilizationText}</p>
-
-                      <div>
-                        <span className={`crm-staff-status-pill crm-staff-status-${availabilityTone(staff.availability)}`}>
-                          {staff.availability}
-                        </span>
-                      </div>
-
-                      <label className="crm-staff-toggle-wrap" onClick={(event) => event.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={staff.status === 'Active'}
-                          onChange={(event) =>
-                            updateStaff(staff.id, {
-                              status: event.target.checked ? 'Active' : 'Inactive',
-                              availability: event.target.checked ? 'Available' : 'Off Duty',
-                            })
-                          }
-                        />
-                        <span />
-                      </label>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </article>
+            <StaffOperationsWorkspace
+              selectedStaff={selectedStaff}
+              operationTab={operationTab}
+              onTabChange={setOperationTab}
+              coverageRows={coverageRows}
+              onDutyStaff={onDutyStaffNames}
+              availableStaff={availableStaffNames}
+              recentActivity={recentActivity}
+            />
+          </div>
 
           <aside className="crm-staff-detail-card">
-            {selectedStaff ? (
-              <>
-                <div className="crm-staff-profile-head">
-                  <div className="crm-staff-avatar">{selectedStaff.name.slice(0, 2).toUpperCase()}</div>
-                  <h3>{selectedStaff.name}</h3>
-                  <p>{selectedStaff.role}</p>
-                  <p>{selectedStaff.email}</p>
-                  <p>{selectedStaff.phone}</p>
-                </div>
-
-                <div className="crm-staff-detail-meta">
-                  <div>
-                    <p>Availability</p>
-                    <strong>{selectedStaff.availability}</strong>
-                  </div>
-                  <div>
-                    <p>Today&apos;s Load</p>
-                    <strong>{selectedStaff.appointmentsToday}/{selectedStaff.capacityToday || 0}</strong>
-                  </div>
-                  <div>
-                    <p>Leave Status</p>
-                    <strong>{selectedStaff.leaveStatus}</strong>
-                  </div>
-                  <div>
-                    <p>Utilization</p>
-                    <strong>{selectedStaff.utilization}%</strong>
-                  </div>
-                </div>
-
-                <div className="crm-staff-utilization">
-                  <span style={{ width: `${selectedStaff.utilization}%` }} />
-                </div>
-
-                <div className="crm-staff-assigned-services">
-                  <p>Specialized Services</p>
-                  <div className="crm-staff-service-tags">
-                    {selectedStaff.services.map((service) => <span key={service}>{service}</span>)}
-                  </div>
-                </div>
-
-                <div className="crm-staff-schedule">
-                  <p>Schedule Snapshot</p>
-                  <ul>
-                    {selectedStaff.todaySchedule.map((slot) => (
-                      <li key={`${slot.time}-${slot.item}`} className={`crm-staff-slot-${slot.state}`}>
-                        <strong>{slot.time}</strong>
-                        <span>{slot.item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="crm-staff-weekly">
-                  <p>Weekly Availability</p>
-                  <ul>
-                    {selectedStaff.weeklySchedule.map((entry) => <li key={entry}>{entry}</li>)}
-                  </ul>
-                </div>
-
-                <p className="crm-staff-notes">{selectedStaff.notes}</p>
-
-                <div className="crm-staff-actions">
-                  <button type="button" className="crm-staff-primary-btn" onClick={handleEditProfile}>
-                    Edit Profile
-                  </button>
-                  <button type="button" className="crm-staff-secondary-btn" onClick={handleAssignServices}>
-                    Assign Services
-                  </button>
-                  <button type="button" className="crm-staff-secondary-btn" onClick={handleUpdateAvailability}>
-                    Update Availability
-                  </button>
-                  <button type="button" className="crm-staff-ghost-btn" onClick={handleViewSchedule}>
-                    View Schedule
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="crm-staff-empty">
-                <h3>Select a staff member</h3>
-                <p>Choose a profile to review availability, workload, and assignments.</p>
-              </div>
-            )}
+            <StaffDetailPanel
+              staff={selectedStaff}
+              detailTab={detailTab}
+              onTabChange={setDetailTab}
+              onUpdateStaff={updateStaff}
+              onEditProfile={handleEditProfile}
+              onAssignServices={handleAssignServices}
+              onUpdateAvailability={handleUpdateAvailability}
+              onViewSchedule={handleViewSchedule}
+              onViewTodayAppointments={handleViewTodayAppointments}
+              onReassignAppointments={handleReassignAppointments}
+              onViewCoverageImpact={handleViewCoverageImpact}
+              canManageStaff={permissions.manageStaff}
+            />
           </aside>
         </section>
       </main>

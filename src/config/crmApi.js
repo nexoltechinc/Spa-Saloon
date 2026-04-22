@@ -4,6 +4,8 @@ export const CRM_API_BASE_URL = import.meta.env.VITE_CRM_API_BASE_URL || '';
 export const CRM_API_PREFIX = import.meta.env.VITE_CRM_API_PREFIX || '/api/crm';
 
 export const CRM_API_RESOURCES = {
+  branches: '/branches',
+  receipts: '/receipts',
   leads: '/leads',
   customers: '/customers',
   appointments: '/appointments',

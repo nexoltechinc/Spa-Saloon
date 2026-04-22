@@ -1,81 +1,213 @@
-import { useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
   CalendarClock,
-  Check,
   Clock3,
   Globe2,
   LogOut,
-  Mail,
-  MapPinned,
   Palette,
-  Plus,
-  Receipt,
-  Settings2,
   Sparkles,
   UserRound,
 } from 'lucide-react';
 import { clearCrmToken } from '../config/crm';
+import { loadReceiptSettings, saveReceiptSettings } from '../config/receiptSettings';
 import CrmShell from '../components/CrmShell';
+import {
+  BookingRulesBlock,
+  BusinessProfileForm,
+  CommunicationSettingsBlock,
+  OperatingHoursDayCard,
+  ReceiptBrandingPreview,
+  RegionalDefaultsBlock,
+  SettingsSaveState,
+  SettingsSectionChip,
+  SettingsSectionHeader,
+
+  SpecialHoursManager,
+} from '../components/settings/SettingsBlocks';
 import './CrmSettings.css';
 
-const sections = [
-  { id: 'business-profile', label: 'Business Profile', icon: Sparkles },
-  { id: 'operating-hours', label: 'Operating Hours', icon: Clock3 },
-  { id: 'booking-rules', label: 'Booking Rules', icon: CalendarClock },
-  { id: 'branding-receipts', label: 'Branding & Receipts', icon: Palette },
-];
-
-const defaultHours = [
-  { day: 'Monday', open: '09:00', close: '18:00', enabled: true },
-  { day: 'Tuesday', open: '09:00', close: '20:00', enabled: true },
-  { day: 'Wednesday', open: '10:00', close: '19:00', enabled: true },
-  { day: 'Thursday', open: '10:00', close: '20:00', enabled: true },
-  { day: 'Friday', open: '09:00', close: '21:00', enabled: true },
-  { day: 'Saturday', open: '10:00', close: '17:00', enabled: true },
-  { day: 'Sunday', open: '10:00', close: '17:00', enabled: false },
+const sectionGroups = [
+  {
+    title: 'Core Business',
+    sections: [
+      { id: 'business-profile', label: 'Business Profile', icon: Sparkles },
+      { id: 'regional-defaults', label: 'Regional Defaults', icon: Globe2 },
+      { id: 'operating-hours', label: 'Operating Hours', icon: Clock3 },
+    ],
+  },
+  {
+    title: 'Booking Engine',
+    sections: [
+      { id: 'booking-rules', label: 'Booking Rules', icon: CalendarClock },
+      { id: 'communications', label: 'Communications', icon: Bell },
+    ],
+  },
+  {
+    title: 'Brand Experience',
+    sections: [{ id: 'branding-receipts', label: 'Branding & Receipts', icon: Palette }],
+  },
 ];
 
 const notificationItems = [
-  { title: '2 confirmations sent', detail: 'Guests for today’s bookings were notified 24 hours ahead.' },
+  { title: '2 confirmations sent', detail: 'Guests for today\'s bookings were notified 24 hours ahead.' },
   { title: '1 seasonal window pending', detail: 'Holiday hours can be published from Operating Hours.' },
   { title: 'Receipt quote updated', detail: 'The receipt header copy was edited 12 minutes ago.' },
 ];
 
+const cloneSettings = (value) => {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+};
+
+const createSpecialHourDraft = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  return {
+    id: `special-${Date.now()}`,
+    label: 'Seasonal Hours',
+    date: date.toISOString().slice(0, 10),
+    type: 'Seasonal hours',
+    open: '10:00',
+    close: '16:00',
+    closed: true,
+    note: 'Temporary seasonal window staged from Settings.',
+  };
+};
+
+const isNonEmpty = (value) => String(value || '').trim().length > 0;
+const isEmailLike = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+const isDigitsOnly = (value) => /^\d+$/.test(String(value || '').trim());
+
+const buildSectionSnapshot = (settings) => ({
+  profile: {
+    businessName: settings.profile.businessName,
+    legalName: settings.profile.legalName,
+    receiptDisplayName: settings.profile.receiptDisplayName,
+    branchName: settings.profile.branchName,
+    contactEmail: settings.profile.contactEmail,
+    contactPhone: settings.profile.contactPhone,
+    publicBookingEmail: settings.profile.publicBookingEmail,
+    publicBookingPhone: settings.profile.publicBookingPhone,
+    internalContactName: settings.profile.internalContactName,
+    internalContactEmail: settings.profile.internalContactEmail,
+    address: settings.profile.address,
+    mapLink: settings.profile.mapLink,
+    website: settings.profile.website,
+    bookingPageUrl: settings.profile.bookingPageUrl,
+    taxId: settings.profile.taxId,
+    brandMarkName: settings.profile.brandMarkName,
+    brandMarkImage: settings.profile.brandMarkImage,
+  },
+  regionalDefaults: settings.regionalDefaults,
+  operatingHours: settings.operatingHours,
+  specialHours: settings.specialHours,
+  bookingRules: settings.bookingRules,
+  communication: settings.communication,
+  branding: settings.branding,
+});
+
+const validateSettings = (settings) => {
+  const issues = {
+    profile: [],
+    regionalDefaults: [],
+    operatingHours: [],
+    bookingRules: [],
+    communications: [],
+    branding: [],
+  };
+
+  if (!isNonEmpty(settings.profile.businessName)) issues.profile.push('Business name is required.');
+  if (!isEmailLike(settings.profile.contactEmail)) issues.profile.push('Main contact email should be valid.');
+  if (!isNonEmpty(settings.profile.address)) issues.profile.push('Primary location address is missing.');
+  if (!isNonEmpty(settings.regionalDefaults.timezone)) issues.regionalDefaults.push('Timezone is required.');
+  if (!isNonEmpty(settings.regionalDefaults.currency)) issues.regionalDefaults.push('Currency is required.');
+
+  settings.operatingHours.forEach((entry) => {
+    if (entry.enabled && (!isNonEmpty(entry.open) || !isNonEmpty(entry.close))) {
+      issues.operatingHours.push(`${entry.day} needs open and close times.`);
+    }
+    if (entry.enabled && isNonEmpty(entry.breakStart) !== isNonEmpty(entry.breakEnd)) {
+      issues.operatingHours.push(`${entry.day} break times should be completed together.`);
+    }
+  });
+
+  if (!isDigitsOnly(settings.bookingRules.bufferTime)) issues.bookingRules.push('Buffer time should be a number.');
+  if (!isNonEmpty(settings.bookingRules.slotInterval)) issues.bookingRules.push('Slot interval is required.');
+  if (!isNonEmpty(settings.bookingRules.maxAdvanceBooking)) issues.bookingRules.push('Maximum advance booking is required.');
+  if (!isEmailLike(settings.communication.senderEmail)) issues.communications.push('Sender email should be valid.');
+  if (!isEmailLike(settings.communication.replyToEmail)) issues.communications.push('Reply-to email should be valid.');
+  if (!isNonEmpty(settings.branding.receiptNumberPrefix)) issues.branding.push('Receipt number prefix is required.');
+  if (!isNonEmpty(settings.branding.receiptHeaderQuote)) issues.branding.push('Receipt header quote can not be blank.');
+  if (!isNonEmpty(settings.branding.receiptFooterText)) issues.branding.push('Receipt footer text can not be blank.');
+
+  return issues;
+};
 const CrmSettings = () => {
   const navigate = useNavigate();
   const brandMarkInputRef = useRef(null);
+  const [initialSettings] = useState(() => loadReceiptSettings());
+  const [savedSettings, setSavedSettings] = useState(() => cloneSettings(initialSettings));
+  const [draft, setDraft] = useState(() => cloneSettings(initialSettings));
+  const [saveState, setSaveState] = useState('saved');
   const [activeSection, setActiveSection] = useState('business-profile');
-  const [dirty, setDirty] = useState(false);
-  const [savedMessage, setSavedMessage] = useState('All changes synced 2 minutes ago');
-  const [seasonalSchedules, setSeasonalSchedules] = useState([]);
   const [activePanel, setActivePanel] = useState(null);
-  const [profile, setProfile] = useState({
-    businessName: 'Aura Spa & Wellness',
-    legalName: 'Aura Wellness Group LLC',
-    contactEmail: 'hello@aurawellness.com',
-    contactPhone: '(323) 555-0188',
-    address: '8422 Melrose Ave, West Hollywood, CA 90069',
-    website: 'www.aurawellness.com',
-  });
-  const [booking, setBooking] = useState({
-    bufferTime: '15',
-    cancellationWindow: '24 Hours',
-    reminderLeadTime: '24 hours before',
-  });
-  const [hours, setHours] = useState(defaultHours);
-  const [receiptQuote, setReceiptQuote] = useState('May your calm endure long after you leave.');
-  const [brandingLayout, setBrandingLayout] = useState('centered');
-  const [brandMarkLabel, setBrandMarkLabel] = useState('Update brand mark');
-  const [toggles, setToggles] = useState({
-    automatedConfirmations: true,
-    collectDeposit: true,
-    includeSocialHandles: false,
-    hidePrices: false,
-  });
+  const [specialHourDraft, setSpecialHourDraft] = useState(() => createSpecialHourDraft());
+  const [brandMarkLabel, setBrandMarkLabel] = useState(initialSettings.profile.brandMarkName || 'Update brand mark');
+  const [brandMarkPreview, setBrandMarkPreview] = useState(initialSettings.profile.brandMarkImage || '');
+  const [lastSavedAt, setLastSavedAt] = useState(initialSettings.updatedAt || new Date().toISOString());
+  const [isBooting, setIsBooting] = useState(true);
 
-  const markDirty = () => setDirty(true);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setIsBooting(false), 130);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const validationErrors = useMemo(() => validateSettings(draft), [draft]);
+  const validationCount = useMemo(
+    () => Object.values(validationErrors).reduce((sum, list) => sum + list.length, 0),
+    [validationErrors],
+  );
+
+  const dirtySections = useMemo(() => {
+    const current = buildSectionSnapshot(draft);
+    const saved = buildSectionSnapshot(savedSettings);
+    const compare = (key) => JSON.stringify(current[key]) !== JSON.stringify(saved[key]);
+
+    return {
+      profile: compare('profile'),
+      regionalDefaults: compare('regionalDefaults'),
+      operatingHours: compare('operatingHours') || compare('specialHours'),
+      bookingRules: compare('bookingRules'),
+      communications: compare('communication'),
+      branding: compare('branding'),
+    };
+  }, [draft, savedSettings]);
+
+  const dirty = Object.values(dirtySections).some(Boolean);
+  const effectiveSaveState = saveState === 'saving' || saveState === 'error' ? saveState : dirty ? 'dirty' : 'saved';
+
+  const sectionStates = useMemo(
+    () => [
+      ['business-profile', 'Business Profile', 'profile'],
+      ['regional-defaults', 'Regional Defaults', 'regionalDefaults'],
+      ['operating-hours', 'Operating Hours', 'operatingHours'],
+      ['booking-rules', 'Booking Rules', 'bookingRules'],
+      ['communications', 'Communications', 'communications'],
+      ['branding-receipts', 'Branding & Receipts', 'branding'],
+    ].map(([id, label, key]) => {
+      const errorCount = validationErrors[key]?.length || 0;
+      const sectionDirty = dirtySections[key];
+      const state = errorCount > 0 ? 'error' : sectionDirty ? 'dirty' : 'saved';
+      return { id, label, key, state, stateLabel: errorCount > 0 ? `${errorCount} issue${errorCount === 1 ? '' : 's'}` : sectionDirty ? 'Draft' : 'Ready' };
+    }),
+    [dirtySections, validationErrors],
+  );
+
+  const markChanged = () => {
+    setSaveState((current) => (current === 'saving' ? current : 'dirty'));
+  };
 
   const scrollToSection = (id) => {
     setActiveSection(id);
@@ -83,74 +215,150 @@ const CrmSettings = () => {
   };
 
   const updateProfile = (field, value) => {
-    setProfile((current) => ({ ...current, [field]: value }));
-    markDirty();
+    setDraft((current) => ({ ...current, profile: { ...current.profile, [field]: value } }));
+    markChanged();
+  };
+
+  const updateRegionalDefaults = (field, value) => {
+    setDraft((current) => ({ ...current, regionalDefaults: { ...current.regionalDefaults, [field]: value } }));
+    markChanged();
   };
 
   const updateBooking = (field, value) => {
-    setBooking((current) => ({ ...current, [field]: value }));
-    markDirty();
+    setDraft((current) => ({ ...current, bookingRules: { ...current.bookingRules, [field]: value } }));
+    markChanged();
+  };
+
+  const toggleBooking = (field) => {
+    setDraft((current) => ({ ...current, bookingRules: { ...current.bookingRules, [field]: !current.bookingRules[field] } }));
+    markChanged();
+  };
+
+  const updateCommunication = (field, value) => {
+    setDraft((current) => ({ ...current, communication: { ...current.communication, [field]: value } }));
+    markChanged();
+  };
+
+  const toggleCommunication = (field) => {
+    setDraft((current) => ({ ...current, communication: { ...current.communication, [field]: !current.communication[field] } }));
+    markChanged();
+  };
+
+  const updateBranding = (field, value) => {
+    setDraft((current) => ({ ...current, branding: { ...current.branding, [field]: value } }));
+    markChanged();
   };
 
   const updateHour = (index, field, value) => {
-    setHours((current) => current.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
-    markDirty();
+    setDraft((current) => ({
+      ...current,
+      operatingHours: current.operatingHours.map((entry, i) => (i === index ? { ...entry, [field]: value } : entry)),
+    }));
+    markChanged();
   };
 
   const toggleHour = (index) => {
-    setHours((current) =>
-      current.map((item, i) => (i === index ? { ...item, enabled: !item.enabled } : item)),
-    );
-    markDirty();
-  };
-
-  const toggleSetting = (field) => {
-    setToggles((current) => ({ ...current, [field]: !current[field] }));
-    markDirty();
-  };
-
-  const closePanel = () => setActivePanel(null);
-
-  const handleOpenBrandMarkPicker = () => {
-    brandMarkInputRef.current?.click();
+    setDraft((current) => ({
+      ...current,
+      operatingHours: current.operatingHours.map((entry, i) => (i === index ? { ...entry, enabled: !entry.enabled } : entry)),
+    }));
+    markChanged();
   };
 
   const handleBrandMarkChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    setBrandMarkLabel(file.name);
-    setSavedMessage(`Brand mark staged: ${file.name}`);
-    markDirty();
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      setBrandMarkLabel(file.name);
+      setBrandMarkPreview(dataUrl);
+      updateProfile('brandMarkName', file.name);
+      updateProfile('brandMarkImage', dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleAddSeasonalSchedule = () => {
-    const newSchedule = {
-      id: `seasonal-${Date.now()}`,
-      label: 'Seasonal Hours',
-      range: 'Next 2 weeks',
-      note: 'Extended availability for peak booking periods.',
-      status: 'Draft',
-    };
+  const handleAddSpecialHours = () => {
+    setSpecialHourDraft(createSpecialHourDraft());
+    setActivePanel('special-hours');
+  };
 
-    setSeasonalSchedules((current) => [newSchedule, ...current]);
-    setSavedMessage(
-      `Seasonal schedule staged at ${new Date().toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      })}`,
-    );
-    markDirty();
+  const updateSpecialHourDraft = (field, value) => {
+    setSpecialHourDraft((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSaveSpecialHours = () => {
+    setDraft((current) => ({ ...current, specialHours: [specialHourDraft, ...current.specialHours] }));
+    setSaveState('dirty');
+    setActivePanel(null);
+  };
+
+  const handleRemoveSpecialHour = (id) => {
+    setDraft((current) => ({ ...current, specialHours: current.specialHours.filter((item) => item.id !== id) }));
+    markChanged();
+  };
+
+  const resetAll = () => {
+    const snapshot = cloneSettings(savedSettings);
+    setDraft(snapshot);
+    setBrandMarkLabel(snapshot.profile.brandMarkName || 'Update brand mark');
+    setBrandMarkPreview(snapshot.profile.brandMarkImage || '');
+    setSaveState('saved');
+  };
+
+  const resetSection = (sectionId) => {
+    setDraft((current) => {
+      const next = cloneSettings(current);
+      switch (sectionId) {
+        case 'business-profile':
+          next.profile = cloneSettings(savedSettings.profile);
+          setBrandMarkLabel(savedSettings.profile.brandMarkName || 'Update brand mark');
+          setBrandMarkPreview(savedSettings.profile.brandMarkImage || '');
+          break;
+        case 'regional-defaults':
+          next.regionalDefaults = cloneSettings(savedSettings.regionalDefaults);
+          break;
+        case 'operating-hours':
+          next.operatingHours = cloneSettings(savedSettings.operatingHours);
+          next.specialHours = cloneSettings(savedSettings.specialHours);
+          break;
+        case 'booking-rules':
+          next.bookingRules = cloneSettings(savedSettings.bookingRules);
+          break;
+        case 'communications':
+          next.communication = cloneSettings(savedSettings.communication);
+          break;
+        case 'branding-receipts':
+          next.branding = cloneSettings(savedSettings.branding);
+          break;
+        default:
+          return current;
+      }
+      return next;
+    });
+    setSaveState('dirty');
   };
 
   const handleSave = () => {
-    setDirty(false);
-    setSavedMessage(
-      `Updated just now at ${new Date().toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      })}`,
-    );
+    if (validationCount > 0) {
+      setSaveState('error');
+      return;
+    }
+
+    try {
+      setSaveState('saving');
+      const saved = saveReceiptSettings(draft);
+      const snapshot = cloneSettings(saved);
+      setSavedSettings(snapshot);
+      setDraft(snapshot);
+      setBrandMarkLabel(snapshot.profile.brandMarkName || 'Update brand mark');
+      setBrandMarkPreview(snapshot.profile.brandMarkImage || '');
+      setLastSavedAt(snapshot.updatedAt || new Date().toISOString());
+      setSaveState('saved');
+    } catch {
+      setSaveState('error');
+    }
   };
 
   const handleLogout = () => {
@@ -158,400 +366,340 @@ const CrmSettings = () => {
     navigate('/crm-login');
   };
 
+  useEffect(() => {
+    const beforeUnload = (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [dirty]);
+  if (isBooting) {
+    return (
+      <CrmShell shellClassName="crm-settings-shell">
+        <main className="crm-settings-main">
+          <div className="crm-settings-loading-grid" aria-label="Loading settings">
+            <div className="crm-settings-loading-card crm-settings-loading-card-large" />
+            <div className="crm-settings-loading-card crm-settings-loading-card-tall" />
+            <div className="crm-settings-loading-row">
+              <div className="crm-settings-loading-card" />
+              <div className="crm-settings-loading-card" />
+            </div>
+            <div className="crm-settings-loading-row">
+              <div className="crm-settings-loading-card" />
+              <div className="crm-settings-loading-card" />
+            </div>
+          </div>
+        </main>
+      </CrmShell>
+    );
+  }
+
   return (
-    <CrmShell
-      shellClassName="crm-settings-shell"
-    >
+    <CrmShell shellClassName="crm-settings-shell">
       <main className="crm-settings-main">
         <header className="crm-settings-topbar">
           <div className="crm-settings-header-copy">
             <p className="crm-settings-kicker">Ecosystem Configuration</p>
             <h1>Refine the Essence of Your Sanctuary</h1>
             <p className="crm-settings-subcopy">
-              Configure the business profile, operating rhythm, booking rules, and guest-facing
-              branding that shape the premium spa experience.
+              Configure the business profile, operating rhythm, booking rules, guest communication,
+              and branded receipt presentation that shape the premium spa experience.
             </p>
           </div>
 
-          <div className="crm-settings-topbar-actions">
-            <button
-              className={`crm-settings-save-btn${dirty ? ' crm-settings-save-btn-dirty' : ''}`}
-              type="button"
-              onClick={handleSave}
-            >
-              <Check size={15} />
-              <span>{dirty ? 'Save Changes' : 'Saved'}</span>
-            </button>
-            <button
-              className="crm-settings-icon-btn"
-              type="button"
-              aria-label="Notifications"
-              aria-expanded={activePanel === 'notifications'}
-              onClick={() => setActivePanel(activePanel === 'notifications' ? null : 'notifications')}
-            >
-              <Bell size={16} />
-            </button>
-            <button
-              className="crm-settings-icon-btn"
-              type="button"
-              aria-label="Account"
-              aria-expanded={activePanel === 'account'}
-              onClick={() => setActivePanel(activePanel === 'account' ? null : 'account')}
-            >
-              <UserRound size={16} />
-            </button>
-            <button className="crm-settings-logout-btn" type="button" onClick={handleLogout}>
-              <LogOut size={15} />
-              <span>Logout</span>
-            </button>
+          <div className="crm-settings-topbar-stack">
+            <SettingsSaveState
+              saveState={effectiveSaveState}
+              dirty={dirty}
+              validationCount={validationCount}
+              lastSavedAt={lastSavedAt}
+              onSave={handleSave}
+              onResetAll={resetAll}
+            />
+
+            <div className="crm-settings-topbar-actions">
+              <button
+                className="crm-settings-icon-btn"
+                type="button"
+                aria-label="Notifications"
+                aria-expanded={activePanel === 'notifications'}
+                onClick={() => setActivePanel(activePanel === 'notifications' ? null : 'notifications')}
+              >
+                <Bell size={16} />
+              </button>
+              <button
+                className="crm-settings-icon-btn"
+                type="button"
+                aria-label="Account"
+                aria-expanded={activePanel === 'account'}
+                onClick={() => setActivePanel(activePanel === 'account' ? null : 'account')}
+              >
+                <UserRound size={16} />
+              </button>
+              <button className="crm-settings-logout-btn" type="button" onClick={handleLogout}>
+                <LogOut size={15} />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </header>
 
-        <section className="crm-settings-tabs" aria-label="Settings sections">
-          {sections.map((section) => {
-            const Icon = section.icon;
-            const isActive = activeSection === section.id;
-
-            return (
-              <button
-                key={section.id}
-                type="button"
-                className={`crm-settings-tab${isActive ? ' crm-settings-tab-active' : ''}`}
-                onClick={() => scrollToSection(section.id)}
-              >
-                <Icon size={15} />
-                <span>{section.label}</span>
-              </button>
-            );
-          })}
+        <section className="crm-settings-tabs crm-settings-tabs-grouped" aria-label="Settings sections">
+          {sectionGroups.map((group) => (
+            <div key={group.title} className="crm-settings-tab-group">
+              <span className="crm-settings-tab-group-label">{group.title}</span>
+              <div className="crm-settings-tab-group-row">
+                {group.sections.map((section) => {
+                  const sectionState = sectionStates.find((item) => item.id === section.id);
+                  return (
+                    <SettingsSectionChip
+                      key={section.id}
+                      label={section.label}
+                      icon={section.icon}
+                      active={activeSection === section.id}
+                      status={sectionState?.state || 'saved'}
+                      onClick={() => scrollToSection(section.id)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </section>
 
         <section className="crm-settings-content-grid">
           <article className="crm-settings-card crm-settings-card-profile" id="business-profile">
-            <div className="crm-settings-card-head">
-              <div>
-                <h3>Business Profile</h3>
-                <p>Public-facing identity and contact details visible to guests.</p>
-              </div>
-            </div>
-
-            <div className="crm-settings-brand-row">
-              <div className="crm-settings-brand-seal">
-                <div className="crm-settings-brand-mark">AW</div>
-              </div>
-
-              <div className="crm-settings-brand-copy">
-                <h4>{profile.businessName}</h4>
-                <p>Established 2021 - Los Angeles, CA</p>
-                <button className="crm-settings-inline-link" type="button" onClick={handleOpenBrandMarkPicker}>
-                  Update Brand Mark
+            <SettingsSectionHeader
+              kicker="Core Business"
+              title="Business Profile"
+              description="Public-facing identity and contact details visible to guests."
+              status={sectionStates.find((item) => item.id === 'business-profile')?.stateLabel}
+              statusTone={sectionStates.find((item) => item.id === 'business-profile')?.state}
+              actions={
+                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('business-profile')}>
+                  <span>Reset Section</span>
                 </button>
-                <input
-                  ref={brandMarkInputRef}
-                  className="crm-settings-sr-file"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBrandMarkChange}
-                  aria-label="Upload brand mark"
-                />
-                <span className="crm-settings-inline-note">{brandMarkLabel}</span>
-              </div>
+              }
+            />
 
-              <div className="crm-settings-brand-meta">
-                <div>
-                  <span>Guest Visibility</span>
-                  <strong>Live</strong>
-                </div>
-                <div>
-                  <span>Timezone</span>
-                  <strong>PST</strong>
-                </div>
-              </div>
-            </div>
+            <BusinessProfileForm
+              profile={draft.profile}
+              onChange={updateProfile}
+              brandMarkLabel={brandMarkLabel}
+              brandMarkPreview={brandMarkPreview}
+              onPickBrandMark={() => brandMarkInputRef.current?.click()}
+            />
 
-            <div className="crm-settings-form-grid">
-              <label className="crm-settings-field">
-                <span>Business Name</span>
-                <input type="text" value={profile.businessName} onChange={(e) => updateProfile('businessName', e.target.value)} />
-              </label>
-
-              <label className="crm-settings-field">
-                <span>Contact Email</span>
-                <div className="crm-settings-input-icon-wrap">
-                  <Mail size={15} />
-                  <input type="email" value={profile.contactEmail} onChange={(e) => updateProfile('contactEmail', e.target.value)} />
-                </div>
-              </label>
-
-              <label className="crm-settings-field">
-                <span>Legal Entity Name</span>
-                <input type="text" value={profile.legalName} onChange={(e) => updateProfile('legalName', e.target.value)} />
-              </label>
-
-              <label className="crm-settings-field">
-                <span>Business Phone</span>
-                <input type="text" value={profile.contactPhone} onChange={(e) => updateProfile('contactPhone', e.target.value)} />
-              </label>
-
-              <label className="crm-settings-field crm-settings-field-full">
-                <span>Primary Location Address</span>
-                <div className="crm-settings-input-icon-wrap">
-                  <MapPinned size={15} />
-                  <input type="text" value={profile.address} onChange={(e) => updateProfile('address', e.target.value)} />
-                </div>
-              </label>
-
-              <label className="crm-settings-field crm-settings-field-full">
-                <span>Website</span>
-                <div className="crm-settings-input-icon-wrap">
-                  <Globe2 size={15} />
-                  <input type="text" value={profile.website} onChange={(e) => updateProfile('website', e.target.value)} />
-                </div>
-              </label>
-            </div>
+            <input
+              ref={brandMarkInputRef}
+              className="crm-settings-sr-file"
+              type="file"
+              accept="image/*"
+              onChange={handleBrandMarkChange}
+              aria-label="Upload brand mark"
+            />
           </article>
 
           <div className="crm-settings-side-stack">
-            <article className="crm-settings-card crm-settings-location-card">
-              <div className="crm-settings-card-head">
-                <div>
-                  <h3>Location Preview</h3>
-                  <p>Signature arrival view for guest confirmations and receipts.</p>
-                </div>
-              </div>
-
-              <div className="crm-settings-location-frame">
-                <div className="crm-settings-location-art">
-                  <div className="crm-settings-location-grid" />
-                  <div className="crm-settings-location-wave crm-settings-location-wave-top" />
-                  <div className="crm-settings-location-wave crm-settings-location-wave-bottom" />
-                </div>
-              </div>
-            </article>
+            <ReceiptBrandingPreview
+              profile={draft.profile}
+              branding={draft.branding}
+              communication={draft.communication}
+              regionalDefaults={draft.regionalDefaults}
+            />
           </div>
         </section>
 
         <section className="crm-settings-card crm-settings-hours-section" id="operating-hours">
-          <div className="crm-settings-card-head crm-settings-card-head-inline">
-            <div>
-              <h3>Operating Hours</h3>
-              <p>Control the weekly rhythm your booking engine presents to guests.</p>
-            </div>
-            <button className="crm-settings-ghost-action" type="button" onClick={handleAddSeasonalSchedule}>
-              <Plus size={15} />
-              <span>Add Seasonal Schedule</span>
-            </button>
-          </div>
+          <SettingsSectionHeader
+            kicker="Core Business"
+            title="Operating Hours"
+            description="Control the weekly rhythm your booking engine presents to guests."
+            status={sectionStates.find((item) => item.id === 'operating-hours')?.stateLabel}
+            statusTone={sectionStates.find((item) => item.id === 'operating-hours')?.state}
+            actions={
+              <button className="crm-settings-ghost-action" type="button" onClick={handleAddSpecialHours}>
+                <Sparkles size={15} />
+                <span>Add Special Hours</span>
+              </button>
+            }
+          />
 
           <div className="crm-settings-hours-grid">
-            {hours.map((entry, index) => (
-              <article
+            {draft.operatingHours.map((entry, index) => (
+              <OperatingHoursDayCard
                 key={entry.day}
-                className={`crm-settings-hour-card${entry.enabled ? '' : ' crm-settings-hour-card-closed'}`}
-              >
-                <div className="crm-settings-hour-head">
-                  <span>{entry.day}</span>
-                  <button
-                    className={`crm-settings-toggle${entry.enabled ? ' crm-settings-toggle-on' : ''}`}
-                    type="button"
-                    aria-pressed={entry.enabled}
-                    onClick={() => toggleHour(index)}
-                  >
-                    <span />
-                  </button>
-                </div>
-
-                {entry.enabled ? (
-                  <div className="crm-settings-hour-inputs">
-                    <label>
-                      <span>From</span>
-                      <input type="time" value={entry.open} onChange={(e) => updateHour(index, 'open', e.target.value)} />
-                    </label>
-                    <label>
-                      <span>To</span>
-                      <input type="time" value={entry.close} onChange={(e) => updateHour(index, 'close', e.target.value)} />
-                    </label>
-                  </div>
-                ) : (
-                  <div className="crm-settings-hour-closed-copy">
-                    <strong>Sanctuary Closed</strong>
-                    <p>Online bookings pause for this day.</p>
-                  </div>
-                )}
-              </article>
+                entry={entry}
+                onChange={(field, value) => updateHour(index, field, value)}
+                onToggle={() => toggleHour(index)}
+              />
             ))}
 
-            <button className="crm-settings-hour-add-card" type="button" onClick={handleAddSeasonalSchedule}>
-              <Plus size={24} />
+            <button className="crm-settings-hour-add-card" type="button" onClick={handleAddSpecialHours}>
+              <Sparkles size={24} />
               <span>Create Special Hours</span>
             </button>
           </div>
 
-          {seasonalSchedules.length ? (
-            <div className="crm-settings-seasonal-grid">
-              {seasonalSchedules.map((schedule) => (
-                <article key={schedule.id} className="crm-settings-seasonal-card">
-                  <div>
-                    <span>{schedule.label}</span>
-                    <strong>{schedule.range}</strong>
-                  </div>
-                  <p>{schedule.note}</p>
-                  <em>{schedule.status}</em>
-                </article>
-              ))}
-            </div>
-          ) : null}
+          <SpecialHoursManager
+            specialHours={draft.specialHours}
+            onAdd={handleAddSpecialHours}
+            onRemove={handleRemoveSpecialHour}
+          />
+        </section>
+        <section className="crm-settings-lower-grid">
+          <article className="crm-settings-card" id="regional-defaults">
+            <SettingsSectionHeader
+              kicker="Core Business"
+              title="Regional Defaults"
+              description="Timezone, currency, date format, and locale settings used across the CRM."
+              status={sectionStates.find((item) => item.id === 'regional-defaults')?.stateLabel}
+              statusTone={sectionStates.find((item) => item.id === 'regional-defaults')?.state}
+              actions={
+                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('regional-defaults')}>
+                  <span>Reset Section</span>
+                </button>
+              }
+            />
+
+            <RegionalDefaultsBlock regionalDefaults={draft.regionalDefaults} onChange={updateRegionalDefaults} />
+          </article>
+
+          <article className="crm-settings-card" id="booking-rules">
+            <SettingsSectionHeader
+              kicker="Booking Engine"
+              title="Booking Rules"
+              description="Guide guest expectations, booking windows, confirmations, and premium slot handling."
+              status={sectionStates.find((item) => item.id === 'booking-rules')?.stateLabel}
+              statusTone={sectionStates.find((item) => item.id === 'booking-rules')?.state}
+              actions={
+                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('booking-rules')}>
+                  <span>Reset Section</span>
+                </button>
+              }
+            />
+
+            <BookingRulesBlock bookingRules={draft.bookingRules} onChange={updateBooking} onToggle={toggleBooking} />
+          </article>
         </section>
 
         <section className="crm-settings-lower-grid">
-          <article className="crm-settings-card" id="booking-rules">
-            <div className="crm-settings-card-head">
-              <div>
-                <h3>Booking Rules</h3>
-                <p>Guide guest expectations, lead times, and automated confirmations.</p>
-              </div>
-            </div>
-
-            <div className="crm-settings-rule-stack">
-              <div className="crm-settings-rule-row">
-                <div>
-                  <span>Buffer Time</span>
-                  <p>Minutes required between each treatment.</p>
-                </div>
-                <input className="crm-settings-pill-input" type="text" value={booking.bufferTime} onChange={(e) => updateBooking('bufferTime', e.target.value)} />
-              </div>
-
-              <div className="crm-settings-rule-row">
-                <div>
-                  <span>Cancellation Window</span>
-                  <p>Minimum notice for penalty-free cancellation.</p>
-                </div>
-                <input className="crm-settings-pill-input crm-settings-pill-input-wide" type="text" value={booking.cancellationWindow} onChange={(e) => updateBooking('cancellationWindow', e.target.value)} />
-              </div>
-
-              <div className="crm-settings-rule-row">
-                <div>
-                  <span>Email Reminder Timing</span>
-                  <p>Default reminder cadence before each appointment.</p>
-                </div>
-                <input className="crm-settings-pill-input crm-settings-pill-input-wide" type="text" value={booking.reminderLeadTime} onChange={(e) => updateBooking('reminderLeadTime', e.target.value)} />
-              </div>
-
-              <div className="crm-settings-switch-row">
-                <div>
-                  <span>Automated Confirmations</span>
-                  <p>Send tailored email and SMS messages 24 hours before each booking.</p>
-                </div>
-                <button
-                  className={`crm-settings-toggle${toggles.automatedConfirmations ? ' crm-settings-toggle-on' : ''}`}
-                  type="button"
-                  aria-pressed={toggles.automatedConfirmations}
-                  onClick={() => toggleSetting('automatedConfirmations')}
-                >
-                  <span />
+          <article className="crm-settings-card" id="communications">
+            <SettingsSectionHeader
+              kicker="Booking Engine"
+              title="Communication Settings"
+              description="Keep booking confirmations, reminders, and follow-ups aligned with the guest experience."
+              status={sectionStates.find((item) => item.id === 'communications')?.stateLabel}
+              statusTone={sectionStates.find((item) => item.id === 'communications')?.state}
+              actions={
+                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('communications')}>
+                  <span>Reset Section</span>
                 </button>
-              </div>
+              }
+            />
 
-              <div className="crm-settings-switch-row">
-                <div>
-                  <span>Collect Deposit for Online Bookings</span>
-                  <p>Protect premium time slots with a deposit at checkout.</p>
-                </div>
-                <button
-                  className={`crm-settings-toggle${toggles.collectDeposit ? ' crm-settings-toggle-on' : ''}`}
-                  type="button"
-                  aria-pressed={toggles.collectDeposit}
-                  onClick={() => toggleSetting('collectDeposit')}
-                >
-                  <span />
-                </button>
-              </div>
-
-              <div className="crm-settings-switch-row">
-                <div>
-                  <span>Hide Prices from Guest Portal</span>
-                  <p>Keep pricing visible only after a guest chooses a service path.</p>
-                </div>
-                <button
-                  className={`crm-settings-toggle${toggles.hidePrices ? ' crm-settings-toggle-on' : ''}`}
-                  type="button"
-                  aria-pressed={toggles.hidePrices}
-                  onClick={() => toggleSetting('hidePrices')}
-                >
-                  <span />
-                </button>
-              </div>
-            </div>
+            <CommunicationSettingsBlock
+              communication={draft.communication}
+              onChange={updateCommunication}
+              onToggle={toggleCommunication}
+            />
           </article>
 
           <article className="crm-settings-card" id="branding-receipts">
-            <div className="crm-settings-card-head">
-              <div>
-                <h3>Branding &amp; Receipts</h3>
-                <p>Shape the post-visit touchpoint with polished brand presentation.</p>
+            <SettingsSectionHeader
+              kicker="Brand Experience"
+              title="Branding & Receipts"
+              description="Shape the post-visit touchpoint with polished brand presentation."
+              status={sectionStates.find((item) => item.id === 'branding-receipts')?.stateLabel}
+              statusTone={sectionStates.find((item) => item.id === 'branding-receipts')?.state}
+              actions={
+                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('branding-receipts')}>
+                  <span>Reset Section</span>
+                </button>
+              }
+            />
+
+            <div className="crm-settings-branding-panel">
+              <div className="crm-settings-form-grid crm-settings-form-grid-compact">
+                <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea">
+                  <span>Receipt Header Quote</span>
+                  <textarea rows="4" value={draft.branding.receiptHeaderQuote} onChange={(e) => updateBranding('receiptHeaderQuote', e.target.value)} />
+                </label>
+                <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea">
+                  <span>Receipt Footer Text</span>
+                  <textarea rows="4" value={draft.branding.receiptFooterText} onChange={(e) => updateBranding('receiptFooterText', e.target.value)} />
+                </label>
+                <label className="crm-settings-field">
+                  <span>Receipt Number Prefix</span>
+                  <input type="text" value={draft.branding.receiptNumberPrefix} onChange={(e) => updateBranding('receiptNumberPrefix', e.target.value)} />
+                </label>
+                <label className="crm-settings-field">
+                  <span>Logo Placement</span>
+                  <select value={draft.branding.logoPlacement} onChange={(e) => updateBranding('logoPlacement', e.target.value)}>
+                    <option value="centered">Centered</option>
+                    <option value="left">Left aligned</option>
+                  </select>
+                </label>
+                <label className="crm-settings-field">
+                  <span>Logo Size</span>
+                  <select value={draft.branding.logoSize} onChange={(e) => updateBranding('logoSize', e.target.value)}>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </label>
+                <label className="crm-settings-field">
+                  <span>Tax Display</span>
+                  <select value={draft.branding.taxDisplayMode} onChange={(e) => updateBranding('taxDisplayMode', e.target.value)}>
+                    <option value="Included">Included</option>
+                    <option value="Excluded">Excluded</option>
+                  </select>
+                </label>
               </div>
-            </div>
 
-            <label className="crm-settings-field crm-settings-field-textarea">
-              <span>Receipt Header Quote</span>
-              <textarea rows="4" value={receiptQuote} onChange={(e) => { setReceiptQuote(e.target.value); markDirty(); }} />
-            </label>
+              <div className="crm-settings-switch-stack crm-settings-switch-stack-compact">
+                {[
+                  ['showAddressOnReceipt', 'Show address on receipt', 'Display the location address on customer receipts.'],
+                  ['showPhoneOnReceipt', 'Show phone on receipt', 'Display the business phone number on receipts.'],
+                  ['showEmailOnReceipt', 'Show email on receipt', 'Display the business email on receipts.'],
+                  ['showWebsiteOnReceipt', 'Show website on receipt', 'Display the website on receipts.'],
+                  ['showTaxIdOnReceipt', 'Show tax/legal ID', 'Include the legal identifier on branded documents.'],
+                  ['includeSocialHandles', 'Include social handles', 'Display social or website references on receipts.'],
+                  ['showBrandMark', 'Show brand mark', 'Use the uploaded brand mark when available.'],
+                ].map(([key, label, hint]) => (
+                  <div className="crm-settings-switch-row" key={key}>
+                    <div>
+                      <span>{label}</span>
+                      <p>{hint}</p>
+                    </div>
+                    <button
+                      className={`crm-settings-toggle${draft.branding[key] ? ' crm-settings-toggle-on' : ''}`}
+                      type="button"
+                      aria-pressed={draft.branding[key]}
+                      onClick={() => updateBranding(key, !draft.branding[key])}
+                    >
+                      <span />
+                    </button>
+                  </div>
+                ))}
+              </div>
 
-            <div className="crm-settings-branding-layouts">
-              <button
-                className={`crm-settings-layout-option${brandingLayout === 'centered' ? ' crm-settings-layout-option-active' : ''}`}
-                type="button"
-                onClick={() => {
-                  setBrandingLayout('centered');
-                  markDirty();
-                }}
-              >
-                <div className="crm-settings-layout-preview crm-settings-layout-preview-centered">
-                  <div className="crm-settings-layout-logo">A</div>
+              <div className="crm-settings-branding-summary">
+                <div className="crm-settings-branding-chip">
+                  <Sparkles size={16} />
+                  <span>{draft.branding.logoPlacement === 'left' ? 'Logo left' : 'Logo centered'}</span>
                 </div>
-                <span>Logo Centered</span>
-              </button>
-
-              <button
-                className={`crm-settings-layout-option${brandingLayout === 'left' ? ' crm-settings-layout-option-active' : ''}`}
-                type="button"
-                onClick={() => {
-                  setBrandingLayout('left');
-                  markDirty();
-                }}
-              >
-                <div className="crm-settings-layout-preview crm-settings-layout-preview-left">
-                  <div className="crm-settings-layout-logo crm-settings-layout-logo-left" />
-                  <div className="crm-settings-layout-lines" />
+                <div className="crm-settings-branding-chip">
+                  <Palette size={16} />
+                  <span>Receipt quote active</span>
                 </div>
-                <span>Logo Left</span>
-              </button>
-            </div>
-
-            <div className="crm-settings-branding-summary">
-              <div className="crm-settings-branding-chip">
-                <Receipt size={16} />
-                <span>Luxury Receipt Style</span>
+                <div className="crm-settings-branding-chip">
+                  <Clock3 size={16} />
+                  <span>{draft.branding.taxDisplayMode} tax display</span>
+                </div>
               </div>
-              <div className="crm-settings-branding-chip">
-                <Settings2 size={16} />
-                <span>Default Tax Included</span>
-              </div>
-            </div>
-
-            <div className="crm-settings-switch-row crm-settings-switch-row-compact">
-              <div>
-                <span>Include Social Handles</span>
-                <p>Display Instagram and website references on receipts and confirmations.</p>
-              </div>
-              <button
-                className={`crm-settings-toggle${toggles.includeSocialHandles ? ' crm-settings-toggle-on' : ''}`}
-                type="button"
-                aria-pressed={toggles.includeSocialHandles}
-                onClick={() => toggleSetting('includeSocialHandles')}
-              >
-                <span />
-              </button>
             </div>
           </article>
         </section>
@@ -559,36 +707,18 @@ const CrmSettings = () => {
         <footer className="crm-settings-footer">
           <span>(c) 2026 Aura Wellness Ecosystem</span>
           <div className="crm-settings-footer-links">
-            <button type="button" onClick={() => setActivePanel('privacy')}>
-              Privacy
-            </button>
-            <button type="button" onClick={() => setActivePanel('terms')}>
-              Terms
-            </button>
+            <button type="button" onClick={() => setActivePanel('privacy')}>Privacy</button>
+            <button type="button" onClick={() => setActivePanel('terms')}>Terms</button>
             <span className="crm-settings-footer-status">System Status: Optimal</span>
           </div>
         </footer>
 
         {activePanel ? (
-          <div className="crm-settings-modal-backdrop" role="presentation" onClick={closePanel}>
-            <article
-              className="crm-settings-modal-card"
-              role="dialog"
-              aria-modal="true"
-              aria-label={activePanel}
-              onClick={(event) => event.stopPropagation()}
-            >
+          <div className="crm-settings-modal-backdrop" role="presentation" onClick={() => setActivePanel(null)}>
+            <article className="crm-settings-modal-card" role="dialog" aria-modal="true" aria-label={activePanel} onClick={(e) => e.stopPropagation()}>
               <div className="crm-settings-modal-head">
                 <div>
-                  <p>
-                    {activePanel === 'notifications'
-                      ? 'Notifications'
-                      : activePanel === 'account'
-                        ? 'Account'
-                        : activePanel === 'privacy'
-                          ? 'Privacy'
-                          : 'Terms'}
-                  </p>
+                  <p>{activePanel === 'notifications' ? 'Notifications' : activePanel === 'account' ? 'Account' : activePanel === 'privacy' ? 'Privacy' : activePanel === 'special-hours' ? 'Special Hours' : 'Terms'}</p>
                   <h3>
                     {activePanel === 'notifications'
                       ? 'Live activity and pending actions'
@@ -596,12 +726,12 @@ const CrmSettings = () => {
                         ? 'Account controls'
                         : activePanel === 'privacy'
                           ? 'Privacy summary'
-                          : 'Terms summary'}
+                          : activePanel === 'special-hours'
+                            ? 'Holiday closure or seasonal override'
+                            : 'Terms summary'}
                   </h3>
                 </div>
-                <button type="button" className="crm-settings-modal-close" onClick={closePanel}>
-                  Close
-                </button>
+                <button type="button" className="crm-settings-modal-close" onClick={() => setActivePanel(null)}>Close</button>
               </div>
 
               {activePanel === 'notifications' ? (
@@ -617,39 +747,34 @@ const CrmSettings = () => {
 
               {activePanel === 'account' ? (
                 <div className="crm-settings-modal-list">
-                  <article className="crm-settings-modal-item">
-                    <strong>Current user</strong>
-                    <p>Isabella Rose, General Manager</p>
-                  </article>
-                  <article className="crm-settings-modal-item">
-                    <strong>Quick actions</strong>
-                    <p>Use the sidebar, or jump directly to profile settings and logout.</p>
-                  </article>
+                  <article className="crm-settings-modal-item"><strong>Current user</strong><p>Isabella Rose, General Manager</p></article>
+                  <article className="crm-settings-modal-item"><strong>Quick actions</strong><p>Use the sidebar, or jump directly to profile settings and logout.</p></article>
                   <div className="crm-settings-modal-actions">
-                    <button type="button" onClick={() => scrollToSection('business-profile')}>
-                      Open profile
-                    </button>
-                    <button type="button" onClick={handleLogout}>
-                      Logout
-                    </button>
+                    <button type="button" onClick={() => scrollToSection('business-profile')}>Open profile</button>
+                    <button type="button" onClick={handleLogout}>Logout</button>
                   </div>
                 </div>
               ) : null}
 
-              {activePanel === 'privacy' ? (
-                <p className="crm-settings-modal-copy">
-                  The CRM keeps guest, booking, and payment data inside the workspace only. Use the
-                  settings tab to control what is visible on receipts, confirmations, and the guest
-                  portal.
-                </p>
-              ) : null}
+              {activePanel === 'privacy' ? <p className="crm-settings-modal-copy">The CRM keeps guest, booking, and payment data inside the workspace only. Use the settings screen to control what is visible on receipts, confirmations, and the guest portal.</p> : null}
+              {activePanel === 'terms' ? <p className="crm-settings-modal-copy">Staff-facing actions in this CRM are operational controls for scheduling, payments, and customer service. Use the booking and receipt settings above to align the front desk with your business policies.</p> : null}
 
-              {activePanel === 'terms' ? (
-                <p className="crm-settings-modal-copy">
-                  Staff-facing actions in this CRM are operational controls for scheduling,
-                  payments, and customer service. Use the booking and payment rules above to align
-                  the front desk with your business policies.
-                </p>
+              {activePanel === 'special-hours' ? (
+                <div className="crm-settings-modal-list">
+                  <div className="crm-settings-form-grid crm-settings-form-grid-compact">
+                    <label className="crm-settings-field"><span>Label</span><input type="text" value={specialHourDraft.label} onChange={(e) => updateSpecialHourDraft('label', e.target.value)} /></label>
+                    <label className="crm-settings-field"><span>Date</span><input type="date" value={specialHourDraft.date} onChange={(e) => updateSpecialHourDraft('date', e.target.value)} /></label>
+                    <label className="crm-settings-field"><span>Type</span><select value={specialHourDraft.type} onChange={(e) => updateSpecialHourDraft('type', e.target.value)}><option value="Holiday closure">Holiday closure</option><option value="Seasonal hours">Seasonal hours</option><option value="Private event">Private event</option><option value="Staff training">Staff training</option></select></label>
+                    <label className="crm-settings-field"><span>Open</span><input type="time" value={specialHourDraft.open} onChange={(e) => updateSpecialHourDraft('open', e.target.value)} /></label>
+                    <label className="crm-settings-field"><span>Close</span><input type="time" value={specialHourDraft.close} onChange={(e) => updateSpecialHourDraft('close', e.target.value)} /></label>
+                    <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea"><span>Note</span><textarea rows="3" value={specialHourDraft.note} onChange={(e) => updateSpecialHourDraft('note', e.target.value)} /></label>
+                  </div>
+                  <div className="crm-settings-switch-row crm-settings-switch-row-compact">
+                    <div><span>Closed all day</span><p>Use this for holiday closures or fully unavailable days.</p></div>
+                    <button className={`crm-settings-toggle${specialHourDraft.closed ? ' crm-settings-toggle-on' : ''}`} type="button" aria-pressed={specialHourDraft.closed} onClick={() => updateSpecialHourDraft('closed', !specialHourDraft.closed)}><span /></button>
+                  </div>
+                  <div className="crm-settings-modal-actions"><button type="button" onClick={handleSaveSpecialHours}>Save special hours</button></div>
+                </div>
               ) : null}
             </article>
           </div>
@@ -660,3 +785,4 @@ const CrmSettings = () => {
 };
 
 export default CrmSettings;
+

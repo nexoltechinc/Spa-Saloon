@@ -3,99 +3,110 @@ import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
 import CrmShell from '../components/CrmShell';
-import './CrmSettings.css';
 import './CrmCustomers.css';
 
-const customerSeed = [
-  {
-    id: 'C-1190',
-    name: 'Isabella Thorne',
-    phone: '+1 (555) 012-9988',
-    email: 'isabella.thorne@example.com',
-    tag: 'VIP',
-    status: 'Active',
-    createdAt: '2025-06-12',
-    lastVisit: '2026-04-05',
-    nextAppointment: '2026-04-12T10:00:00',
-    totalVisits: 24,
-    totalSpend: 4820,
-    loyaltyPoints: 1240,
-    preferredStaff: 'Sarah Jenkins',
-    preferredTimes: 'Weekday mornings',
-    preferences: ['Deep Tissue', 'Aromatherapy', 'Rose Quartz Facial'],
-    allergies: 'Prefers fragrance-sensitive oils',
-    followUpState: 'normal',
-    notes: 'Requested extra focus on lower back tension. Enjoys post-treatment peppermint tea.',
-    paymentHistory: ['Apr 05 - Cash - $185', 'Mar 22 - Cash - $210', 'Mar 05 - Card - $120'],
-    receiptCount: 17,
-  },
-  {
-    id: 'C-1144',
-    name: 'Julian Marc',
-    phone: '+1 (555) 012-4433',
-    email: 'julian.marc@example.com',
-    tag: 'Regular',
-    status: 'Active',
-    createdAt: '2025-11-03',
-    lastVisit: '2026-03-28',
-    nextAppointment: '',
-    totalVisits: 8,
-    totalSpend: 1190,
-    loyaltyPoints: 410,
-    preferredStaff: 'Marcus',
-    preferredTimes: 'Late afternoons',
-    preferences: ['Swedish Massage'],
-    allergies: 'None reported',
-    followUpState: 'needs_follow_up',
-    notes: 'No visit booked for this month. Good candidate for re-engagement sequence.',
-    paymentHistory: ['Mar 28 - Cash - $125', 'Mar 04 - Cash - $140'],
-    receiptCount: 8,
-  },
-  {
-    id: 'C-1087',
-    name: 'Elara Vance',
-    phone: '+1 (555) 012-7722',
-    email: 'elara.vance@example.com',
-    tag: 'VIP',
-    status: 'Active',
-    createdAt: '2024-10-19',
-    lastVisit: '2026-03-20',
-    nextAppointment: '2026-04-22T10:00:00',
-    totalVisits: 42,
-    totalSpend: 9210,
-    loyaltyPoints: 2104,
-    preferredStaff: 'Elena',
-    preferredTimes: 'Mid-morning',
-    preferences: ['Hot Stone', 'Deluxe Facial'],
-    allergies: 'Avoid peppermint products',
-    followUpState: 'normal',
-    notes: 'Long-term client. Celebrating birthday package in May.',
-    paymentHistory: ['Mar 20 - Cash - $275', 'Feb 26 - Card - $310'],
-    receiptCount: 39,
-  },
-  {
-    id: 'C-1012',
-    name: 'Arthur Penhaligon',
-    phone: '+1 (555) 012-1100',
-    email: 'arthur.penhaligon@example.com',
-    tag: 'Inactive',
-    status: 'Dormant',
-    createdAt: '2024-02-07',
-    lastVisit: '2025-10-14',
-    nextAppointment: '',
-    totalVisits: 2,
-    totalSpend: 260,
-    loyaltyPoints: 55,
-    preferredStaff: 'Unassigned',
-    preferredTimes: 'N/A',
-    preferences: ['Reflexology'],
-    allergies: 'None reported',
-    followUpState: 'overdue',
-    notes: 'No visits in the last 6 months. Needs follow-up outreach.',
-    paymentHistory: ['Oct 14 - Cash - $130', 'Sep 28 - Cash - $130'],
-    receiptCount: 2,
-  },
+const ROLE_VIEW = 'receptionist';
+
+const SEGMENT_OPTIONS = [
+  'New Customer',
+  'Repeat Customer',
+  'VIP',
+  'High Value',
+  'Follow-Up Needed',
+  'Rebooking Due',
+  'Inactive',
+  'At Risk',
+  'Returning After Gap',
 ];
+
+const TYPE_FILTERS = ['All Segments', ...SEGMENT_OPTIONS];
+const SOURCE_FILTERS = ['All Sources', 'Website Form', 'Walk-In', 'Instagram', 'Google', 'Referral', 'Chatbot', 'Phone Inquiry'];
+const SPEND_FILTERS = ['Any Spend', 'Above $500', 'Above $1000', 'Above $3000'];
+const ACTIVITY_FILTERS = ['All Activity', 'Need Follow-up', 'Rebooking Due', 'At Risk', 'Upcoming Today'];
+const FOLLOW_UP_STATUS_OPTIONS = ['Scheduled', 'Awaiting Reply', 'Completed', 'Overdue'];
+const CHANNEL_OPTIONS = ['Phone', 'WhatsApp', 'Email', 'SMS'];
+const STAFF_OPTIONS = ['Sarah Jenkins', 'Elena', 'Marcus', 'Sofia', 'Front Desk'];
+
+let customerIdCounter = 1300;
+let appointmentIdCounter = 7200;
+let paymentIdCounter = 8600;
+let receiptCounter = 15000;
+let timelineEventCounter = 5000;
+let noteIdCounter = 4000;
+
+const createCustomerId = () => {
+  customerIdCounter += 1;
+  return `C-${customerIdCounter}`;
+};
+
+const createAppointmentId = () => {
+  appointmentIdCounter += 1;
+  return `APT-${appointmentIdCounter}`;
+};
+
+const createPaymentId = () => {
+  paymentIdCounter += 1;
+  return `PAY-${paymentIdCounter}`;
+};
+
+const createReceiptNo = () => {
+  receiptCounter += 1;
+  return `RCPT-${receiptCounter}`;
+};
+
+const createTimelineId = () => {
+  timelineEventCounter += 1;
+  return `ACT-${timelineEventCounter}`;
+};
+
+const createNoteId = () => {
+  noteIdCounter += 1;
+  return `NOTE-${noteIdCounter}`;
+};
+
+const shiftIso = (days, hour = 10, minute = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+};
+
+const toDateKey = (value) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const addDaysToIso = (value, days, hour = 10, minute = 0) => {
+  const base = value ? new Date(value) : new Date();
+  base.setDate(base.getDate() + days);
+  base.setHours(hour, minute, 0, 0);
+  return base.toISOString();
+};
+
+const daysSince = (value) => {
+  if (!value) return null;
+  const diff = Date.now() - new Date(value).getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+};
+
+const formatDate = (value) => {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDateTime = (value) => {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const formatCurrency = (amount = 0) => `$${Number(amount).toLocaleString()}`;
 
 const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
 
@@ -110,74 +121,301 @@ const downloadCsv = (filename, rows) => {
   URL.revokeObjectURL(url);
 };
 
-const typeFilters = ['All Types', 'VIP', 'Regular', 'New', 'Inactive'];
-const spendFilters = ['Any Spend', 'Above $500', 'Above $1000', 'Above $3000'];
-const visitFilters = ['Any Frequency', 'Monthly', 'Quarterly', 'Annually'];
-
-const formatDate = (dateValue) => {
-  if (!dateValue) return '-';
-  return new Date(dateValue).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+const toLocalInput = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  const tzOffset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - tzOffset * 60000);
+  return local.toISOString().slice(0, 16);
 };
 
-const formatDateTime = (dateValue) => {
-  if (!dateValue) return '-';
-  return new Date(dateValue).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+const localInputToIso = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
 };
 
-const normalizeCustomer = (customer, index = 0) => ({
-  id: customer.id || customer._id || customer.customerId || `customer-${index + 1}`,
-  name: customer.name || customer.fullName || customer.customerName || 'Untitled Customer',
-  phone: customer.phone || customer.mobile || customer.contactNumber || '',
-  email: customer.email || customer.contactEmail || '',
-  tag: customer.tag || customer.customerType || 'Regular',
-  status: customer.status || customer.accountStatus || 'Active',
-  createdAt: customer.createdAt || customer.created_at || customer.joinedAt || new Date().toISOString(),
-  lastVisit: customer.lastVisit || customer.lastVisitDate || customer.lastAppointment || '',
-  nextAppointment: customer.nextAppointment || customer.nextAppt || customer.nextAppointmentAt || '',
-  totalVisits: Number(customer.totalVisits ?? customer.visitCount ?? customer.visits ?? 0),
-  totalSpend: Number(customer.totalSpend ?? customer.lifetimeSpend ?? customer.spend ?? 0),
-  loyaltyPoints: Number(customer.loyaltyPoints ?? customer.points ?? 0),
-  preferredStaff: customer.preferredStaff || customer.preferredTherapist || 'Unassigned',
-  preferredTimes: customer.preferredTimes || customer.preferredTime || 'N/A',
-  preferences: Array.isArray(customer.preferences)
-    ? customer.preferences
-    : customer.preferences
-      ? [String(customer.preferences)]
-      : [],
-  allergies: customer.allergies || customer.notes || 'None reported',
-  followUpState: customer.followUpState || customer.followUp || 'normal',
-  notes: customer.notes || customer.comment || '',
-  paymentHistory: Array.isArray(customer.paymentHistory)
-    ? customer.paymentHistory
-    : customer.paymentHistory
-      ? [String(customer.paymentHistory)]
-      : [],
-  receiptCount: Number(customer.receiptCount ?? customer.receipts ?? 0),
+const getChurnSignal = (days) => {
+  if (days === null) return 'No Visit Data';
+  if (days >= 90) return 'At Risk';
+  if (days >= 60) return 'Inactive Risk';
+  if (days >= 30) return 'No Recent Visit';
+  return 'Active';
+};
+
+const getRecommendedRebookDays = (favoriteService = '') => {
+  const value = favoriteService.toLowerCase();
+  if (value.includes('facial')) return 28;
+  if (value.includes('massage') || value.includes('stone') || value.includes('aroma')) return 21;
+  if (value.includes('nail')) return 18;
+  return 30;
+};
+
+const normalizePaymentEntry = (entry, index = 0) => ({
+  id: entry.id || entry.paymentId || `PAY-LEGACY-${index + 1}`,
+  date: entry.date || entry.paymentDate || shiftIso(-index - 3, 11, 0),
+  amount: Number(entry.amount ?? entry.total ?? entry.amountPaid ?? 0),
+  method: entry.method || entry.paymentMethod || 'Cash',
+  service: entry.service || entry.serviceName || 'Service',
+  receiptNo: entry.receiptNo || entry.receiptNumber || '',
+  status: entry.status || 'Paid',
 });
+
+const normalizeAppointmentEntry = (entry, index = 0) => ({
+  id: entry.id || entry.appointmentId || `APT-H-${index + 1}`,
+  dateTime: entry.dateTime || entry.start || entry.date || shiftIso(-index - 4, 10, 0),
+  service: entry.service || entry.serviceName || 'Service',
+  staff: entry.staff || entry.therapist || 'Unassigned',
+  status: entry.status || 'Completed',
+});
+
+const normalizeTimelineEntry = (entry, index = 0) => ({
+  id: entry.id || `ACT-LEGACY-${index + 1}`,
+  type: entry.type || 'Activity',
+  at: entry.at || entry.date || shiftIso(-index - 2, 10, 15),
+  actor: entry.actor || entry.by || 'Front Desk',
+  channel: entry.channel || 'CRM',
+  outcome: entry.outcome || 'Updated',
+  summary: entry.summary || entry.note || 'Activity updated',
+});
+
+const normalizeNoteEntry = (entry, index = 0) => ({
+  id: entry.id || `NOTE-LEGACY-${index + 1}`,
+  at: entry.at || entry.date || shiftIso(-index - 3, 9, 30),
+  author: entry.author || entry.by || 'Front Desk',
+  text: entry.text || entry.note || '',
+});
+
+const hiddenCustomerIdentifiers = new Set([
+  'c-1190',
+  'isabella thorne',
+  'isabella.thorne@example.com',
+]);
+
+const shouldHideCustomer = (customer) => {
+  const values = [customer?.id, customer?.customerId, customer?.name, customer?.fullName, customer?.email, customer?.contactEmail]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  return values.some((value) => hiddenCustomerIdentifiers.has(value));
+};
+
+const customerSeed = [
+  {
+    id: 'C-1144',
+    name: 'Julian Marc',
+    phone: '+1 (555) 012-4433',
+    email: 'julian.marc@example.com',
+    segment: 'Repeat Customer',
+    status: 'Active',
+    acquisitionSource: 'Instagram',
+    createdAt: shiftIso(-180, 10, 10),
+    lastVisit: shiftIso(-27, 15, 10),
+    visitCount: 8,
+    totalSpend: 1190,
+    loyaltyPoints: 410,
+    favoriteService: 'Swedish Massage',
+    favoriteStaff: 'Marcus',
+    preferredTimes: 'Late afternoons',
+    preferredChannel: 'Phone',
+    sensitivities: 'None reported',
+    upcomingAppointment: null,
+    followUp: { status: 'Overdue', reason: 'Rebooking after monthly massage cycle', owner: 'Marcus', lastDate: shiftIso(-22, 12, 40), nextDue: shiftIso(-2, 10, 0), channel: 'Phone' },
+    pendingBalance: 45,
+    paymentHistory: [
+      { id: 'PAY-7920', date: shiftIso(-27, 16, 5), amount: 125, method: 'Cash', service: 'Swedish Massage', receiptNo: 'RCPT-13820', status: 'Paid' },
+      { id: 'PAY-7611', date: shiftIso(-78, 16, 10), amount: 165, method: 'Cash', service: 'Hot Stone Therapy', receiptNo: 'RCPT-13511', status: 'Partial' },
+    ],
+    appointmentHistory: [
+      { id: 'APT-H-1111', dateTime: shiftIso(-27, 15, 0), service: 'Swedish Massage', staff: 'Marcus', status: 'Completed' },
+      { id: 'APT-H-1112', dateTime: shiftIso(-78, 15, 30), service: 'Hot Stone Therapy', staff: 'Marcus', status: 'Completed' },
+    ],
+    activityTimeline: [
+      { id: 'ACT-1101', type: 'Follow-up Sent', at: shiftIso(-22, 12, 40), actor: 'Marcus', channel: 'Phone', outcome: 'No response', summary: 'Call attempted, voicemail left' },
+      { id: 'ACT-1102', type: 'Payment Recorded', at: shiftIso(-27, 16, 5), actor: 'Front Desk', channel: 'POS', outcome: 'Paid', summary: 'Cash payment completed at checkout' },
+    ],
+    notes: [
+      { id: 'NOTE-111', at: shiftIso(-20, 11, 10), author: 'Marcus', text: 'Good candidate for recovery package upsell.' },
+    ],
+    noShowCount: 1,
+    cancellationCount: 0,
+    membership: 'None',
+    preferences: ['Swedish Massage'],
+  },
+  {
+    id: 'C-1087',
+    name: 'Elara Vance',
+    phone: '+1 (555) 012-7722',
+    email: 'elara.vance@example.com',
+    segment: 'High Value',
+    status: 'Active',
+    acquisitionSource: 'Google',
+    createdAt: shiftIso(-420, 9, 30),
+    lastVisit: shiftIso(-15, 10, 45),
+    visitCount: 42,
+    totalSpend: 9210,
+    loyaltyPoints: 2104,
+    favoriteService: 'Hot Stone Therapy',
+    favoriteStaff: 'Elena',
+    preferredTimes: 'Mid-morning',
+    preferredChannel: 'Email',
+    sensitivities: 'Avoid peppermint products',
+    upcomingAppointment: { id: 'APT-2188', dateTime: shiftIso(8, 11, 0), service: 'Deluxe Facial', staff: 'Elena', status: 'Confirmed' },
+    followUp: { status: 'Awaiting Reply', reason: 'Birthday package coordination', owner: 'Elena', lastDate: shiftIso(-4, 9, 0), nextDue: shiftIso(2, 9, 30), channel: 'Email' },
+    pendingBalance: 0,
+    paymentHistory: [
+      { id: 'PAY-7500', date: shiftIso(-15, 12, 15), amount: 275, method: 'Cash', service: 'Hot Stone Therapy', receiptNo: 'RCPT-13400', status: 'Paid' },
+      { id: 'PAY-7420', date: shiftIso(-38, 11, 28), amount: 310, method: 'Card', service: 'Deluxe Facial', receiptNo: 'RCPT-13320', status: 'Paid' },
+    ],
+    appointmentHistory: [
+      { id: 'APT-H-1211', dateTime: shiftIso(-15, 10, 30), service: 'Hot Stone Therapy', staff: 'Elena', status: 'Completed' },
+      { id: 'APT-H-1212', dateTime: shiftIso(-38, 11, 0), service: 'Deluxe Facial', staff: 'Elena', status: 'Completed' },
+    ],
+    activityTimeline: [
+      { id: 'ACT-1201', type: 'Appointment Booked', at: shiftIso(-3, 10, 16), actor: 'Front Desk', channel: 'CRM', outcome: 'Confirmed', summary: 'Booked Deluxe Facial for next week' },
+      { id: 'ACT-1202', type: 'Follow-up Sent', at: shiftIso(-4, 9, 0), actor: 'Elena', channel: 'Email', outcome: 'Awaiting reply', summary: 'Birthday package details sent' },
+    ],
+    notes: [
+      { id: 'NOTE-121', at: shiftIso(-15, 13, 0), author: 'Elena', text: 'Long-term client. Birthday package in May.' },
+    ],
+    noShowCount: 0,
+    cancellationCount: 2,
+    membership: 'Platinum Ritual',
+    preferences: ['Hot Stone Therapy', 'Deluxe Facial'],
+  },
+  {
+    id: 'C-1012',
+    name: 'Arthur Penhaligon',
+    phone: '+1 (555) 012-1100',
+    email: 'arthur.penhaligon@example.com',
+    segment: 'Inactive',
+    status: 'Dormant',
+    acquisitionSource: 'Walk-In',
+    createdAt: shiftIso(-780, 10, 0),
+    lastVisit: shiftIso(-183, 13, 40),
+    visitCount: 2,
+    totalSpend: 260,
+    loyaltyPoints: 55,
+    favoriteService: 'Reflexology',
+    favoriteStaff: 'Unassigned',
+    preferredTimes: 'N/A',
+    preferredChannel: 'Phone',
+    sensitivities: 'None reported',
+    upcomingAppointment: null,
+    followUp: { status: 'Overdue', reason: 'Win-back outreach', owner: 'Front Desk', lastDate: shiftIso(-92, 11, 0), nextDue: shiftIso(-30, 11, 0), channel: 'Phone' },
+    pendingBalance: 0,
+    paymentHistory: [
+      { id: 'PAY-6120', date: shiftIso(-183, 14, 5), amount: 130, method: 'Cash', service: 'Reflexology', receiptNo: 'RCPT-12620', status: 'Paid' },
+      { id: 'PAY-6088', date: shiftIso(-199, 13, 35), amount: 130, method: 'Cash', service: 'Reflexology', receiptNo: 'RCPT-12588', status: 'Paid' },
+    ],
+    appointmentHistory: [
+      { id: 'APT-H-1411', dateTime: shiftIso(-183, 13, 0), service: 'Reflexology', staff: 'Sofia', status: 'Completed' },
+      { id: 'APT-H-1412', dateTime: shiftIso(-199, 12, 45), service: 'Reflexology', staff: 'Sofia', status: 'Completed' },
+    ],
+    activityTimeline: [
+      { id: 'ACT-1401', type: 'Follow-up Sent', at: shiftIso(-92, 11, 0), actor: 'Front Desk', channel: 'Phone', outcome: 'No answer', summary: 'Win-back call not answered' },
+      { id: 'ACT-1402', type: 'Appointment Completed', at: shiftIso(-183, 14, 0), actor: 'Sofia', channel: 'CRM', outcome: 'Completed', summary: 'Last recorded visit completed' },
+    ],
+    notes: [
+      { id: 'NOTE-141', at: shiftIso(-92, 11, 40), author: 'Front Desk', text: 'No visits for 6+ months. Add to win-back campaign.' },
+    ],
+    noShowCount: 2,
+    cancellationCount: 1,
+    membership: 'None',
+    preferences: ['Reflexology'],
+  },
+];
+
+const normalizeCustomer = (customer, index = 0) => {
+  const rawPreferences = Array.isArray(customer.preferences) ? customer.preferences : customer.favoriteService ? [customer.favoriteService] : ['General Wellness'];
+
+  const appointmentHistory = (Array.isArray(customer.appointmentHistory) ? customer.appointmentHistory : [])
+    .map(normalizeAppointmentEntry)
+    .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+
+  const paymentHistory = (Array.isArray(customer.paymentHistory) ? customer.paymentHistory : [])
+    .map(normalizePaymentEntry)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const timeline = (Array.isArray(customer.activityTimeline) ? customer.activityTimeline : [])
+    .map(normalizeTimelineEntry)
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  const notes = (Array.isArray(customer.notes) ? customer.notes : [])
+    .map(normalizeNoteEntry)
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+  const nextAppointment = customer.upcomingAppointment
+    ? normalizeAppointmentEntry(customer.upcomingAppointment)
+    : customer.nextAppointment
+      ? normalizeAppointmentEntry({
+          dateTime: customer.nextAppointment,
+          service: customer.favoriteService || rawPreferences[0] || 'Service',
+          staff: customer.favoriteStaff || customer.preferredStaff || 'Unassigned',
+          status: 'Confirmed',
+        })
+      : null;
+
+  const segment = customer.segment || customer.tag || customer.customerType || 'Repeat Customer';
+  const visitCount = Number(customer.visitCount ?? customer.totalVisits ?? customer.visits ?? 0);
+  const totalSpend = Number(customer.totalSpend ?? customer.lifetimeSpend ?? 0);
+  const loyaltyPoints = Number(customer.loyaltyPoints ?? customer.points ?? 0);
+
+  return {
+    id: customer.id || customer._id || customer.customerId || `customer-${index + 1}`,
+    name: customer.name || customer.fullName || customer.customerName || 'Untitled Customer',
+    phone: customer.phone || customer.mobile || customer.contactNumber || '',
+    email: customer.email || customer.contactEmail || '',
+    segment,
+    status: customer.status || customer.accountStatus || (segment === 'Inactive' ? 'Dormant' : 'Active'),
+    acquisitionSource: customer.acquisitionSource || customer.source || 'Website Form',
+    createdAt: customer.createdAt || customer.created_at || shiftIso(-20, 10, 0),
+    lastVisit: customer.lastVisit || customer.lastVisitDate || '',
+    visitCount,
+    totalSpend,
+    loyaltyPoints,
+    favoriteService: customer.favoriteService || rawPreferences[0] || 'General Wellness',
+    favoriteStaff: customer.favoriteStaff || customer.preferredStaff || 'Unassigned',
+    preferredTimes: customer.preferredTimes || customer.preferredTime || 'Flexible',
+    preferredChannel: customer.preferredChannel || 'Phone',
+    sensitivities: customer.sensitivities || customer.allergies || 'None reported',
+    upcomingAppointment: nextAppointment,
+    followUp: {
+      status: customer.followUp?.status || customer.followUpState || 'Scheduled',
+      reason: customer.followUp?.reason || customer.followUpReason || 'Routine follow-up',
+      owner: customer.followUp?.owner || customer.followUpOwner || customer.preferredStaff || 'Front Desk',
+      lastDate: customer.followUp?.lastDate || customer.lastFollowUpAt || customer.createdAt || shiftIso(-10, 10, 0),
+      nextDue: customer.followUp?.nextDue || customer.nextFollowUpAt || shiftIso(2, 11, 0),
+      channel: customer.followUp?.channel || customer.preferredChannel || 'Phone',
+    },
+    pendingBalance: Number(customer.pendingBalance ?? customer.balance ?? 0),
+    paymentHistory,
+    appointmentHistory,
+    activityTimeline: timeline,
+    notes,
+    noShowCount: Number(customer.noShowCount ?? 0),
+    cancellationCount: Number(customer.cancellationCount ?? 0),
+    membership: customer.membership || 'None',
+    preferences: rawPreferences,
+  };
+};
 
 const CrmCustomers = () => {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState(customerSeed);
+  const [customers, setCustomers] = useState(customerSeed.map(normalizeCustomer));
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('All Types');
+  const [segmentFilter, setSegmentFilter] = useState('All Segments');
+  const [sourceFilter, setSourceFilter] = useState('All Sources');
   const [spendFilter, setSpendFilter] = useState('Any Spend');
-  const [visitFilter, setVisitFilter] = useState('Any Frequency');
+  const [activityFilter, setActivityFilter] = useState('All Activity');
   const [vipOnly, setVipOnly] = useState(false);
   const [followUpOnly, setFollowUpOnly] = useState(false);
-  const [inactiveOnly, setInactiveOnly] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState(customerSeed[0].id);
+  const [inactiveRiskOnly, setInactiveRiskOnly] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(customerSeed[0]?.id || '');
+  const [workspaceTab, setWorkspaceTab] = useState('activity');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [activePanel, setActivePanel] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -185,61 +423,39 @@ const CrmCustomers = () => {
     const loadCustomers = async () => {
       setIsLoading(true);
       setLoadError('');
-
       try {
         const data = await crmList('customers');
         if (!mounted) return;
-
-        const normalized = data.length > 0 ? data.map(normalizeCustomer) : customerSeed;
+        const normalized = (data.length > 0 ? data : customerSeed)
+          .map(normalizeCustomer)
+          .filter((entry) => !shouldHideCustomer(entry));
         setCustomers(normalized);
-        setSelectedCustomerId((current) => (normalized.some((customer) => customer.id === current) ? current : normalized[0]?.id || ''));
+        setSelectedCustomerId((current) => (normalized.some((entry) => entry.id === current) ? current : normalized[0]?.id || ''));
       } catch (error) {
         if (!mounted) return;
-        setCustomers(customerSeed);
-        setLoadError(error.message || 'Unable to load customers from the CRM API.');
-        setSelectedCustomerId(customerSeed[0]?.id || '');
+        setCustomers(customerSeed.map(normalizeCustomer).filter((entry) => !shouldHideCustomer(entry)));
+        setLoadError(error.message || 'Live customer sync unavailable. Showing fallback CRM records.');
+        setSelectedCustomerId(customerSeed.map(normalizeCustomer).filter((entry) => !shouldHideCustomer(entry))[0]?.id || '');
       } finally {
         if (mounted) setIsLoading(false);
       }
     };
 
     void loadCustomers();
-
     return () => {
       mounted = false;
     };
   }, []);
 
-  const summaryCards = useMemo(() => {
-    const totalCustomers = customers.length;
-    const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
-    const newThisMonth = customers.filter((customer) => {
-      const createdCandidate = new Date(customer.createdAt);
-      return createdCandidate.getMonth() === thisMonth && createdCandidate.getFullYear() === thisYear;
-    }).length;
-    const repeatCustomers = customers.filter((customer) => customer.totalVisits > 1).length;
-    const vipCustomers = customers.filter((customer) => customer.tag === 'VIP').length;
-    const upcomingAppointments = customers.filter((customer) => Boolean(customer.nextAppointment)).length;
-    const needingFollowUp = customers.filter((customer) => customer.followUpState !== 'normal').length;
-
-    return [
-      { label: 'Total Customers', value: totalCustomers, subtext: '+5 this week' },
-      { label: 'New This Month', value: newThisMonth, subtext: '+10% vs last month' },
-      { label: 'Repeat Customers', value: repeatCustomers, subtext: `${Math.round((repeatCustomers / totalCustomers) * 100)}% of total` },
-      { label: 'VIP Customers', value: vipCustomers, subtext: 'Top value segment' },
-      { label: 'Upcoming Appts', value: upcomingAppointments, subtext: '20 due today' },
-      { label: 'Need Follow-up', value: needingFollowUp, subtext: '5 overdue' },
-    ];
-  }, [customers]);
-
   const filteredCustomers = useMemo(() => {
-    return customers.filter((customer) => {
-      const text = `${customer.name} ${customer.phone} ${customer.email}`.toLowerCase();
-      const matchesSearch = !searchTerm || text.includes(searchTerm.toLowerCase());
+    const todayKey = toDateKey(new Date());
 
-      const matchesType = typeFilter === 'All Types' || customer.tag === typeFilter;
+    return customers.filter((customer) => {
+      const text = `${customer.name} ${customer.phone} ${customer.email} ${customer.segment} ${customer.favoriteService} ${customer.favoriteStaff}`.toLowerCase();
+      const matchesSearch = !searchTerm || text.includes(searchTerm.trim().toLowerCase());
+
+      const matchesSegment = segmentFilter === 'All Segments' || customer.segment === segmentFilter;
+      const matchesSource = sourceFilter === 'All Sources' || customer.acquisitionSource === sourceFilter;
 
       const matchesSpend = (() => {
         if (spendFilter === 'Any Spend') return true;
@@ -249,31 +465,112 @@ const CrmCustomers = () => {
         return true;
       })();
 
-      const matchesVisit = (() => {
-        if (visitFilter === 'Any Frequency') return true;
-        if (visitFilter === 'Monthly') return customer.totalVisits >= 10;
-        if (visitFilter === 'Quarterly') return customer.totalVisits >= 4 && customer.totalVisits < 10;
-        if (visitFilter === 'Annually') return customer.totalVisits < 4;
+      const followUpDue = customer.followUp?.status !== 'Completed' || (customer.followUp?.nextDue && new Date(customer.followUp.nextDue).getTime() <= Date.now());
+      const days = daysSince(customer.lastVisit);
+      const churnSignal = getChurnSignal(days);
+      const recommendedRebookDays = getRecommendedRebookDays(customer.favoriteService);
+      const rebookingDue = !customer.upcomingAppointment && days !== null && days >= recommendedRebookDays;
+      const isUpcomingToday = customer.upcomingAppointment ? toDateKey(customer.upcomingAppointment.dateTime) === todayKey : false;
+
+      const matchesActivity = (() => {
+        if (activityFilter === 'All Activity') return true;
+        if (activityFilter === 'Need Follow-up') return followUpDue;
+        if (activityFilter === 'Rebooking Due') return rebookingDue;
+        if (activityFilter === 'At Risk') return churnSignal === 'At Risk' || churnSignal === 'Inactive Risk';
+        if (activityFilter === 'Upcoming Today') return isUpcomingToday;
         return true;
       })();
 
-      const matchesVip = !vipOnly || customer.tag === 'VIP';
-      const matchesFollowUp = !followUpOnly || customer.followUpState !== 'normal';
-      const matchesInactive = !inactiveOnly || customer.tag === 'Inactive';
+      const matchesVip = !vipOnly || /vip|high value/i.test(customer.segment);
+      const matchesFollowUp = !followUpOnly || followUpDue;
+      const matchesInactiveRisk = !inactiveRiskOnly || churnSignal === 'At Risk' || churnSignal === 'Inactive Risk' || /inactive|at risk/i.test(customer.segment);
 
-      return matchesSearch && matchesType && matchesSpend && matchesVisit && matchesVip && matchesFollowUp && matchesInactive;
+      return matchesSearch && matchesSegment && matchesSource && matchesSpend && matchesActivity && matchesVip && matchesFollowUp && matchesInactiveRisk;
     });
-  }, [customers, followUpOnly, inactiveOnly, searchTerm, spendFilter, typeFilter, vipOnly, visitFilter]);
+  }, [activityFilter, customers, followUpOnly, inactiveRiskOnly, searchTerm, segmentFilter, sourceFilter, spendFilter, vipOnly]);
 
-  const selectedCustomer = useMemo(() => {
-    return filteredCustomers.find((customer) => customer.id === selectedCustomerId) || filteredCustomers[0] || null;
+  useEffect(() => {
+    if (filteredCustomers.length === 0) return;
+    if (!filteredCustomers.some((customer) => customer.id === selectedCustomerId)) {
+      setSelectedCustomerId(filteredCustomers[0].id);
+    }
   }, [filteredCustomers, selectedCustomerId]);
 
-  const handleTagUpdate = (customerId, tag) => {
-    setCustomers((list) => list.map((entry) => (entry.id === customerId ? { ...entry, tag } : entry)));
+  const selectedCustomer = useMemo(
+    () => customers.find((customer) => customer.id === selectedCustomerId) || filteredCustomers[0] || customers[0] || null,
+    [customers, filteredCustomers, selectedCustomerId],
+  );
 
-    void crmUpdate('customers', customerId, { tag, customerType: tag }).catch((error) => {
-      setLoadError(error.message || 'Customer tag update failed.');
+  const summaryCards = useMemo(() => {
+    const all = customers;
+    const todayKey = toDateKey(new Date());
+    const vipCount = all.filter((customer) => /vip|high value/i.test(customer.segment)).length;
+    const followUpQueue = all.filter(
+      (customer) =>
+        customer.followUp?.status !== 'Completed' ||
+        (customer.followUp?.nextDue && new Date(customer.followUp.nextDue).getTime() <= Date.now()),
+    ).length;
+    const atRiskCount = all.filter((customer) => {
+      const signal = getChurnSignal(daysSince(customer.lastVisit));
+      return signal === 'At Risk' || signal === 'Inactive Risk';
+    }).length;
+    const upcomingTodayCount = all.filter(
+      (customer) => customer.upcomingAppointment && toDateKey(customer.upcomingAppointment.dateTime) === todayKey,
+    ).length;
+    const pendingBalanceTotal = all.reduce((total, customer) => total + Number(customer.pendingBalance || 0), 0);
+
+    return [
+      {
+        label: 'Total Profiles',
+        value: all.length.toLocaleString(),
+        subtext: `${filteredCustomers.length.toLocaleString()} visible with filters`,
+      },
+      {
+        label: 'VIP + High Value',
+        value: vipCount.toLocaleString(),
+        subtext: 'Priority relationship segment',
+      },
+      {
+        label: 'Follow-up Queue',
+        value: followUpQueue.toLocaleString(),
+        subtext: 'Needs outreach or confirmation',
+      },
+      {
+        label: 'At-Risk Profiles',
+        value: atRiskCount.toLocaleString(),
+        subtext: 'No recent visits or churn signal',
+      },
+      {
+        label: 'Upcoming Today',
+        value: upcomingTodayCount.toLocaleString(),
+        subtext: 'Appointments scheduled for today',
+      },
+      {
+        label: 'Pending Balance',
+        value: formatCurrency(pendingBalanceTotal),
+        subtext: 'Outstanding payment across customers',
+      },
+    ];
+  }, [customers, filteredCustomers.length]);
+
+  const updateCustomerInState = (customerId, updater) => {
+    setCustomers((list) => list.map((customer) => (customer.id === customerId ? updater(customer) : customer)));
+  };
+
+  const handleSegmentUpdate = (customerId, segment) => {
+    updateCustomerInState(customerId, (customer) => ({
+      ...customer,
+      segment,
+      status: segment === 'Inactive' ? 'Dormant' : customer.status,
+    }));
+
+    void crmUpdate('customers', customerId, {
+      segment,
+      tag: segment,
+      customerType: segment,
+      status: segment === 'Inactive' ? 'Dormant' : 'Active',
+    }).catch((error) => {
+      setLoadError(error.message || 'Customer segment update failed.');
     });
   };
 
@@ -283,75 +580,144 @@ const CrmCustomers = () => {
 
     const phone = window.prompt('Phone number', '') || '';
     const email = window.prompt('Email address', '') || '';
-    const tag = window.prompt('Customer tag', 'Regular') || 'Regular';
+    const segment = window.prompt('Segment', 'Repeat Customer') || 'Repeat Customer';
+    const acquisitionSource = window.prompt('Acquisition source', 'Walk-In') || 'Walk-In';
+    const nowIso = new Date().toISOString();
+
+    const draftCustomer = {
+      id: createCustomerId(),
+      name,
+      phone,
+      email,
+      segment,
+      status: segment === 'Inactive' ? 'Dormant' : 'Active',
+      acquisitionSource,
+      createdAt: nowIso,
+      lastVisit: '',
+      visitCount: 0,
+      totalSpend: 0,
+      loyaltyPoints: 0,
+      favoriteService: 'General Wellness',
+      favoriteStaff: 'Unassigned',
+      preferredTimes: 'Flexible',
+      preferredChannel: 'Phone',
+      sensitivities: 'None reported',
+      upcomingAppointment: null,
+      followUp: {
+        status: 'Scheduled',
+        reason: 'Welcome follow-up',
+        owner: 'Front Desk',
+        lastDate: nowIso,
+        nextDue: addDaysToIso(nowIso, 2, 11, 0),
+        channel: 'Phone',
+      },
+      pendingBalance: 0,
+      paymentHistory: [],
+      appointmentHistory: [],
+      activityTimeline: [
+        {
+          id: createTimelineId(),
+          type: 'Customer Created',
+          at: nowIso,
+          actor: 'Front Desk',
+          channel: 'CRM',
+          outcome: 'Created',
+          summary: 'Profile created from quick add',
+        },
+      ],
+      notes: [
+        {
+          id: createNoteId(),
+          at: nowIso,
+          author: 'Front Desk',
+          text: 'Created from CRM quick add',
+        },
+      ],
+      noShowCount: 0,
+      cancellationCount: 0,
+      membership: 'None',
+      preferences: ['General Wellness'],
+    };
 
     try {
-      const created = await crmCreate('customers', {
-        name,
-        phone,
-        email,
-        tag,
-        status: tag === 'Inactive' ? 'Dormant' : 'Active',
-        createdAt: new Date().toISOString(),
-        lastVisit: '',
-        nextAppointment: '',
-        totalVisits: 0,
-        totalSpend: 0,
-        loyaltyPoints: 0,
-        preferredStaff: 'Unassigned',
-        preferredTimes: 'N/A',
-        preferences: [],
-        allergies: 'None reported',
-        followUpState: 'normal',
-        notes: 'Created from CRM quick add',
-        paymentHistory: [],
-        receiptCount: 0,
-      });
-
-      const normalized = normalizeCustomer(created, customers.length);
+      const created = await crmCreate('customers', draftCustomer);
+      const normalized = normalizeCustomer(created && typeof created === 'object' ? created : draftCustomer, customers.length);
       setCustomers((current) => [normalized, ...current]);
       setSelectedCustomerId(normalized.id);
     } catch (error) {
-      setLoadError(error.message || 'Customer creation failed.');
+      const fallback = normalizeCustomer(draftCustomer, customers.length);
+      setCustomers((current) => [fallback, ...current]);
+      setSelectedCustomerId(fallback.id);
+      setLoadError(`${error.message || 'Customer sync failed.'} Added locally for now.`);
     }
   };
 
   const handleExportCustomers = () => {
     const rows = [
-      ['Customer ID', 'Name', 'Phone', 'Email', 'Tag', 'Status', 'Visits', 'Spend', 'Loyalty Points'],
+      ['Customer ID', 'Name', 'Phone', 'Email', 'Segment', 'Source', 'Status', 'Visits', 'Spend', 'Loyalty Points', 'Pending Balance'],
       ...filteredCustomers.map((customer) => [
         customer.id,
         customer.name,
         customer.phone,
         customer.email,
-        customer.tag,
+        customer.segment,
+        customer.acquisitionSource,
         customer.status,
-        customer.totalVisits,
+        customer.visitCount,
         customer.totalSpend,
         customer.loyaltyPoints,
+        customer.pendingBalance,
       ]),
     ];
-
     downloadCsv(`customers-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
 
   const handleBookAppointment = () => {
     if (!selectedCustomer) return;
 
-    const service = window.prompt('Service name', selectedCustomer.preferences[0] || 'Signature Facial') || 'Signature Facial';
-    const start = window.prompt('Start time', '10:00') || '10:00';
-    const end = window.prompt('End time', '11:00') || '11:00';
-    void crmCreate('appointments', {
-      customer: selectedCustomer.name,
-      phone: selectedCustomer.phone,
+    const service = window.prompt('Service name', selectedCustomer.favoriteService || selectedCustomer.preferences[0] || 'Signature Facial') || 'Signature Facial';
+    const staff = window.prompt('Staff member', selectedCustomer.favoriteStaff || 'Unassigned') || 'Unassigned';
+    const defaultDateTime = toLocalInput(addDaysToIso(new Date().toISOString(), 1, 10, 0));
+    const inputDateTime = window.prompt('Appointment date/time (YYYY-MM-DDTHH:MM)', defaultDateTime) || defaultDateTime;
+    const dateTime = localInputToIso(inputDateTime) || addDaysToIso(new Date().toISOString(), 1, 10, 0);
+
+    const appointmentEntry = {
+      id: createAppointmentId(),
+      dateTime,
       service,
-      staff: selectedCustomer.preferredStaff || 'Unassigned',
-      start,
-      end,
+      staff,
+      status: 'Confirmed',
+    };
+
+    updateCustomerInState(selectedCustomer.id, (customer) => ({
+      ...customer,
+      upcomingAppointment: appointmentEntry,
+      appointmentHistory: [appointmentEntry, ...customer.appointmentHistory].sort(
+        (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime(),
+      ),
+      activityTimeline: [
+        {
+          id: createTimelineId(),
+          type: 'Appointment Booked',
+          at: new Date().toISOString(),
+          actor: 'Front Desk',
+          channel: 'CRM',
+          outcome: 'Confirmed',
+          summary: `Booked ${service} for ${formatDateTime(dateTime)}`,
+        },
+        ...customer.activityTimeline,
+      ],
+    }));
+
+    void crmCreate('appointments', {
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
+      phone: selectedCustomer.phone,
+      serviceName: service,
+      staffName: staff,
+      appointmentAt: dateTime,
       status: 'Confirmed',
       note: `Booked from customer profile ${selectedCustomer.id}`,
-      paymentStatus: 'Pending',
-      reminderScheduled: true,
     }).catch((error) => {
       setLoadError(error.message || 'Customer booking failed.');
     });
@@ -360,23 +726,60 @@ const CrmCustomers = () => {
   const handleRecordPayment = () => {
     if (!selectedCustomer) return;
 
-    const amountDue = Number(window.prompt('Amount due', '120') || 120);
-    const amountPaid = Number(window.prompt('Amount paid', String(amountDue)) || amountDue);
-    const balanceRemaining = Math.max(amountDue - amountPaid, 0);
+    const amountRaw = window.prompt('Payment amount', '120');
+    if (!amountRaw) return;
+    const amount = Number(amountRaw);
+    if (Number.isNaN(amount) || amount <= 0) {
+      setLoadError('Payment amount must be a positive number.');
+      return;
+    }
+
+    const method = window.prompt('Payment method', 'Cash') || 'Cash';
+    const service = selectedCustomer.upcomingAppointment?.service || selectedCustomer.favoriteService || 'Service';
+    const recordedAt = new Date().toISOString();
+    const paymentEntry = {
+      id: createPaymentId(),
+      date: recordedAt,
+      amount,
+      method,
+      service,
+      receiptNo: createReceiptNo(),
+      status: 'Paid',
+    };
+
+    updateCustomerInState(selectedCustomer.id, (customer) => ({
+      ...customer,
+      pendingBalance: Math.max(0, Number(customer.pendingBalance || 0) - amount),
+      paymentHistory: [paymentEntry, ...customer.paymentHistory].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      ),
+      activityTimeline: [
+        {
+          id: createTimelineId(),
+          type: 'Payment Recorded',
+          at: recordedAt,
+          actor: 'Front Desk',
+          channel: 'POS',
+          outcome: 'Paid',
+          summary: `${formatCurrency(amount)} recorded via ${method}`,
+        },
+        ...customer.activityTimeline,
+      ],
+    }));
 
     void crmCreate('payments', {
+      customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
-      appointmentId: selectedCustomer.nextAppointment || '',
-      serviceName: selectedCustomer.preferences[0] || 'Service',
-      amountDue,
-      amountPaid,
-      balanceRemaining,
-      method: 'Cash',
-      status: balanceRemaining <= 0 ? 'Paid' : 'Partial',
-      paymentDate: new Date().toISOString(),
+      serviceName: service,
+      amountDue: amount,
+      amountPaid: amount,
+      balanceRemaining: 0,
+      method,
+      status: 'Paid',
+      paymentDate: recordedAt,
       recordedBy: 'Front Desk',
+      receiptNo: paymentEntry.receiptNo,
       notes: `Recorded from customer profile ${selectedCustomer.id}`,
-      receiptStatus: amountPaid > 0 ? 'Pending' : 'Not Issued',
     }).catch((error) => {
       setLoadError(error.message || 'Customer payment failed.');
     });
@@ -385,28 +788,62 @@ const CrmCustomers = () => {
   const handleSendFollowUp = () => {
     if (!selectedCustomer) return;
 
-    setCustomers((current) =>
-      current.map((customer) =>
-        customer.id === selectedCustomer.id
-          ? {
-              ...customer,
-              followUpState: 'watch',
-              notes: `${customer.notes} Follow-up queued from customer screen.`,
-            }
-          : customer,
-      ),
-    );
+    const reason = window.prompt('Follow-up reason', selectedCustomer.followUp?.reason || 'Routine follow-up') || 'Routine follow-up';
+    const channelInput = window.prompt('Channel', selectedCustomer.followUp?.channel || 'Phone') || 'Phone';
+    const ownerInput = window.prompt('Owner', selectedCustomer.followUp?.owner || 'Front Desk') || 'Front Desk';
+    const channel = CHANNEL_OPTIONS.includes(channelInput) ? channelInput : 'Phone';
+    const owner = STAFF_OPTIONS.includes(ownerInput) ? ownerInput : 'Front Desk';
+    const nowIso = new Date().toISOString();
+    const nextDue = addDaysToIso(nowIso, 2, 11, 0);
+    const status = FOLLOW_UP_STATUS_OPTIONS.includes('Scheduled') ? 'Scheduled' : FOLLOW_UP_STATUS_OPTIONS[0];
+
+    updateCustomerInState(selectedCustomer.id, (customer) => ({
+      ...customer,
+      followUp: {
+        ...customer.followUp,
+        status,
+        reason,
+        owner,
+        lastDate: nowIso,
+        nextDue,
+        channel,
+      },
+      activityTimeline: [
+        {
+          id: createTimelineId(),
+          type: 'Follow-up Sent',
+          at: nowIso,
+          actor: owner,
+          channel,
+          outcome: 'Scheduled',
+          summary: reason,
+        },
+        ...customer.activityTimeline,
+      ],
+      notes: [
+        {
+          id: createNoteId(),
+          at: nowIso,
+          author: owner,
+          text: `Follow-up queued via ${channel}: ${reason}`,
+        },
+        ...customer.notes,
+      ],
+    }));
 
     void crmUpdate('customers', selectedCustomer.id, {
-      followUpState: 'watch',
-      notes: `${selectedCustomer.notes} Follow-up queued from customer screen.`,
+      followUp: {
+        status,
+        reason,
+        owner,
+        lastDate: nowIso,
+        nextDue,
+        channel,
+      },
+      followUpState: status,
     }).catch((error) => {
       setLoadError(error.message || 'Unable to store follow-up note.');
     });
-  };
-
-  const handleOpenReceiptHistory = () => {
-    setActivePanel('receipts');
   };
 
   const handleLogout = () => {
@@ -414,29 +851,32 @@ const CrmCustomers = () => {
     navigate('/crm-login');
   };
 
+  const workspaceTitle = useMemo(() => {
+    if (workspaceTab === 'appointments') return 'Appointment History';
+    if (workspaceTab === 'payments') return 'Payment / Receipt History';
+    if (workspaceTab === 'notes') return 'Internal Notes';
+    return 'Activity Timeline';
+  }, [workspaceTab]);
+
   return (
-    <CrmShell
-      shellClassName="crm-customers-shell"
-    >
+    <CrmShell shellClassName="crm-customers-shell">
       <main className="crm-customers-main">
         <header className="crm-customers-header">
           <div>
             <h1>Customers</h1>
-            <p>Manage all client records, service history, and preferences in one place.</p>
+            <p>Manage client records, service behavior, payment history, and retention actions in one place.</p>
+            {loadError ? <p className="crm-info-copy">{loadError}</p> : null}
           </div>
 
           <div className="crm-customers-header-actions">
             <input
               type="search"
-              placeholder="Search by name, phone, or email..."
+              placeholder="Search by name, phone, email, or segment..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
             <button type="button" className="crm-customers-ghost-btn" onClick={handleExportCustomers}>
               Export
-            </button>
-            <button type="button" className="crm-customers-ghost-btn" onClick={() => setFollowUpOnly((value) => !value)}>
-              Filter
             </button>
             <button type="button" className="crm-customers-primary-btn" onClick={handleQuickCreateCustomer}>
               Add New Customer
@@ -458,14 +898,25 @@ const CrmCustomers = () => {
         </section>
 
         <section className="crm-customers-filter-bar">
-          <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-            {typeFilters.map((option) => <option key={option}>{option}</option>)}
+          <select value={segmentFilter} onChange={(event) => setSegmentFilter(event.target.value)}>
+            {TYPE_FILTERS.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
           </select>
-          <select value={visitFilter} onChange={(event) => setVisitFilter(event.target.value)}>
-            {visitFilters.map((option) => <option key={option}>{option}</option>)}
+          <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}>
+            {SOURCE_FILTERS.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
           </select>
           <select value={spendFilter} onChange={(event) => setSpendFilter(event.target.value)}>
-            {spendFilters.map((option) => <option key={option}>{option}</option>)}
+            {SPEND_FILTERS.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+          <select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)}>
+            {ACTIVITY_FILTERS.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
           </select>
           <button
             type="button"
@@ -483,10 +934,10 @@ const CrmCustomers = () => {
           </button>
           <button
             type="button"
-            className={`crm-customers-chip${inactiveOnly ? ' crm-customers-chip-active' : ''}`}
-            onClick={() => setInactiveOnly((value) => !value)}
+            className={`crm-customers-chip${inactiveRiskOnly ? ' crm-customers-chip-active' : ''}`}
+            onClick={() => setInactiveRiskOnly((value) => !value)}
           >
-            Inactive
+            Inactive Risk
           </button>
         </section>
 
@@ -498,7 +949,7 @@ const CrmCustomers = () => {
               <p>Next Appt</p>
               <p>Visits</p>
               <p>Spend</p>
-              <p>Tag</p>
+              <p>Segment</p>
             </header>
             {isLoading ? (
               <div className="crm-customers-empty">
@@ -519,29 +970,31 @@ const CrmCustomers = () => {
                       type="button"
                       key={customer.id}
                       className={`crm-customer-row${isSelected ? ' crm-customer-row-active' : ''}`}
-                      onClick={() => setSelectedCustomerId(customer.id)}
+                      onClick={() => {
+                        setSelectedCustomerId(customer.id);
+                        setWorkspaceTab('activity');
+                      }}
                     >
                       <div>
                         <p className="crm-customer-name">
                           {customer.name}
-                          <span>{customer.tag}</span>
+                          <span>{customer.segment}</span>
                         </p>
                         <p className="crm-customer-sub">{customer.phone}</p>
                         <p className="crm-customer-sub">{customer.email}</p>
                       </div>
                       <p>{formatDate(customer.lastVisit)}</p>
-                      <p>{formatDateTime(customer.nextAppointment)}</p>
-                      <p>{customer.totalVisits}</p>
-                      <p>${customer.totalSpend.toLocaleString()}</p>
+                      <p>{formatDateTime(customer.upcomingAppointment?.dateTime)}</p>
+                      <p>{customer.visitCount}</p>
+                      <p>{formatCurrency(customer.totalSpend)}</p>
                       <select
-                        value={customer.tag}
+                        value={customer.segment}
                         onClick={(event) => event.stopPropagation()}
-                        onChange={(event) => handleTagUpdate(customer.id, event.target.value)}
+                        onChange={(event) => handleSegmentUpdate(customer.id, event.target.value)}
                       >
-                        <option>VIP</option>
-                        <option>Regular</option>
-                        <option>New</option>
-                        <option>Inactive</option>
+                        {TYPE_FILTERS.filter((option) => option !== 'All Segments').map((option) => (
+                          <option key={option}>{option}</option>
+                        ))}
                       </select>
                     </button>
                   );
@@ -554,16 +1007,25 @@ const CrmCustomers = () => {
             {selectedCustomer ? (
               <>
                 <div className="crm-customer-profile">
-                  <div className="crm-customer-avatar">{selectedCustomer.name.slice(0, 2).toUpperCase()}</div>
+                  <div className="crm-customer-avatar">
+                    {selectedCustomer.name
+                      .split(' ')
+                      .slice(0, 2)
+                      .map((word) => word[0] || '')
+                      .join('')
+                      .toUpperCase()}
+                  </div>
                   <h3>{selectedCustomer.name}</h3>
-                  <span>{selectedCustomer.tag} Guest</span>
-                  <p>{selectedCustomer.notes}</p>
+                  <span>
+                    {selectedCustomer.segment} | {getChurnSignal(daysSince(selectedCustomer.lastVisit))}
+                  </span>
+                  <p>{selectedCustomer.sensitivities}</p>
                 </div>
 
                 <div className="crm-customer-metrics">
                   <article>
                     <p>Lifetime Spend</p>
-                    <strong>${selectedCustomer.totalSpend.toLocaleString()}</strong>
+                    <strong>{formatCurrency(selectedCustomer.totalSpend)}</strong>
                   </article>
                   <article>
                     <p>Loyalty Points</p>
@@ -574,39 +1036,112 @@ const CrmCustomers = () => {
                 <div className="crm-customer-info-block">
                   <p className="crm-info-title">Service Preferences</p>
                   <div className="crm-chip-row">
-                    {selectedCustomer.preferences.map((pref) => <span key={pref}>{pref}</span>)}
+                    {selectedCustomer.preferences.map((pref) => (
+                      <span key={pref}>{pref}</span>
+                    ))}
                   </div>
                   <p className="crm-info-title">Preferred Staff</p>
-                  <p className="crm-info-copy">{selectedCustomer.preferredStaff}</p>
+                  <p className="crm-info-copy">{selectedCustomer.favoriteStaff}</p>
                   <p className="crm-info-title">Preferred Times</p>
                   <p className="crm-info-copy">{selectedCustomer.preferredTimes}</p>
-                  <p className="crm-info-title">Allergies / Sensitivities</p>
-                  <p className="crm-info-copy">{selectedCustomer.allergies}</p>
+                  <p className="crm-info-title">Follow-up</p>
+                  <p className="crm-info-copy">
+                    {selectedCustomer.followUp.status} | {selectedCustomer.followUp.channel} | due {formatDateTime(selectedCustomer.followUp.nextDue)}
+                  </p>
+                  <p className="crm-info-copy">{selectedCustomer.followUp.reason}</p>
                 </div>
 
                 <div className="crm-customer-actions">
-                <button type="button" className="crm-customers-primary-btn" onClick={handleBookAppointment}>
-                  Book New Appointment
-                </button>
-                <button type="button" className="crm-customers-secondary-btn" onClick={handleRecordPayment}>
-                  Record Payment
-                </button>
-                <button type="button" className="crm-customers-ghost-btn" onClick={handleOpenReceiptHistory}>
-                  Open Receipt History
-                </button>
-                <button type="button" className="crm-customers-ghost-btn" onClick={handleSendFollowUp}>
-                  Send Follow-up
-                </button>
+                  <button type="button" className="crm-customers-primary-btn" onClick={handleBookAppointment}>
+                    Book Appointment
+                  </button>
+                  <button type="button" className="crm-customers-secondary-btn" onClick={handleRecordPayment}>
+                    Record Payment
+                  </button>
+                  <button type="button" className="crm-customers-ghost-btn" onClick={handleSendFollowUp}>
+                    Send Follow-up
+                  </button>
+                </div>
+
+                <div className="crm-customer-actions">
+                  <button
+                    type="button"
+                    className={workspaceTab === 'activity' ? 'crm-customers-secondary-btn' : 'crm-customers-ghost-btn'}
+                    onClick={() => setWorkspaceTab('activity')}
+                  >
+                    Activity
+                  </button>
+                  <button
+                    type="button"
+                    className={workspaceTab === 'appointments' ? 'crm-customers-secondary-btn' : 'crm-customers-ghost-btn'}
+                    onClick={() => setWorkspaceTab('appointments')}
+                  >
+                    Appointments
+                  </button>
+                  <button
+                    type="button"
+                    className={workspaceTab === 'payments' ? 'crm-customers-secondary-btn' : 'crm-customers-ghost-btn'}
+                    onClick={() => setWorkspaceTab('payments')}
+                  >
+                    Payments
+                  </button>
+                  <button
+                    type="button"
+                    className={workspaceTab === 'notes' ? 'crm-customers-secondary-btn' : 'crm-customers-ghost-btn'}
+                    onClick={() => setWorkspaceTab('notes')}
+                  >
+                    Notes
+                  </button>
                 </div>
 
                 <div className="crm-customer-history">
-                  <p className="crm-info-title">Payment / Receipt History</p>
+                  <p className="crm-info-title">{workspaceTitle}</p>
                   <ul>
-                    {selectedCustomer.paymentHistory.map((historyItem) => (
-                      <li key={historyItem}>{historyItem}</li>
-                    ))}
+                    {workspaceTab === 'payments' &&
+                      (selectedCustomer.paymentHistory.length > 0 ? (
+                        selectedCustomer.paymentHistory.map((historyItem) => (
+                          <li key={historyItem.id}>
+                            {formatDateTime(historyItem.date)} | {historyItem.method} | {formatCurrency(historyItem.amount)} | {historyItem.service}
+                          </li>
+                        ))
+                      ) : (
+                        <li>No payment history yet.</li>
+                      ))}
+
+                    {workspaceTab === 'appointments' &&
+                      (selectedCustomer.appointmentHistory.length > 0 ? (
+                        selectedCustomer.appointmentHistory.map((historyItem) => (
+                          <li key={historyItem.id}>
+                            {formatDateTime(historyItem.dateTime)} | {historyItem.service} | {historyItem.staff} | {historyItem.status}
+                          </li>
+                        ))
+                      ) : (
+                        <li>No appointment history yet.</li>
+                      ))}
+
+                    {workspaceTab === 'activity' &&
+                      (selectedCustomer.activityTimeline.length > 0 ? (
+                        selectedCustomer.activityTimeline.map((historyItem) => (
+                          <li key={historyItem.id}>
+                            {formatDateTime(historyItem.at)} | {historyItem.type} | {historyItem.summary}
+                          </li>
+                        ))
+                      ) : (
+                        <li>No timeline activity yet.</li>
+                      ))}
+
+                    {workspaceTab === 'notes' &&
+                      (selectedCustomer.notes.length > 0 ? (
+                        selectedCustomer.notes.map((historyItem) => (
+                          <li key={historyItem.id}>
+                            {formatDateTime(historyItem.at)} | {historyItem.author}: {historyItem.text}
+                          </li>
+                        ))
+                      ) : (
+                        <li>No notes saved yet.</li>
+                      ))}
                   </ul>
-                  <p className="crm-info-copy">Receipt count: {selectedCustomer.receiptCount}</p>
+                  <p className="crm-info-copy">Pending balance: {formatCurrency(selectedCustomer.pendingBalance)}</p>
                 </div>
               </>
             ) : (
@@ -617,42 +1152,6 @@ const CrmCustomers = () => {
             )}
           </aside>
         </section>
-
-        {activePanel === 'receipts' && selectedCustomer ? (
-          <div className="crm-settings-modal-backdrop" role="presentation" onClick={() => setActivePanel(null)}>
-            <article
-              className="crm-settings-modal-card"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Receipt history"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="crm-settings-modal-head">
-                <div>
-                  <p>Receipt History</p>
-                  <h3>{selectedCustomer.name}</h3>
-                </div>
-                <button type="button" className="crm-settings-modal-close" onClick={() => setActivePanel(null)}>
-                  Close
-                </button>
-              </div>
-              <div className="crm-settings-modal-list">
-                {selectedCustomer.paymentHistory.length ? (
-                  selectedCustomer.paymentHistory.map((item) => (
-                    <article key={item} className="crm-settings-modal-item">
-                      <strong>{item}</strong>
-                    </article>
-                  ))
-                ) : (
-                  <article className="crm-settings-modal-item">
-                    <strong>No receipts yet</strong>
-                    <p>This customer does not have receipt history in the CRM yet.</p>
-                  </article>
-                )}
-              </div>
-            </article>
-          </div>
-        ) : null}
       </main>
     </CrmShell>
   );

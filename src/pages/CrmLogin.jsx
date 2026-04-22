@@ -66,7 +66,7 @@ const CrmLogin = () => {
           <p className="crm-login-kicker">CRM Access</p>
           <h1>Login to my CRM</h1>
           <p className="crm-login-intro">
-            Sign in to sync website leads, bookings, and contact submissions with your CRM.
+            Sign in to sync website inquiries, bookings, and contact submissions with your CRM.
           </p>
 
           <form className="crm-login-form" onSubmit={handleSubmit}>
