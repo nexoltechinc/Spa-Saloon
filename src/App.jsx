@@ -7,6 +7,7 @@ import Booking from './pages/Booking';
 import Contact from './pages/Contact';
 import CrmLogin from './pages/CrmLogin';
 import CrmDashboard from './pages/CrmDashboard';
+import CrmAppointments from './pages/CrmAppointments';
 import CrmCustomers from './pages/CrmCustomers';
 import CrmServices from './pages/CrmServices';
 import CrmStaff from './pages/CrmStaff';
@@ -64,7 +65,7 @@ function App() {
           path="/crm/leads"
           element={(
             <RequireCrmAuth>
-              <Navigate to="/crm/dashboard" replace />
+              <Navigate to="/crm/customers" replace />
             </RequireCrmAuth>
           )}
         />
@@ -72,7 +73,7 @@ function App() {
           path="/crm/inquiries"
           element={(
             <RequireCrmAuth>
-              <Navigate to="/crm/dashboard" replace />
+              <Navigate to="/crm/customers" replace />
             </RequireCrmAuth>
           )}
         />
@@ -88,7 +89,7 @@ function App() {
           path="/crm/appointments"
           element={(
             <RequireCrmAuth>
-              <Navigate to="/crm/dashboard" replace />
+              <CrmAppointments />
             </RequireCrmAuth>
           )}
         />

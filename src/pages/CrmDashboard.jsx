@@ -29,7 +29,6 @@ const WIDGET_ACCESS = {
   appointments: ['receptionist', 'manager', 'owner'],
   conciergeActions: ['receptionist', 'manager'],
   staffActivity: ['receptionist', 'manager', 'owner'],
-  followUpQueue: ['receptionist', 'manager'],
   weeklySnapshot: ['receptionist', 'manager', 'owner'],
   financialOverview: ['manager', 'owner', 'receptionist'],
   alerts: ['receptionist', 'manager', 'owner'],
@@ -40,7 +39,7 @@ const quickActions = [
   { label: 'Add Customer', to: '/crm/customers' },
   { label: 'Record Payment', to: '/crm/payments' },
   { label: 'Open POS', to: '/crm/payments' },
-  { label: 'New Inquiry', to: '/crm/leads' },
+  { label: 'New Customer', to: '/crm/customers' },
   { label: 'Walk-in Booking', to: '/crm/appointments' },
   { label: 'View Calendar', to: '/crm/appointments' },
 ];
@@ -320,8 +319,6 @@ const dashboardSeed = (() => {
       serviceInterest: 'Hydra Glow Infusion',
       assignedStaff: 'Elena',
       createdAt: buildIsoAt(0, '08:10'),
-      followUpState: 'today',
-      followUpLabel: 'Call within 30m',
     },
     {
       id: 'LED-3002',
@@ -332,8 +329,6 @@ const dashboardSeed = (() => {
       serviceInterest: 'Deep Tissue Massage',
       assignedStaff: 'Marcus',
       createdAt: buildIsoAt(0, '09:20'),
-      followUpState: 'pending',
-      followUpLabel: 'Waiting for callback',
     },
     {
       id: 'LED-3003',
@@ -344,8 +339,6 @@ const dashboardSeed = (() => {
       serviceInterest: 'Signature Facial',
       assignedStaff: 'Elena',
       createdAt: buildIsoAt(-1, '14:00'),
-      followUpState: 'good',
-      followUpLabel: 'Booked for tomorrow',
     },
     {
       id: 'LED-3004',
@@ -356,8 +349,6 @@ const dashboardSeed = (() => {
       serviceInterest: 'Aromatherapy Session',
       assignedStaff: 'Unassigned',
       createdAt: buildIsoAt(-1, '11:40'),
-      followUpState: 'overdue',
-      followUpLabel: 'Overdue by 1 day',
     },
     {
       id: 'LED-3005',
@@ -368,8 +359,6 @@ const dashboardSeed = (() => {
       serviceInterest: 'Hot Stone Therapy',
       assignedStaff: 'Sofia',
       createdAt: buildIsoAt(-2, '13:30'),
-      followUpState: 'closed',
-      followUpLabel: 'Closed',
     },
   ];
 
@@ -448,8 +437,6 @@ const normalizeLead = (lead, index = 0) => ({
   serviceInterest: lead.serviceInterest || lead.service || lead.requestedService || 'General Inquiry',
   assignedStaff: lead.assignedStaff || lead.assignedTo || 'Unassigned',
   createdAt: lead.createdAt || lead.created_at || new Date().toISOString(),
-  followUpState: lead.followUpState || lead.priority || 'pending',
-  followUpLabel: lead.followUpLabel || lead.followUp || 'Pending follow-up',
 });
 
 const normalizePaymentStatus = (status, balanceRemaining, amountPaid) => {
@@ -854,7 +841,7 @@ const CrmDashboard = () => {
       {
         title: 'Completed Appointments',
         value: String(completedAppointments).padStart(2, '0'),
-        subtext: `${todayAppointments.filter((item) => item.status === 'Payment Pending').length} payment follow-up`,
+        subtext: `${todayAppointments.filter((item) => item.status === 'Payment Pending').length} payment alerts`,
         trend: 'Done',
       },
     ];
@@ -915,50 +902,6 @@ const CrmDashboard = () => {
         return leftBusy - rightBusy;
       });
   }, [nowMs, staff, todayAppointments]);
-
-  const followUpQueue = useMemo(() => {
-    const leadTasks = leads
-      .filter((lead) => ['pending', 'overdue', 'today'].includes(lead.followUpState))
-      .map((lead) => ({
-        id: `lead-${lead.id}`,
-        title: `${lead.name} inquiry follow-up`,
-        detail: `${lead.serviceInterest} via ${lead.source}`,
-        due: lead.followUpLabel || 'Follow-up pending',
-        actionLabel: 'Open Inquiry',
-        to: '/crm/leads',
-        priority: lead.followUpState === 'overdue' ? 1 : 2,
-      }));
-
-    const paymentTasks = pendingPayments.map((payment) => ({
-      id: `payment-${payment.id}`,
-      title: `Payment follow-up for ${payment.serviceName}`,
-      detail: `${formatMoney(payment.balanceRemaining)} pending balance`,
-      due: payment.status === 'Partial' ? 'Partial payment pending' : 'Unpaid checkout',
-      actionLabel: 'Record Payment',
-      to: '/crm/payments',
-      priority: payment.status === 'Unpaid' ? 1 : 2,
-    }));
-
-    const rebookingTasks = todayAppointments
-      .filter((appointment) => appointment.status === 'Completed')
-      .filter((appointment) => {
-        const customerName = String(appointment.customerName || '').trim().toLowerCase();
-        return customerName && customerName !== 'undefined';
-      })
-      .map((appointment) => ({
-        id: `rebook-${appointment.id}`,
-        title: `${appointment.customerName} rebooking reminder`,
-        detail: `${appointment.serviceName} completed`,
-        due: 'Send rebooking option before close',
-        actionLabel: 'Open Customer',
-        to: '/crm/customers',
-        priority: 3,
-      }));
-
-    return [...leadTasks, ...paymentTasks, ...rebookingTasks]
-      .sort((left, right) => left.priority - right.priority)
-      .slice(0, 7);
-  }, [leads, pendingPayments, todayAppointments]);
 
   const weeklySnapshot = useMemo(() => {
     const reference = new Date();
@@ -1042,7 +985,7 @@ const CrmDashboard = () => {
       .map(([name, count]) => ({ name, count }));
   }, [todayAppointments]);
 
-  const notificationCount = alertsList.length + followUpQueue.filter((item) => item.priority <= 2).length;
+  const notificationCount = alertsList.length;
 
   const todayLabel = useMemo(
     () =>
@@ -1115,7 +1058,7 @@ const CrmDashboard = () => {
             </select>
           </label>
 
-          <button type="button" className="crm-icon-btn" onClick={() => navigate('/crm/leads')}>
+          <button type="button" className="crm-icon-btn" onClick={() => navigate('/crm/customers')}>
             Alerts
             {notificationCount > 0 ? <span>{notificationCount}</span> : null}
           </button>
@@ -1131,9 +1074,9 @@ const CrmDashboard = () => {
         <section className="crm-welcome">
           <div>
             <h2>Good morning, Isabella</h2>
-            <p>
-              Front desk flow, settlement priorities, and guest follow-up in one calm operational view.
-            </p>
+              <p>
+                Front desk flow, settlement priorities, and guest service in one calm operational view.
+              </p>
           </div>
           <div className="crm-welcome-meta">
             <span className="crm-role-pill">Receptionist view</span>
@@ -1317,41 +1260,6 @@ const CrmDashboard = () => {
         </section>
 
         <section className="crm-lower-grid">
-          {roleAllows('followUpQueue') ? (
-            <article className="crm-insight-card crm-insight-span-2">
-              <div className="crm-section-head">
-                <div>
-                  <h3>Follow-up Queue</h3>
-                  <p>Rebooking, payment, and inquiry callbacks in one queue.</p>
-                </div>
-                  <button type="button" onClick={() => navigate('/crm/leads')}>
-                    Open Inquiry
-                  </button>
-                </div>
-
-              {followUpQueue.length === 0 ? (
-                <div className="crm-empty-mini">
-                  <p>No pending follow-up tasks.</p>
-                </div>
-              ) : (
-                <div className="crm-followup-list">
-                  {followUpQueue.map((task) => (
-                    <article key={task.id} className="crm-followup-row">
-                      <div>
-                        <p className="crm-followup-title">{task.title}</p>
-                        <p className="crm-appointment-subline">{task.detail}</p>
-                      </div>
-                      <p className="crm-followup-due">{task.due}</p>
-                      <button type="button" onClick={() => navigate(task.to)}>
-                        {task.actionLabel}
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </article>
-          ) : null}
-
           {roleAllows('weeklySnapshot') ? (
             <article className="crm-insight-card">
               <h3>Weekly Snapshot</h3>

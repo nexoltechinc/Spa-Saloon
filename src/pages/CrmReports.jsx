@@ -65,7 +65,7 @@ const baseInsights = [
   'Saturday produced the highest sales total this week.',
   'Julianne M. is leading both utilization and revenue output.',
   'Radiance Facial remains the most booked treatment.',
-  '8 unpaid balances need same-day follow-up.',
+  '8 unpaid balances need same-day attention.',
   'Repeat customer rate is holding at 68% this period.',
 ];
 

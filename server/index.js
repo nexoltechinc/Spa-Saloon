@@ -8,7 +8,9 @@ import {
   deleteRecord,
   ensureSchema,
   getRecord,
+  getSettings,
   listRecords,
+  saveSettings,
   updateRecord,
   RESOURCE_NAMES,
 } from './db.js'
@@ -48,6 +50,30 @@ app.post(
 )
 
 app.use('/api/crm', authMiddleware)
+
+app.get(
+  '/api/crm/settings',
+  asyncHandler(async (req, res) => {
+    const settings = await getSettings()
+    res.json(settings)
+  }),
+)
+
+app.put(
+  '/api/crm/settings',
+  asyncHandler(async (req, res) => {
+    const settings = await saveSettings(req.body)
+    res.json(settings)
+  }),
+)
+
+app.patch(
+  '/api/crm/settings',
+  asyncHandler(async (req, res) => {
+    const settings = await saveSettings(req.body)
+    res.json(settings)
+  }),
+)
 
 app.get(
   '/api/crm/:resource',

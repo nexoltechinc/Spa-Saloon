@@ -70,7 +70,7 @@ const rawStaffSeed = [
       { id: 'M-2', time: '12:30 PM', customer: 'Jenna L.', service: 'Peel Consultation', status: 'In Progress', state: 'current' },
       { id: 'M-3', time: '2:30 PM', customer: 'Vera T.', service: 'Brightening Facial', status: 'Next Up', state: 'next' },
       { id: 'M-4', time: '4:30 PM', customer: 'Hazel M.', service: 'Acne Recovery Facial', status: 'Scheduled', state: 'upcoming' },
-      { id: 'M-5', time: '6:00 PM', customer: 'Leah S.', service: 'Peel Follow-up', status: 'Scheduled', state: 'upcoming' },
+      { id: 'M-5', time: '6:00 PM', customer: 'Leah S.', service: 'Peel Check-in', status: 'Scheduled', state: 'upcoming' },
     ],
   },
   {
@@ -99,7 +99,7 @@ const rawStaffSeed = [
       { id: 'S-1', time: '11:00 AM', customer: 'Nina C.', service: 'Consultation', status: 'Completed', state: 'completed' },
       { id: 'S-2', time: '1:45 PM', customer: 'Talia N.', service: 'Skin Consult', status: 'Next Up', state: 'next' },
       { id: 'S-gap', type: 'gap', label: '1h 15m free gap for reassignment' },
-      { id: 'S-3', time: '4:00 PM', customer: 'Mila H.', service: 'Facial Follow-up', status: 'Scheduled', state: 'upcoming' },
+      { id: 'S-3', time: '4:00 PM', customer: 'Mila H.', service: 'Facial Review', status: 'Scheduled', state: 'upcoming' },
     ],
   },
   {

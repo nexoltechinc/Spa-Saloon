@@ -11,7 +11,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { clearCrmToken } from '../config/crm';
-import { loadReceiptSettings, saveReceiptSettings } from '../config/receiptSettings';
+import { fetchReceiptSettings, loadReceiptSettings, saveReceiptSettings } from '../config/receiptSettings';
 import CrmShell from '../components/CrmShell';
 import {
   BookingRulesBlock,
@@ -147,21 +147,46 @@ const validateSettings = (settings) => {
 const CrmSettings = () => {
   const navigate = useNavigate();
   const brandMarkInputRef = useRef(null);
-  const [initialSettings] = useState(() => loadReceiptSettings());
-  const [savedSettings, setSavedSettings] = useState(() => cloneSettings(initialSettings));
-  const [draft, setDraft] = useState(() => cloneSettings(initialSettings));
+  const [bootSettings] = useState(() => loadReceiptSettings());
+  const [savedSettings, setSavedSettings] = useState(() => cloneSettings(bootSettings));
+  const [draft, setDraft] = useState(() => cloneSettings(bootSettings));
   const [saveState, setSaveState] = useState('saved');
   const [activeSection, setActiveSection] = useState('business-profile');
   const [activePanel, setActivePanel] = useState(null);
   const [specialHourDraft, setSpecialHourDraft] = useState(() => createSpecialHourDraft());
-  const [brandMarkLabel, setBrandMarkLabel] = useState(initialSettings.profile.brandMarkName || 'Update brand mark');
-  const [brandMarkPreview, setBrandMarkPreview] = useState(initialSettings.profile.brandMarkImage || '');
-  const [lastSavedAt, setLastSavedAt] = useState(initialSettings.updatedAt || new Date().toISOString());
+  const [brandMarkLabel, setBrandMarkLabel] = useState(bootSettings.profile.brandMarkName || 'Update brand mark');
+  const [brandMarkPreview, setBrandMarkPreview] = useState(bootSettings.profile.brandMarkImage || '');
+  const [lastSavedAt, setLastSavedAt] = useState(bootSettings.updatedAt || new Date().toISOString());
   const [isBooting, setIsBooting] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setIsBooting(false), 130);
-    return () => window.clearTimeout(timer);
+    let mounted = true;
+
+    const hydrateSettings = async () => {
+      try {
+        const settings = await fetchReceiptSettings();
+        if (!mounted) return;
+        const snapshot = cloneSettings(settings);
+        setSavedSettings(snapshot);
+        setDraft(snapshot);
+        setBrandMarkLabel(snapshot.profile.brandMarkName || 'Update brand mark');
+        setBrandMarkPreview(snapshot.profile.brandMarkImage || '');
+        setLastSavedAt(snapshot.updatedAt || new Date().toISOString());
+        setLoadError('');
+      } catch (error) {
+        if (!mounted) return;
+        setLoadError(error.message || 'Unable to load CRM settings.');
+      } finally {
+        if (mounted) setIsBooting(false);
+      }
+    };
+
+    void hydrateSettings();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const validationErrors = useMemo(() => validateSettings(draft), [draft]);
@@ -340,7 +365,7 @@ const CrmSettings = () => {
     setSaveState('dirty');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validationCount > 0) {
       setSaveState('error');
       return;
@@ -348,7 +373,7 @@ const CrmSettings = () => {
 
     try {
       setSaveState('saving');
-      const saved = saveReceiptSettings(draft);
+      const saved = await saveReceiptSettings(draft);
       const snapshot = cloneSettings(saved);
       setSavedSettings(snapshot);
       setDraft(snapshot);
@@ -356,7 +381,9 @@ const CrmSettings = () => {
       setBrandMarkPreview(snapshot.profile.brandMarkImage || '');
       setLastSavedAt(snapshot.updatedAt || new Date().toISOString());
       setSaveState('saved');
-    } catch {
+      setLoadError('');
+    } catch (error) {
+      setLoadError(error.message || 'Unable to save CRM settings.');
       setSaveState('error');
     }
   };
@@ -407,6 +434,7 @@ const CrmSettings = () => {
               Configure the business profile, operating rhythm, booking rules, guest communication,
               and branded receipt presentation that shape the premium spa experience.
             </p>
+            {loadError ? <p className="crm-settings-subcopy">{loadError}</p> : null}
           </div>
 
           <div className="crm-settings-topbar-stack">
@@ -590,7 +618,7 @@ const CrmSettings = () => {
             <SettingsSectionHeader
               kicker="Booking Engine"
               title="Communication Settings"
-              description="Keep booking confirmations, reminders, and follow-ups aligned with the guest experience."
+        description="Keep booking confirmations and reminders aligned with the guest experience."
               status={sectionStates.find((item) => item.id === 'communications')?.stateLabel}
               statusTone={sectionStates.find((item) => item.id === 'communications')?.state}
               actions={

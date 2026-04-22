@@ -311,7 +311,6 @@ export const buildReceiptPreview = (payment = {}, lookups = {}, branding = build
     balanceRemaining,
     daysOverdue,
     agingBucket: getAgingBucket(daysOverdue, balanceRemaining),
-    followUp: payment.followUp || {},
     notes: payment.notes || '',
     deliveryState: {
       printed: Boolean(printedAt),

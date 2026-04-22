@@ -1,18 +1,43 @@
 # Spa Saloon
 
-Luxury spa website built with React and Vite.
+Spa Saloon is a luxury spa marketing site plus CRM built with React, Vite, Node.js, and PostgreSQL.
 
-## Features
+## What Is Included
 
-- Marketing website with homepage, services, booking, and contact pages
-- Dedicated CRM login screen at `/crm-login`
-- Persistent sidebar shortcut: `Login to my CRM`
-- Postgres-backed CRM REST API under `/api/crm`
-- CRM auth integration via `VITE_CRM_AUTH_ENDPOINT`
-- CRM REST data integration via `VITE_CRM_API_BASE_URL` and `VITE_CRM_API_PREFIX`
-- Generic CRUD storage for leads, customers, appointments, services, staff, payments, branches, and receipts
+- Public marketing pages for home, services, booking, and contact
+- Auth-protected CRM area with a premium admin workspace
+- Standalone CRM modules for:
+  - dashboard
+  - leads
+  - appointments
+  - customers
+  - services
+  - staff
+  - branches
+  - payments
+  - receipts
+  - reports
+  - settings
+- REST API under `/api/crm`
+- Postgres-backed persistence
+- Seeded admin login
+- DB-backed business and receipt settings
 
-## Run Locally
+## CRM Pages
+
+- `/crm/dashboard`
+- `/crm/leads`
+- `/crm/appointments`
+- `/crm/customers`
+- `/crm/services`
+- `/crm/staff`
+- `/crm/branches`
+- `/crm/payments`
+- `/crm/receipts`
+- `/crm/reports`
+- `/crm/settings`
+
+## Local Development
 
 Start Postgres first if you want the API to boot against the bundled database:
 
@@ -27,13 +52,12 @@ npm install
 npm run dev
 ```
 
-`npm run dev` starts the Vite frontend. Use `npm run dev:api` for the CRM API, or `npm run dev:full` to run both together once Postgres is up.
+Useful scripts:
 
-## Build
-
-```bash
-npm run build
-```
+- `npm run dev` starts the Vite frontend
+- `npm run dev:api` starts the CRM API
+- `npm run dev:full` runs both together after Postgres is up
+- `npm run build` creates a production frontend build
 
 ## Environment Variables
 
@@ -51,33 +75,70 @@ VITE_CRM_API_BASE_URL=
 VITE_CRM_API_PREFIX=/api/crm
 ```
 
-The login endpoint uses `CRM_ADMIN_EMAIL` and `CRM_ADMIN_PASSWORD`. With the defaults above, the first sign-in is `admin@spa.local` / `ChangeMe123!`.
+The admin seed account uses `CRM_ADMIN_EMAIL` and `CRM_ADMIN_PASSWORD`. With the defaults above, the first sign-in is `admin@spa.local` / `ChangeMe123!`.
 
 ## API
 
+### Health and Auth
+
 - `GET /api/crm/health`
 - `POST /api/crm/auth/login`
+- `GET /api/crm/settings`
+- `PUT /api/crm/settings`
+- `PATCH /api/crm/settings`
+
+### CRM Resources
+
 - `GET /api/crm/:resource`
 - `GET /api/crm/:resource/:id`
 - `POST /api/crm/:resource`
 - `PATCH /api/crm/:resource/:id`
 - `DELETE /api/crm/:resource/:id`
 
-The API stores records in Postgres and keeps each row as JSON so the CRM screens can evolve without constant schema changes.
+Supported resources:
+
+- leads
+- appointments
+- customers
+- services
+- staff
+- branches
+- payments
+- receipts
+- reports
 
 ## Database
 
-The included compose file runs a local Postgres instance with these defaults:
+The API boots a Postgres schema automatically and runs migrations on startup.
 
-- database: `spa_saloon`
-- user: `spa_saloon`
-- password: `spa_saloon`
+Core structured tables:
 
-Point `DATABASE_URL` at that database, or swap in your own Postgres connection string.
+- `crm_users`
+- `crm_branches`
+- `crm_leads`
+- `crm_appointments`
+- `crm_settings`
+
+Legacy/general resources continue to use the `crm_records` table for flexible JSONB storage:
+
+- customers
+- services
+- staff
+- payments
+- receipts
+- reports
+
+The settings document is persisted in Postgres, so branding, business profile, and receipt configuration are shared across sessions and devices instead of living in browser storage.
 
 ## Project Structure
 
 - `src/components` shared UI and layout pieces
-- `src/config` integration and app configuration
+- `src/config` CRM/API integration and app config
 - `src/pages` route-level pages
-- `src/assets` local assets
+- `server` API, auth, and database layer
+
+## Notes
+
+- `CRM_REQUIRE_AUTH=true` forces bearer-token auth for CRM routes.
+- The CRM modules use live API persistence and should not be treated as demo-only screens.
+- If Postgres is unavailable, the API will fail fast instead of silently running with stale data.

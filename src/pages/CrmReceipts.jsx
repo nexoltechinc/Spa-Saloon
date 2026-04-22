@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmList, crmUpdate } from '../config/crmApi';
-import { loadReceiptSettings } from '../config/receiptSettings';
+import { fetchReceiptSettings, loadReceiptSettings } from '../config/receiptSettings';
 import CrmShell from '../components/CrmShell';
 import AwaitingCheckoutQueue from '../components/payments/AwaitingCheckoutQueue';
 import ReceiptDeliveryPanel from '../components/receipts/ReceiptDeliveryPanel';
@@ -67,7 +67,6 @@ const receiptSeedPayments = [
       { name: 'Deep Tissue Massage', category: 'Service', quantity: 1, unitPrice: 150, subtotal: 150 },
       { name: 'Aromatherapy Add-on', category: 'Add-on', quantity: 1, unitPrice: 30, subtotal: 30 },
     ],
-    followUp: { assignedTo: 'Front Desk', collectionStatus: 'Settled', reminderSent: false, lastFollowUpDate: '2026-04-15T10:25:00', nextFollowUpDue: '', contactNote: 'Settled at checkout.' },
   },
   {
     id: 'PAY-9922',
@@ -97,7 +96,6 @@ const receiptSeedPayments = [
     lineItems: [
       { name: 'Aroma Facial', category: 'Service', quantity: 1, unitPrice: 220, subtotal: 220 },
     ],
-    followUp: { assignedTo: 'Isabella', collectionStatus: 'Awaiting Reply', reminderSent: true, lastFollowUpDate: '2026-04-14T16:40:00', nextFollowUpDue: '2026-04-16T11:00:00', contactNote: 'Promised to settle tomorrow.' },
   },
   {
     id: 'PAY-9923',
@@ -125,7 +123,6 @@ const receiptSeedPayments = [
     lineItems: [
       { name: 'Full Body Scrub', category: 'Service', quantity: 1, unitPrice: 150, subtotal: 150 },
     ],
-    followUp: { assignedTo: 'Elena', collectionStatus: 'Follow-up Needed', reminderSent: false, lastFollowUpDate: '2026-04-11T09:20:00', nextFollowUpDue: '2026-04-15T14:00:00', contactNote: 'No response yet.' },
   },
   {
     id: 'PAY-9924',
@@ -157,7 +154,6 @@ const receiptSeedPayments = [
     lineItems: [
       { name: 'Manicure Deluxe', category: 'Service', quantity: 1, unitPrice: 95, subtotal: 95 },
     ],
-    followUp: { assignedTo: 'Front Desk', collectionStatus: 'Settled', reminderSent: false, lastFollowUpDate: '2026-04-14T16:13:00', nextFollowUpDue: '', contactNote: 'Receipt printed and emailed.' },
   },
 ];
 
@@ -181,7 +177,7 @@ const statusOptions = [
   'Void',
   'Refunded',
 ];
-const deliveryOptions = ['All Delivery', 'Delivery Pending', 'Printed', 'Emailed', 'Downloaded', 'Needs Follow-Up'];
+const deliveryOptions = ['All Delivery', 'Delivery Pending', 'Printed', 'Emailed', 'Downloaded'];
 
 const normalizeCustomer = (customer = {}, index = 0) => ({
   id: customer.id || customer.customerId || `C-${index + 1}`,
@@ -377,15 +373,31 @@ const CrmReceipts = () => {
   }, []);
 
   useEffect(() => {
-    const refreshBranding = () => {
-      setReceiptBranding(buildReceiptBranding(loadReceiptSettings()));
+    let mounted = true;
+
+    const refreshBranding = async () => {
+      try {
+        const settings = await fetchReceiptSettings();
+        if (mounted) {
+          setReceiptBranding(buildReceiptBranding(settings));
+        }
+      } catch {
+        if (mounted) {
+          setReceiptBranding(buildReceiptBranding(loadReceiptSettings()));
+        }
+      }
     };
 
-    window.addEventListener('focus', refreshBranding);
-    window.addEventListener('storage', refreshBranding);
+    void refreshBranding();
+
+    const handleFocus = () => {
+      void refreshBranding();
+    };
+
+    window.addEventListener('focus', handleFocus);
     return () => {
-      window.removeEventListener('focus', refreshBranding);
-      window.removeEventListener('storage', refreshBranding);
+      mounted = false;
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -496,8 +508,7 @@ const CrmReceipts = () => {
           || (deliveryFilter === 'Delivery Pending' && receipt.receiptStatus === 'Pending')
           || (deliveryFilter === 'Printed' && Boolean(receipt.printedAt))
           || (deliveryFilter === 'Emailed' && Boolean(receipt.emailedAt))
-          || (deliveryFilter === 'Downloaded' && Boolean(receipt.downloadedAt))
-          || (deliveryFilter === 'Needs Follow-Up' && receipt.balanceRemaining > 0);
+          || (deliveryFilter === 'Downloaded' && Boolean(receipt.downloadedAt));
 
       return matchesSearch && matchesStatus && matchesDelivery;
     });
@@ -543,7 +554,6 @@ const CrmReceipts = () => {
         nextPayment = {
           ...payment,
           ...patch,
-          followUp: patch.followUp ? { ...(payment.followUp || {}), ...patch.followUp } : payment.followUp,
         };
         return nextPayment;
       }),
@@ -891,7 +901,6 @@ const CrmReceipts = () => {
               onOpenHistory={() => {
                 historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              onOpenFollowUp={() => navigate('/crm/payments', { state: { selectedPaymentId: receiptPreview?.paymentId } })}
               isBusy={isBusy}
               formatDateTime={formatDateTime}
             />

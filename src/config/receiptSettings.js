@@ -1,4 +1,4 @@
-const RECEIPT_SETTINGS_STORAGE_KEY = 'crm_receipt_settings_v2';
+import { crmGetSettings, crmSaveSettings } from './crmApi';
 
 const defaultOperatingHours = [
   { day: 'Monday', open: '09:00', close: '18:00', breakStart: '', breakEnd: '', enabled: true, guestBookingOpen: true, note: 'Guest bookings open all day.' },
@@ -63,7 +63,7 @@ const defaultBookingRules = {
   maxAdvanceBooking: '60 days',
   minimumLeadTime: '2 hours',
   reschedulePolicy: '24 Hours',
-  noShowPolicy: 'Follow-up after no-show',
+  noShowPolicy: 'Missed visit review',
   defaultAppointmentStatus: 'Pending',
   approvalMode: 'Auto-confirm',
   staffSelectionVisibility: 'Visible to guests',
@@ -78,7 +78,6 @@ const defaultBookingRules = {
 const defaultCommunicationSettings = {
   confirmationEmail: true,
   reminderEmail: true,
-  followUpEmail: true,
   senderName: 'Aura Spa & Wellness',
   senderEmail: 'hello@aurawellness.com',
   replyToEmail: 'frontdesk@aurawellness.com',
@@ -87,8 +86,6 @@ const defaultCommunicationSettings = {
     'Your appointment is confirmed. We are looking forward to welcoming you to a calm and polished visit.',
   cancellationMessage:
     'If plans change, reply to this message and we will help you adjust the appointment with care.',
-  followUpMessage:
-    'Thank you for visiting Aura Spa & Wellness. We would love to welcome you back soon.',
   smsEnabled: false,
   whatsappEnabled: false,
 };
@@ -250,7 +247,6 @@ const normalizeCommunication = (communication) => {
   return {
     confirmationEmail: normalizeBoolean(communication?.confirmationEmail, fallback.confirmationEmail),
     reminderEmail: normalizeBoolean(communication?.reminderEmail, fallback.reminderEmail),
-    followUpEmail: normalizeBoolean(communication?.followUpEmail, fallback.followUpEmail),
     senderName: normalizeText(communication?.senderName, fallback.senderName),
     senderEmail: normalizeText(communication?.senderEmail, fallback.senderEmail),
     replyToEmail: normalizeText(communication?.replyToEmail, fallback.replyToEmail),
@@ -263,7 +259,6 @@ const normalizeCommunication = (communication) => {
       communication?.cancellationMessage,
       fallback.cancellationMessage,
     ),
-    followUpMessage: normalizeText(communication?.followUpMessage, fallback.followUpMessage),
     smsEnabled: normalizeBoolean(communication?.smsEnabled, fallback.smsEnabled),
     whatsappEnabled: normalizeBoolean(communication?.whatsappEnabled, fallback.whatsappEnabled),
   };
@@ -330,34 +325,31 @@ const normalizeReceiptSettings = (settings) => {
   };
 };
 
-export const loadReceiptSettings = () => {
-  if (typeof window === 'undefined') return normalizeReceiptSettings(defaultReceiptSettings);
+const defaultNormalizedReceiptSettings = normalizeReceiptSettings(defaultReceiptSettings);
 
+let receiptSettingsCache = defaultNormalizedReceiptSettings;
+
+export const primeReceiptSettings = (settings) => {
+  receiptSettingsCache = normalizeReceiptSettings(settings);
+  return receiptSettingsCache;
+};
+
+export const loadReceiptSettings = () => receiptSettingsCache;
+
+export const fetchReceiptSettings = async () => {
   try {
-    const raw = window.localStorage.getItem(RECEIPT_SETTINGS_STORAGE_KEY);
-    if (!raw) return normalizeReceiptSettings(defaultReceiptSettings);
-    const parsed = JSON.parse(raw);
-    return normalizeReceiptSettings(parsed);
-  } catch {
-    return normalizeReceiptSettings(defaultReceiptSettings);
+    const settings = await crmGetSettings();
+    return primeReceiptSettings(settings);
+  } catch (error) {
+    if (error?.status === 404) {
+      return receiptSettingsCache || defaultNormalizedReceiptSettings;
+    }
+
+    throw error;
   }
 };
 
-export const saveReceiptSettings = (settings) => {
-  const normalized = normalizeReceiptSettings(settings);
-
-  if (typeof window !== 'undefined') {
-    window.localStorage.setItem(
-      RECEIPT_SETTINGS_STORAGE_KEY,
-      JSON.stringify({
-        ...normalized,
-        updatedAt: new Date().toISOString(),
-      }),
-    );
-  }
-
-  return {
-    ...normalized,
-    updatedAt: new Date().toISOString(),
-  };
+export const saveReceiptSettings = async (settings) => {
+  const saved = await crmSaveSettings(settings);
+  return primeReceiptSettings(saved);
 };

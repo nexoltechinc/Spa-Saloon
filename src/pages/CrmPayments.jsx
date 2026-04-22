@@ -3,12 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
-import { loadReceiptSettings } from '../config/receiptSettings';
+import { fetchReceiptSettings, loadReceiptSettings } from '../config/receiptSettings';
 import CrmShell from '../components/CrmShell';
 import ReceiptPreviewPanel from '../components/ReceiptPreviewPanel';
 import AwaitingCheckoutQueue from '../components/payments/AwaitingCheckoutQueue';
 import CashSnapshotCards from '../components/payments/CashSnapshotCards';
-import OverdueFollowUpBlock from '../components/payments/OverdueFollowUpBlock';
 import PaymentRow from '../components/payments/PaymentRow';
 import ReceiptWorkspacePanel from '../components/payments/ReceiptWorkspacePanel';
 import './CrmPayments.css';
@@ -33,7 +32,6 @@ const paymentSeed = [
     receiptStatus: 'Issued',
     receiptNumber: 'RCT-00009921',
     receiptGeneratedAt: '2026-04-15T10:18:00',
-    followUp: { assignedTo: 'Front Desk', collectionStatus: 'Settled', reminderSent: false, lastFollowUpDate: '2026-04-15T10:18:00', nextFollowUpDue: '', contactNote: 'Settled.' },
   },
   {
     id: 'PAY-9923',
@@ -54,7 +52,6 @@ const paymentSeed = [
     receiptStatus: 'Not Issued',
     receiptNumber: '',
     receiptGeneratedAt: '',
-    followUp: { assignedTo: 'Elena', collectionStatus: 'Follow-up Needed', reminderSent: false, lastFollowUpDate: '2026-04-11T09:20:00', nextFollowUpDue: '2026-04-15T14:00:00', contactNote: 'No response yet.' },
   },
   {
     id: 'PAY-9924',
@@ -75,7 +72,6 @@ const paymentSeed = [
     receiptStatus: 'Issued',
     receiptNumber: 'RCT-00009924',
     receiptGeneratedAt: '2026-04-14T16:13:00',
-    followUp: { assignedTo: 'Front Desk', collectionStatus: 'Settled', reminderSent: false, lastFollowUpDate: '2026-04-14T16:13:00', nextFollowUpDue: '', contactNote: 'Receipt printed in-store.' },
   },
 ];
 
@@ -122,7 +118,6 @@ const parseMoney = (value) => {
 };
 
 const formatMoney = (value) => `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const formatDate = (value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const formatDateTime = (value) => new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 const toDateKey = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
@@ -199,14 +194,6 @@ const normalizePayment = (payment, index = 0) => {
     receiptGeneratedAt: payment.receiptGeneratedAt || payment.issuedAt || '',
     receiptPrintedAt: payment.receiptPrintedAt || '',
     receiptEmailedAt: payment.receiptEmailedAt || '',
-    followUp: {
-      assignedTo: payment.followUp?.assignedTo || payment.followUp?.owner || 'Front Desk',
-      collectionStatus: payment.followUp?.collectionStatus || payment.followUp?.status || 'Pending',
-      reminderSent: Boolean(payment.followUp?.reminderSent),
-      lastFollowUpDate: payment.followUp?.lastFollowUpDate || payment.followUp?.lastDate || '',
-      nextFollowUpDue: payment.followUp?.nextFollowUpDue || payment.followUp?.nextDue || '',
-      contactNote: payment.followUp?.contactNote || payment.followUp?.reason || '',
-    },
   };
 };
 
@@ -269,8 +256,7 @@ const buildAwaitingQueue = (appointments, payments) => {
   return queue.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
 };
 
-const buildReceiptBranding = () => {
-  const settings = loadReceiptSettings();
+const buildReceiptBranding = (settings = loadReceiptSettings()) => {
   const profile = settings.profile || {};
   return {
     tenantName: profile.businessName || 'Aura Spa & Wellness',
@@ -412,6 +398,29 @@ const CrmPayments = () => {
     };
 
     void loadPayments();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const refreshSettings = async () => {
+      try {
+        const settings = await fetchReceiptSettings();
+        if (mounted) {
+          setReceiptBranding(buildReceiptBranding(settings));
+        }
+      } catch {
+        if (mounted) {
+          setReceiptBranding(buildReceiptBranding());
+        }
+      }
+    };
+
+    void refreshSettings();
 
     return () => {
       mounted = false;
@@ -692,14 +701,6 @@ const CrmPayments = () => {
         paymentDate: localInputToIso(recordDraft.paymentDate),
         editedBy: recordDraft.assignedTo || 'Front Desk',
         notes: recordDraft.notes || source.notes,
-        followUp: {
-          ...source.followUp,
-          assignedTo: recordDraft.assignedTo || source.followUp.assignedTo,
-          collectionStatus: nextBalance > 0 ? 'Partial' : 'Settled',
-          lastFollowUpDate: new Date().toISOString(),
-          nextFollowUpDue: nextBalance > 0 ? new Date(Date.now() + 86400000).toISOString() : '',
-          contactNote: recordDraft.notes || source.followUp.contactNote,
-        },
       });
 
       if (updated) {
@@ -736,14 +737,6 @@ const CrmPayments = () => {
       editedBy: recordDraft.assignedTo || 'Front Desk',
       notes: recordDraft.notes,
       receiptStatus: amountPaid > 0 ? 'Pending' : 'Not Issued',
-      followUp: {
-        assignedTo: recordDraft.assignedTo || 'Front Desk',
-        collectionStatus: balanceRemaining > 0 ? 'Pending' : 'Settled',
-        reminderSent: false,
-        lastFollowUpDate: '',
-        nextFollowUpDue: balanceRemaining > 0 ? new Date(Date.now() + 86400000).toISOString() : '',
-        contactNote: recordDraft.notes,
-      },
     };
 
     try {
@@ -822,65 +815,6 @@ const CrmPayments = () => {
     }
   };
 
-  const handleFollowUpAction = async (action, payment) => {
-    if (!payment) return;
-    if (action === 'openCustomer') {
-      navigate('/crm/customers');
-      return;
-    }
-
-    const now = new Date().toISOString();
-    if (action === 'sendFollowUp') {
-      await applyPaymentPatch(payment.id, {
-        followUp: {
-          ...payment.followUp,
-          reminderSent: true,
-          lastFollowUpDate: now,
-          nextFollowUpDue: new Date(Date.now() + 86400000).toISOString(),
-          collectionStatus: 'Reminder Sent',
-          contactNote: 'Follow-up sent from payment workspace.',
-        },
-        editedBy: 'Front Desk',
-      });
-      return;
-    }
-    if (action === 'logContact') {
-      const note = window.prompt('Log contact attempt note', payment.followUp.contactNote || 'Spoke with customer.');
-      if (!note) return;
-      await applyPaymentPatch(payment.id, {
-        followUp: {
-          ...payment.followUp,
-          lastFollowUpDate: now,
-          collectionStatus: 'Contacted',
-          contactNote: note,
-        },
-        editedBy: 'Front Desk',
-      });
-      return;
-    }
-    if (action === 'scheduleFollowUp') {
-      await applyPaymentPatch(payment.id, {
-        followUp: {
-          ...payment.followUp,
-          nextFollowUpDue: new Date(Date.now() + 2 * 86400000).toISOString(),
-          collectionStatus: 'Scheduled',
-        },
-        editedBy: 'Front Desk',
-      });
-      return;
-    }
-    if (action === 'markContacted') {
-      await applyPaymentPatch(payment.id, {
-        followUp: {
-          ...payment.followUp,
-          lastFollowUpDate: now,
-          collectionStatus: 'Contacted',
-        },
-        editedBy: 'Front Desk',
-      });
-    }
-  };
-
   const handleExportPayments = () => {
     const rows = [
       ['Payment ID', 'Customer', 'Appointment', 'Service', 'Amount Due', 'Amount Paid', 'Balance', 'Method', 'Status', 'Aging', 'Date', 'Receipt', 'Recorded By'],
@@ -921,7 +855,7 @@ const CrmPayments = () => {
         <header className="crm-payments-header">
           <div>
             <h1>Payment Management</h1>
-            <p>Front-desk payment control, overdue follow-up, and receipt workflow in one calm workspace.</p>
+            <p>Front-desk payment control and receipt workflow in one calm workspace.</p>
           </div>
 
           <div className="crm-payments-header-actions">
@@ -1049,11 +983,6 @@ const CrmPayments = () => {
                       <span>{awaitingCheckoutQueue[0]?.customerName || 'No waiting customers right now.'}</span>
                     </article>
                     <article>
-                      <p>Overdue Follow-Up</p>
-                      <strong>{payments.filter((payment) => payment.displayStatus === 'Overdue').length}</strong>
-                      <span>{payments.find((payment) => payment.displayStatus === 'Overdue')?.customerName || 'No overdue balances currently.'}</span>
-                    </article>
-                    <article>
                       <p>Recent Payments</p>
                       <strong>{recentPayments.length}</strong>
                       <span>{recentPayments[0] ? `${recentPayments[0].customerName} - ${formatMoney(recentPayments[0].amountPaid)}` : 'No payment activity yet.'}</span>
@@ -1111,7 +1040,7 @@ const CrmPayments = () => {
               <div className="crm-payments-detail-head">
                 <p className="crm-payments-kicker">Receipt-first Entry</p>
                 <h3>{recordDraft.sourcePaymentId ? 'Record Remaining Balance' : 'New Payment Entry'}</h3>
-                <p>Capture full or partial payment, generate receipt, and update follow-up status in one workflow.</p>
+                <p>Capture full or partial payment and generate a receipt in one workflow.</p>
               </div>
 
               {saveError ? <p className="crm-payments-form-error">{saveError}</p> : null}
@@ -1131,7 +1060,7 @@ const CrmPayments = () => {
                 <label>Payment Method<select value={recordDraft.method} onChange={(event) => setRecordDraft((draft) => ({ ...draft, method: event.target.value }))}><option value="Cash">Cash (Primary)</option><option value="Card">Card (Future-ready)</option><option value="Bank Transfer">Bank Transfer (Future-ready)</option></select></label>
                 <label>Payment Date<input type="datetime-local" value={recordDraft.paymentDate} onChange={(event) => setRecordDraft((draft) => ({ ...draft, paymentDate: event.target.value }))} /></label>
                 <label>Assigned Handler<input type="text" value={recordDraft.assignedTo} onChange={(event) => setRecordDraft((draft) => ({ ...draft, assignedTo: event.target.value }))} placeholder="Front Desk" /></label>
-                <label>Contact / Collection Note<textarea rows="3" value={recordDraft.notes} onChange={(event) => setRecordDraft((draft) => ({ ...draft, notes: event.target.value }))} placeholder="Log follow-up intent or payment context" /></label>
+                <label>Payment Note<textarea rows="3" value={recordDraft.notes} onChange={(event) => setRecordDraft((draft) => ({ ...draft, notes: event.target.value }))} placeholder="Add any payment context or internal note" /></label>
 
                 {activeReceipt ? <ReceiptPreviewPanel receipt={activeReceipt} /> : null}
 
@@ -1164,12 +1093,7 @@ const CrmPayments = () => {
         </section>
 
         <section className="crm-payments-lower-grid">
-          <OverdueFollowUpBlock
-            rows={payments.filter((payment) => payment.balanceRemaining > 0)}
-            formatDate={formatDate}
-            onAction={handleFollowUpAction}
-          />
-          <CashSnapshotCards items={dailyCashSnapshot} />
+        <CashSnapshotCards items={dailyCashSnapshot} />
         </section>
       </main>
     </CrmShell>

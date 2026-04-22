@@ -12,8 +12,8 @@ const SEGMENT_OPTIONS = [
   'Repeat Customer',
   'VIP',
   'High Value',
-  'Follow-Up Needed',
-  'Rebooking Due',
+  'Needs Attention',
+  'Rebook Soon',
   'Inactive',
   'At Risk',
   'Returning After Gap',
@@ -22,10 +22,7 @@ const SEGMENT_OPTIONS = [
 const TYPE_FILTERS = ['All Segments', ...SEGMENT_OPTIONS];
 const SOURCE_FILTERS = ['All Sources', 'Website Form', 'Walk-In', 'Instagram', 'Google', 'Referral', 'Chatbot', 'Phone Inquiry'];
 const SPEND_FILTERS = ['Any Spend', 'Above $500', 'Above $1000', 'Above $3000'];
-const ACTIVITY_FILTERS = ['All Activity', 'Need Follow-up', 'Rebooking Due', 'At Risk', 'Upcoming Today'];
-const FOLLOW_UP_STATUS_OPTIONS = ['Scheduled', 'Awaiting Reply', 'Completed', 'Overdue'];
-const CHANNEL_OPTIONS = ['Phone', 'WhatsApp', 'Email', 'SMS'];
-const STAFF_OPTIONS = ['Sarah Jenkins', 'Elena', 'Marcus', 'Sofia', 'Front Desk'];
+const ACTIVITY_FILTERS = ['All Activity', 'Rebook Soon', 'At Risk', 'Upcoming Today'];
 
 let customerIdCounter = 1300;
 let appointmentIdCounter = 7200;
@@ -221,7 +218,6 @@ const customerSeed = [
     preferredChannel: 'Phone',
     sensitivities: 'None reported',
     upcomingAppointment: null,
-    followUp: { status: 'Overdue', reason: 'Rebooking after monthly massage cycle', owner: 'Marcus', lastDate: shiftIso(-22, 12, 40), nextDue: shiftIso(-2, 10, 0), channel: 'Phone' },
     pendingBalance: 45,
     paymentHistory: [
       { id: 'PAY-7920', date: shiftIso(-27, 16, 5), amount: 125, method: 'Cash', service: 'Swedish Massage', receiptNo: 'RCPT-13820', status: 'Paid' },
@@ -232,7 +228,7 @@ const customerSeed = [
       { id: 'APT-H-1112', dateTime: shiftIso(-78, 15, 30), service: 'Hot Stone Therapy', staff: 'Marcus', status: 'Completed' },
     ],
     activityTimeline: [
-      { id: 'ACT-1101', type: 'Follow-up Sent', at: shiftIso(-22, 12, 40), actor: 'Marcus', channel: 'Phone', outcome: 'No response', summary: 'Call attempted, voicemail left' },
+      { id: 'ACT-1101', type: 'Check-in Logged', at: shiftIso(-22, 12, 40), actor: 'Marcus', channel: 'Phone', outcome: 'No response', summary: 'Call attempted, voicemail left' },
       { id: 'ACT-1102', type: 'Payment Recorded', at: shiftIso(-27, 16, 5), actor: 'Front Desk', channel: 'POS', outcome: 'Paid', summary: 'Cash payment completed at checkout' },
     ],
     notes: [
@@ -262,7 +258,6 @@ const customerSeed = [
     preferredChannel: 'Email',
     sensitivities: 'Avoid peppermint products',
     upcomingAppointment: { id: 'APT-2188', dateTime: shiftIso(8, 11, 0), service: 'Deluxe Facial', staff: 'Elena', status: 'Confirmed' },
-    followUp: { status: 'Awaiting Reply', reason: 'Birthday package coordination', owner: 'Elena', lastDate: shiftIso(-4, 9, 0), nextDue: shiftIso(2, 9, 30), channel: 'Email' },
     pendingBalance: 0,
     paymentHistory: [
       { id: 'PAY-7500', date: shiftIso(-15, 12, 15), amount: 275, method: 'Cash', service: 'Hot Stone Therapy', receiptNo: 'RCPT-13400', status: 'Paid' },
@@ -274,7 +269,7 @@ const customerSeed = [
     ],
     activityTimeline: [
       { id: 'ACT-1201', type: 'Appointment Booked', at: shiftIso(-3, 10, 16), actor: 'Front Desk', channel: 'CRM', outcome: 'Confirmed', summary: 'Booked Deluxe Facial for next week' },
-      { id: 'ACT-1202', type: 'Follow-up Sent', at: shiftIso(-4, 9, 0), actor: 'Elena', channel: 'Email', outcome: 'Awaiting reply', summary: 'Birthday package details sent' },
+      { id: 'ACT-1202', type: 'Check-in Logged', at: shiftIso(-4, 9, 0), actor: 'Elena', channel: 'Email', outcome: 'Awaiting reply', summary: 'Birthday package details sent' },
     ],
     notes: [
       { id: 'NOTE-121', at: shiftIso(-15, 13, 0), author: 'Elena', text: 'Long-term client. Birthday package in May.' },
@@ -303,7 +298,6 @@ const customerSeed = [
     preferredChannel: 'Phone',
     sensitivities: 'None reported',
     upcomingAppointment: null,
-    followUp: { status: 'Overdue', reason: 'Win-back outreach', owner: 'Front Desk', lastDate: shiftIso(-92, 11, 0), nextDue: shiftIso(-30, 11, 0), channel: 'Phone' },
     pendingBalance: 0,
     paymentHistory: [
       { id: 'PAY-6120', date: shiftIso(-183, 14, 5), amount: 130, method: 'Cash', service: 'Reflexology', receiptNo: 'RCPT-12620', status: 'Paid' },
@@ -314,7 +308,7 @@ const customerSeed = [
       { id: 'APT-H-1412', dateTime: shiftIso(-199, 12, 45), service: 'Reflexology', staff: 'Sofia', status: 'Completed' },
     ],
     activityTimeline: [
-      { id: 'ACT-1401', type: 'Follow-up Sent', at: shiftIso(-92, 11, 0), actor: 'Front Desk', channel: 'Phone', outcome: 'No answer', summary: 'Win-back call not answered' },
+      { id: 'ACT-1401', type: 'Check-in Logged', at: shiftIso(-92, 11, 0), actor: 'Front Desk', channel: 'Phone', outcome: 'No answer', summary: 'Win-back call not answered' },
       { id: 'ACT-1402', type: 'Appointment Completed', at: shiftIso(-183, 14, 0), actor: 'Sofia', channel: 'CRM', outcome: 'Completed', summary: 'Last recorded visit completed' },
     ],
     notes: [
@@ -357,7 +351,10 @@ const normalizeCustomer = (customer, index = 0) => {
         })
       : null;
 
-  const segment = customer.segment || customer.tag || customer.customerType || 'Repeat Customer';
+  const segmentValue = customer.segment || customer.tag || customer.customerType || 'Repeat Customer';
+  const segment = segmentValue === 'Rebooking Due'
+    ? 'Rebook Soon'
+    : segmentValue;
   const visitCount = Number(customer.visitCount ?? customer.totalVisits ?? customer.visits ?? 0);
   const totalSpend = Number(customer.totalSpend ?? customer.lifetimeSpend ?? 0);
   const loyaltyPoints = Number(customer.loyaltyPoints ?? customer.points ?? 0);
@@ -381,14 +378,6 @@ const normalizeCustomer = (customer, index = 0) => {
     preferredChannel: customer.preferredChannel || 'Phone',
     sensitivities: customer.sensitivities || customer.allergies || 'None reported',
     upcomingAppointment: nextAppointment,
-    followUp: {
-      status: customer.followUp?.status || customer.followUpState || 'Scheduled',
-      reason: customer.followUp?.reason || customer.followUpReason || 'Routine follow-up',
-      owner: customer.followUp?.owner || customer.followUpOwner || customer.preferredStaff || 'Front Desk',
-      lastDate: customer.followUp?.lastDate || customer.lastFollowUpAt || customer.createdAt || shiftIso(-10, 10, 0),
-      nextDue: customer.followUp?.nextDue || customer.nextFollowUpAt || shiftIso(2, 11, 0),
-      channel: customer.followUp?.channel || customer.preferredChannel || 'Phone',
-    },
     pendingBalance: Number(customer.pendingBalance ?? customer.balance ?? 0),
     paymentHistory,
     appointmentHistory,
@@ -410,7 +399,6 @@ const CrmCustomers = () => {
   const [spendFilter, setSpendFilter] = useState('Any Spend');
   const [activityFilter, setActivityFilter] = useState('All Activity');
   const [vipOnly, setVipOnly] = useState(false);
-  const [followUpOnly, setFollowUpOnly] = useState(false);
   const [inactiveRiskOnly, setInactiveRiskOnly] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerSeed[0]?.id || '');
   const [workspaceTab, setWorkspaceTab] = useState('activity');
@@ -465,7 +453,6 @@ const CrmCustomers = () => {
         return true;
       })();
 
-      const followUpDue = customer.followUp?.status !== 'Completed' || (customer.followUp?.nextDue && new Date(customer.followUp.nextDue).getTime() <= Date.now());
       const days = daysSince(customer.lastVisit);
       const churnSignal = getChurnSignal(days);
       const recommendedRebookDays = getRecommendedRebookDays(customer.favoriteService);
@@ -474,20 +461,18 @@ const CrmCustomers = () => {
 
       const matchesActivity = (() => {
         if (activityFilter === 'All Activity') return true;
-        if (activityFilter === 'Need Follow-up') return followUpDue;
-        if (activityFilter === 'Rebooking Due') return rebookingDue;
+        if (activityFilter === 'Rebook Soon') return rebookingDue;
         if (activityFilter === 'At Risk') return churnSignal === 'At Risk' || churnSignal === 'Inactive Risk';
         if (activityFilter === 'Upcoming Today') return isUpcomingToday;
         return true;
       })();
 
       const matchesVip = !vipOnly || /vip|high value/i.test(customer.segment);
-      const matchesFollowUp = !followUpOnly || followUpDue;
       const matchesInactiveRisk = !inactiveRiskOnly || churnSignal === 'At Risk' || churnSignal === 'Inactive Risk' || /inactive|at risk/i.test(customer.segment);
 
-      return matchesSearch && matchesSegment && matchesSource && matchesSpend && matchesActivity && matchesVip && matchesFollowUp && matchesInactiveRisk;
+      return matchesSearch && matchesSegment && matchesSource && matchesSpend && matchesActivity && matchesVip && matchesInactiveRisk;
     });
-  }, [activityFilter, customers, followUpOnly, inactiveRiskOnly, searchTerm, segmentFilter, sourceFilter, spendFilter, vipOnly]);
+  }, [activityFilter, customers, inactiveRiskOnly, searchTerm, segmentFilter, sourceFilter, spendFilter, vipOnly]);
 
   useEffect(() => {
     if (filteredCustomers.length === 0) return;
@@ -505,11 +490,11 @@ const CrmCustomers = () => {
     const all = customers;
     const todayKey = toDateKey(new Date());
     const vipCount = all.filter((customer) => /vip|high value/i.test(customer.segment)).length;
-    const followUpQueue = all.filter(
-      (customer) =>
-        customer.followUp?.status !== 'Completed' ||
-        (customer.followUp?.nextDue && new Date(customer.followUp.nextDue).getTime() <= Date.now()),
-    ).length;
+    const rebookSoonCount = all.filter((customer) => {
+      const days = daysSince(customer.lastVisit);
+      const recommendedRebookDays = getRecommendedRebookDays(customer.favoriteService);
+      return !customer.upcomingAppointment && days !== null && days >= recommendedRebookDays;
+    }).length;
     const atRiskCount = all.filter((customer) => {
       const signal = getChurnSignal(daysSince(customer.lastVisit));
       return signal === 'At Risk' || signal === 'Inactive Risk';
@@ -531,9 +516,9 @@ const CrmCustomers = () => {
         subtext: 'Priority relationship segment',
       },
       {
-        label: 'Follow-up Queue',
-        value: followUpQueue.toLocaleString(),
-        subtext: 'Needs outreach or confirmation',
+        label: 'Rebook Soon',
+        value: rebookSoonCount.toLocaleString(),
+        subtext: 'Customers due for another visit',
       },
       {
         label: 'At-Risk Profiles',
@@ -603,14 +588,6 @@ const CrmCustomers = () => {
       preferredChannel: 'Phone',
       sensitivities: 'None reported',
       upcomingAppointment: null,
-      followUp: {
-        status: 'Scheduled',
-        reason: 'Welcome follow-up',
-        owner: 'Front Desk',
-        lastDate: nowIso,
-        nextDue: addDaysToIso(nowIso, 2, 11, 0),
-        channel: 'Phone',
-      },
       pendingBalance: 0,
       paymentHistory: [],
       appointmentHistory: [],
@@ -785,67 +762,6 @@ const CrmCustomers = () => {
     });
   };
 
-  const handleSendFollowUp = () => {
-    if (!selectedCustomer) return;
-
-    const reason = window.prompt('Follow-up reason', selectedCustomer.followUp?.reason || 'Routine follow-up') || 'Routine follow-up';
-    const channelInput = window.prompt('Channel', selectedCustomer.followUp?.channel || 'Phone') || 'Phone';
-    const ownerInput = window.prompt('Owner', selectedCustomer.followUp?.owner || 'Front Desk') || 'Front Desk';
-    const channel = CHANNEL_OPTIONS.includes(channelInput) ? channelInput : 'Phone';
-    const owner = STAFF_OPTIONS.includes(ownerInput) ? ownerInput : 'Front Desk';
-    const nowIso = new Date().toISOString();
-    const nextDue = addDaysToIso(nowIso, 2, 11, 0);
-    const status = FOLLOW_UP_STATUS_OPTIONS.includes('Scheduled') ? 'Scheduled' : FOLLOW_UP_STATUS_OPTIONS[0];
-
-    updateCustomerInState(selectedCustomer.id, (customer) => ({
-      ...customer,
-      followUp: {
-        ...customer.followUp,
-        status,
-        reason,
-        owner,
-        lastDate: nowIso,
-        nextDue,
-        channel,
-      },
-      activityTimeline: [
-        {
-          id: createTimelineId(),
-          type: 'Follow-up Sent',
-          at: nowIso,
-          actor: owner,
-          channel,
-          outcome: 'Scheduled',
-          summary: reason,
-        },
-        ...customer.activityTimeline,
-      ],
-      notes: [
-        {
-          id: createNoteId(),
-          at: nowIso,
-          author: owner,
-          text: `Follow-up queued via ${channel}: ${reason}`,
-        },
-        ...customer.notes,
-      ],
-    }));
-
-    void crmUpdate('customers', selectedCustomer.id, {
-      followUp: {
-        status,
-        reason,
-        owner,
-        lastDate: nowIso,
-        nextDue,
-        channel,
-      },
-      followUpState: status,
-    }).catch((error) => {
-      setLoadError(error.message || 'Unable to store follow-up note.');
-    });
-  };
-
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
@@ -924,13 +840,6 @@ const CrmCustomers = () => {
             onClick={() => setVipOnly((value) => !value)}
           >
             VIP Only
-          </button>
-          <button
-            type="button"
-            className={`crm-customers-chip${followUpOnly ? ' crm-customers-chip-active' : ''}`}
-            onClick={() => setFollowUpOnly((value) => !value)}
-          >
-            Follow-up Needed
           </button>
           <button
             type="button"
@@ -1044,11 +953,6 @@ const CrmCustomers = () => {
                   <p className="crm-info-copy">{selectedCustomer.favoriteStaff}</p>
                   <p className="crm-info-title">Preferred Times</p>
                   <p className="crm-info-copy">{selectedCustomer.preferredTimes}</p>
-                  <p className="crm-info-title">Follow-up</p>
-                  <p className="crm-info-copy">
-                    {selectedCustomer.followUp.status} | {selectedCustomer.followUp.channel} | due {formatDateTime(selectedCustomer.followUp.nextDue)}
-                  </p>
-                  <p className="crm-info-copy">{selectedCustomer.followUp.reason}</p>
                 </div>
 
                 <div className="crm-customer-actions">
@@ -1057,9 +961,6 @@ const CrmCustomers = () => {
                   </button>
                   <button type="button" className="crm-customers-secondary-btn" onClick={handleRecordPayment}>
                     Record Payment
-                  </button>
-                  <button type="button" className="crm-customers-ghost-btn" onClick={handleSendFollowUp}>
-                    Send Follow-up
                   </button>
                 </div>
 

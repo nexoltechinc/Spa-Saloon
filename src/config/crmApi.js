@@ -81,7 +81,10 @@ export const crmApiRequest = async (path, { method = 'GET', body, query, headers
       (payload && typeof payload === 'object' && (payload.message || payload.error || payload.detail)) ||
       (typeof payload === 'string' && payload) ||
       `CRM request failed (${response.status})`;
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload;
@@ -109,3 +112,11 @@ export const crmDelete = async (resourceName, id, options = {}) => {
 };
 
 export const normalizeCollection = (payload, resourceName) => unwrapCollection(payload, resourceName);
+
+export const crmGetSettings = async (options = {}) => {
+  return crmApiRequest('/settings', options);
+};
+
+export const crmSaveSettings = async (body, options = {}) => {
+  return crmApiRequest('/settings', { ...options, method: 'PUT', body });
+};

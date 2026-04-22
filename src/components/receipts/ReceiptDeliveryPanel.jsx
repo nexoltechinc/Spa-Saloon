@@ -35,7 +35,6 @@ const ReceiptDeliveryPanel = ({
   onOpenCheckout,
   onOpenCustomer,
   onOpenHistory,
-  onOpenFollowUp,
   isBusy,
   formatDateTime,
 }) => {
@@ -148,28 +147,6 @@ const ReceiptDeliveryPanel = ({
         </article>
       </div>
 
-      {receipt.balanceRemaining > 0 ? (
-        <div className="crm-receipts-followup-card">
-          <div>
-            <p>Follow-Up Needed</p>
-            <strong>{receipt.followUp?.collectionStatus || 'Pending'}</strong>
-          </div>
-          <div className="crm-receipts-followup-meta">
-            <span>
-              Last: {receipt.followUp?.lastFollowUpDate ? formatActionTime(receipt.followUp.lastFollowUpDate, 'Not logged') : 'Not logged'}
-            </span>
-            <span>
-              Next: {receipt.followUp?.nextFollowUpDue ? formatActionTime(receipt.followUp.nextFollowUpDue, 'Schedule now') : 'Schedule now'}
-            </span>
-            <span>Owner: {receipt.followUp?.assignedTo || 'Front Desk'}</span>
-          </div>
-          <div className="crm-receipts-followup-actions">
-            <button type="button" className="crm-payments-secondary-btn" onClick={onOpenFollowUp}>
-              Open Follow-Up
-            </button>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 };

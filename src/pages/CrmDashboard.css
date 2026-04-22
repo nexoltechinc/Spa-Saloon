@@ -317,8 +317,7 @@
 
 .crm-appointment-time-wrap p,
 .crm-appointment-customer,
-.crm-appointment-role,
-.crm-followup-title {
+.crm-appointment-role {
   margin: 0;
 }
 
@@ -639,48 +638,6 @@
   grid-column: span 2;
 }
 
-.crm-followup-list {
-  margin-top: 0.68rem;
-  display: grid;
-  gap: 0.4rem;
-}
-
-.crm-followup-row {
-  border-radius: 14px;
-  border: 1px solid rgba(132, 121, 95, 0.11);
-  background: #fcfaf6;
-  padding: 0.5rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 0.55rem;
-  align-items: center;
-}
-
-.crm-followup-title {
-  color: #312d27;
-  font-size: 0.83rem;
-  font-weight: 800;
-}
-
-.crm-followup-due {
-  margin: 0;
-  color: #847969;
-  font-size: 0.72rem;
-}
-
-.crm-followup-row button {
-  border-radius: 999px;
-  border: 1px solid rgba(132, 121, 95, 0.2);
-  background: #fff;
-  color: #685e4d;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.28rem 0.5rem;
-  cursor: pointer;
-}
-
 .crm-weekly-list {
   margin-top: 0.68rem;
   display: grid;
@@ -913,10 +870,6 @@
 
   .crm-row-actions {
     justify-content: flex-start;
-  }
-
-  .crm-followup-row {
-    grid-template-columns: 1fr;
   }
 
   .crm-finance-grid {

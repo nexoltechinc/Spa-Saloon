@@ -559,7 +559,7 @@ export const BookingRulesBlock = ({ bookingRules, onChange, onToggle }) => (
       />
       <SettingsFieldInput
         label="No-show Policy"
-        hint="Follow-up rule for missed visits."
+        hint="Policy for missed visits."
         value={bookingRules.noShowPolicy}
         onChange={(value) => onChange('noShowPolicy', value)}
       />
@@ -628,10 +628,9 @@ export const BookingRulesBlock = ({ bookingRules, onChange, onToggle }) => (
 export const CommunicationSettingsBlock = ({ communication, onChange, onToggle }) => (
   <div className="crm-settings-communication-stack">
     <div className="crm-settings-switch-stack">
-      {[
+      {[ 
         ['confirmationEmail', 'Booking confirmation email', 'Send a confirmation when a booking is created.'],
         ['reminderEmail', 'Reminder email', 'Send an automated reminder before the visit.'],
-        ['followUpEmail', 'Follow-up email', 'Invite the guest back after the visit.'],
       ].map(([key, label, hint]) => (
         <div className="crm-settings-switch-row" key={key}>
           <div>
@@ -684,14 +683,6 @@ export const CommunicationSettingsBlock = ({ communication, onChange, onToggle }
         onChange={(value) => onChange('cancellationMessage', value)}
         rows={4}
       />
-      <SettingsFieldTextarea
-        label="Follow-up Message Preview"
-        hint="Shown after a completed visit."
-        value={communication.followUpMessage}
-        onChange={(value) => onChange('followUpMessage', value)}
-        rows={4}
-        full
-      />
     </div>
 
     <div className="crm-settings-future-row">
@@ -713,7 +704,7 @@ export const CommunicationSettingsBlock = ({ communication, onChange, onToggle }
   </div>
 );
 
-export const ReceiptBrandingPreview = ({ profile, branding, communication, regionalDefaults }) => (
+export const ReceiptBrandingPreview = ({ profile, branding, regionalDefaults }) => (
   <div className="crm-settings-preview-card">
     <SettingsSectionHeader
       kicker="Brand Experience"
@@ -773,7 +764,7 @@ export const ReceiptBrandingPreview = ({ profile, branding, communication, regio
         </div>
         <footer>
           <strong>Thank you for visiting {profile.businessName}.</strong>
-          <p>{branding.receiptFooterText || communication.followUpMessage}</p>
+          <p>{branding.receiptFooterText || 'Thank you for visiting Aura Spa & Wellness.'}</p>
         </footer>
       </div>
 
