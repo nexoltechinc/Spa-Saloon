@@ -9,7 +9,7 @@ const StaffRow = ({ staff, isSelected, onSelect, onOpen }) => {
   const rowWarnings = staff.rowWarnings.slice(0, 2);
 
   const nextAppointmentLabel = staff.nextAppointment
-    ? `${staff.nextAppointment.time} • ${staff.nextAppointment.service}`
+    ? `${staff.nextAppointment.time} - ${staff.nextAppointment.service}`
     : 'No upcoming appointment';
 
   return (
@@ -26,7 +26,7 @@ const StaffRow = ({ staff, isSelected, onSelect, onOpen }) => {
       }}
       aria-label={`Open profile for ${staff.name}`}
     >
-      <div>
+      <div className="crm-staff-row-main">
         <p className="crm-staff-name">{staff.name}</p>
         <p className="crm-staff-subline">{staff.role}</p>
         <div className="crm-staff-row-warning-list">
@@ -45,8 +45,11 @@ const StaffRow = ({ staff, isSelected, onSelect, onOpen }) => {
       <p className="crm-staff-cell">{nextAppointmentLabel}</p>
 
       <LoadCapacityChip load={staff.load} compact />
-      <ShiftStatusBadge status={staff.shiftStatus} />
-      <EmploymentStatusBadge status={staff.employmentStatus} />
+
+      <div className="crm-staff-row-status-stack">
+        <ShiftStatusBadge status={staff.shiftStatus} />
+        <EmploymentStatusBadge status={staff.employmentStatus} />
+      </div>
 
       <div className="crm-staff-row-actions">
         <button

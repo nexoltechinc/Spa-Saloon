@@ -166,10 +166,14 @@ const StaffDetailPanel = ({
     <>
       <div className="crm-staff-profile-head">
         <div className="crm-staff-avatar">{staff.name.slice(0, 2).toUpperCase()}</div>
+        <p className="crm-staff-profile-kicker">Selected Staff Profile</p>
         <h3>{staff.name}</h3>
-        <p>{staff.role}</p>
-        <p>{staff.email}</p>
-        <p>{staff.phone}</p>
+        <p className="crm-staff-profile-role">{staff.role}</p>
+        <div className="crm-staff-profile-meta">
+          <span>{staff.branchName || 'Unassigned'}</span>
+          <span>{staff.email || 'No email recorded'}</span>
+          <span>{staff.phone || 'No phone recorded'}</span>
+        </div>
       </div>
 
       <div className="crm-staff-detail-tabs" role="tablist" aria-label="Staff detail tabs">

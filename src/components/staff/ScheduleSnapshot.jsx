@@ -19,7 +19,7 @@ const ScheduleSnapshot = ({ title = 'Today\'s Schedule', schedule = [], emptyTex
               <li key={slot.id || `${slot.time}-${slot.service}`} className={`crm-staff-schedule-slot crm-staff-slot-${slot.state || 'upcoming'}`}>
                 <div>
                   <strong>{slot.time}</strong>
-                  <span>{slot.customer || 'Walk-in'} • {slot.service}</span>
+                  <span>{slot.customer || 'Walk-in'} - {slot.service}</span>
                 </div>
                 <em>{slot.status || 'Scheduled'}</em>
               </li>

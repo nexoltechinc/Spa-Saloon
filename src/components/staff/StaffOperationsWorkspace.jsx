@@ -17,7 +17,7 @@ const StaffOperationsWorkspace = ({
         {coverageRows.map((item) => (
           <article key={item.service}>
             <p>{item.service}</p>
-            <strong>{item.onDutyCount} on duty • {item.activeCount} active</strong>
+            <strong>{item.onDutyCount} on duty - {item.activeCount} active</strong>
             <div>
               <CoverageWarningBadge label={item.label} tone={item.tone} />
             </div>

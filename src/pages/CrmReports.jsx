@@ -355,7 +355,14 @@ const CrmReports = () => {
     { label: 'Total Appointments', value: formatCount(metrics.appointments), trend: '+5% vs last month', icon: CalendarDays, tone: 'neutral' },
     { label: 'Completed', value: formatCount(metrics.completed), trend: `${metrics.completionRate}% completion rate`, icon: Sparkles, tone: 'gold' },
     { label: 'Pending Payments', value: formatCount(metrics.pendingPayments), trend: `${formatMoney(metrics.overduePayments)} overdue`, icon: Wallet, tone: 'alert' },
-    { label: 'Top Service', value: metrics.topService, trend: 'Consistent leader', icon: ReceiptText, tone: 'neutral' },
+    {
+      label: 'Top Service',
+      value: metrics.topService,
+      trend: 'Consistent leader',
+      icon: ReceiptText,
+      tone: 'neutral',
+      valueClass: 'crm-reports-kpi-card-text',
+    },
     { label: 'Repeat Customers', value: formatPercent(metrics.repeatCustomers), trend: '+2% from last quarter', icon: Users, tone: 'good' },
   ];
 
@@ -511,7 +518,7 @@ const CrmReports = () => {
           </span>
           <span className="crm-reports-status-chip">
             <LineChart size={14} />
-            {dataSourceLabel} · Pie View
+            {dataSourceLabel} | Pie view
           </span>
           {noDataState ? (
             <span className="crm-reports-status-chip crm-reports-status-chip-warning">
@@ -534,7 +541,10 @@ const CrmReports = () => {
             : summaryCards.map((card) => {
                 const Icon = card.icon;
                 return (
-                  <article key={card.label} className={`crm-reports-kpi-card crm-reports-kpi-card-${card.tone}`}>
+                  <article
+                    key={card.label}
+                    className={`crm-reports-kpi-card crm-reports-kpi-card-${card.tone}${card.valueClass ? ` ${card.valueClass}` : ''}`}
+                  >
                     <div className="crm-reports-kpi-top">
                       <span className="crm-reports-kpi-label">{card.label}</span>
                       <Icon size={16} />
@@ -601,12 +611,12 @@ const CrmReports = () => {
                     <div className="crm-reports-service-breakdown">
                       {visibleServiceRows.map((row, index) => (
                         <div key={`${row.label}-${row.staffName}-${row.branchName}`} className="crm-reports-service-row">
-                          <div>
-                            <strong>{row.label}</strong>
-                            <span>
-                              {formatCount(row.bookings)} bookings | {row.staffName} | {row.branchName}
-                            </span>
-                          </div>
+                        <div className="crm-reports-service-row-copy">
+                          <strong>{row.label}</strong>
+                          <span>
+                            {formatCount(row.bookings)} bookings | {row.staffName} | {row.branchName}
+                          </span>
+                        </div>
                           <div className="crm-reports-service-row-metrics">
                             <p>{formatMoney(row.revenue)}</p>
                             <small>{formatPercent(serviceMixSegments[index]?.value || 0)} share</small>
