@@ -164,6 +164,44 @@
   color: #6e5317;
 }
 
+.crm-staff-error {
+  margin-top: 0.68rem;
+  border-radius: 20px;
+  border: 1px solid rgba(160, 80, 80, 0.16);
+  background: linear-gradient(180deg, #fff7f7 0%, #fdf2f2 100%);
+  padding: 0.95rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.crm-staff-error p {
+  margin: 0;
+  color: #a05050;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.crm-staff-error h2 {
+  margin: 0.14rem 0 0;
+  color: #9a4f4f;
+  font-family: var(--font-editorial);
+  font-size: 1.22rem;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.crm-staff-error span {
+  display: block;
+  margin-top: 0.28rem;
+  color: #7a6363;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
 .crm-staff-summary {
   margin-top: 0.82rem;
   display: grid;
@@ -375,6 +413,396 @@
   display: grid;
   gap: 0.22rem;
   align-items: start;
+}
+
+.crm-staff-coverage-badge,
+.crm-staff-employment-badge,
+.crm-staff-shift-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 0.59rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+  padding: 0.18rem 0.46rem;
+}
+
+.crm-staff-coverage-good,
+.crm-staff-load-light,
+.crm-staff-load-moderate,
+.crm-staff-shift-good,
+.crm-staff-employment-active {
+  background: #e9f4ec;
+  color: #3f7f57;
+}
+
+.crm-staff-coverage-warning,
+.crm-staff-load-high,
+.crm-staff-load-full,
+.crm-staff-shift-busy,
+.crm-staff-shift-break {
+  background: #f8efdf;
+  color: #93631d;
+}
+
+.crm-staff-coverage-risk,
+.crm-staff-shift-off,
+.crm-staff-shift-leave,
+.crm-staff-employment-inactive {
+  background: #f7e8eb;
+  color: #a04a57;
+}
+
+.crm-staff-coverage-neutral,
+.crm-staff-load-neutral,
+.crm-staff-shift-neutral {
+  background: #efeeeb;
+  color: #787266;
+}
+
+.crm-staff-coverage-premium {
+  background: #f4ecda;
+  color: #775e1f;
+}
+
+.crm-staff-load-chip {
+  display: grid;
+  gap: 0.14rem;
+  border-radius: 14px;
+  background: #f8f5ef;
+  padding: 0.48rem 0.56rem;
+}
+
+.crm-staff-load-chip strong {
+  color: #2f2a23;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.crm-staff-load-chip span {
+  color: #6d6658;
+  font-size: 0.64rem;
+  line-height: 1.42;
+}
+
+.crm-staff-load-compact {
+  padding: 0.42rem 0.48rem;
+}
+
+.crm-staff-open-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(132, 121, 95, 0.22);
+  background: #fff;
+  color: #6d6558;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.34rem 0.66rem;
+  cursor: pointer;
+}
+
+.crm-staff-operations-card {
+  margin-top: 0.9rem;
+  border-radius: 24px;
+  border: 1px solid rgba(132, 121, 95, 0.12);
+  background: #fff;
+  padding: 0.92rem 0.98rem 1rem;
+}
+
+.crm-staff-operations-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: flex-end;
+}
+
+.crm-staff-operations-card h3 {
+  margin: 0;
+  color: #2f2a23;
+  font-family: var(--font-editorial);
+  font-size: 1.62rem;
+  line-height: 1.08;
+}
+
+.crm-staff-operations-card header p {
+  margin: 0.18rem 0 0;
+  color: #71695d;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.crm-staff-operations-tabs {
+  margin-top: 0.68rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.crm-staff-op-tab {
+  border: 1px solid rgba(132, 121, 95, 0.22);
+  border-radius: 999px;
+  background: #fff;
+  color: #70695a;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.62rem;
+  cursor: pointer;
+}
+
+.crm-staff-op-tab-active {
+  background: #f1e9d7;
+  border-color: rgba(125, 100, 24, 0.35);
+  color: #6e5518;
+}
+
+.crm-staff-ops-panel {
+  margin-top: 0.68rem;
+}
+
+.crm-staff-coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.56rem;
+}
+
+.crm-staff-coverage-grid article {
+  border-radius: 14px;
+  background: #f8f5ef;
+  padding: 0.62rem 0.68rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.crm-staff-coverage-grid p {
+  margin: 0;
+  color: #91897a;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.crm-staff-coverage-grid strong {
+  color: #322d26;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.crm-staff-activity-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.38rem;
+}
+
+.crm-staff-activity-list li {
+  border-radius: 14px;
+  background: #f8f5ef;
+  padding: 0.64rem 0.68rem;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.crm-staff-activity-list strong {
+  color: #322d26;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.crm-staff-activity-list span {
+  color: #696356;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.crm-staff-schedule-widget,
+.crm-staff-weekly-visual {
+  border-radius: 14px;
+  background: #f8f5ef;
+  padding: 0.68rem 0.72rem;
+}
+
+.crm-staff-schedule-widget > p,
+.crm-staff-weekly-visual > p {
+  margin: 0;
+  color: #91897a;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.crm-staff-schedule-empty {
+  margin-top: 0.42rem;
+  border-radius: 12px;
+  background: #fff;
+  color: #6d6658;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  padding: 0.52rem 0.56rem;
+}
+
+.crm-staff-schedule-widget ul,
+.crm-staff-weekly-visual ul {
+  margin: 0.42rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crm-staff-schedule-widget li {
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.48rem 0.54rem;
+  margin-bottom: 0.32rem;
+}
+
+.crm-staff-schedule-widget li strong {
+  display: block;
+  color: #322d26;
+  font-size: 0.73rem;
+  line-height: 1.3;
+}
+
+.crm-staff-schedule-widget li span {
+  color: #6b6457;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.crm-staff-schedule-widget li em {
+  color: #8a8376;
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+}
+
+.crm-staff-schedule-gap {
+  justify-content: center;
+}
+
+.crm-staff-schedule-gap span {
+  color: #7d7668;
+  font-size: 0.72rem;
+}
+
+.crm-staff-schedule-widget-compact {
+  padding: 0.6rem 0.64rem;
+}
+
+.crm-staff-weekly-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.32rem;
+}
+
+.crm-staff-weekly-row strong {
+  color: #3a342b;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.crm-staff-weekly-track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: #ece4d1;
+  overflow: hidden;
+}
+
+.crm-staff-weekly-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7f6516 0%, #b99b3f 100%);
+}
+
+.crm-staff-weekly-row span {
+  color: #6d6658;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.crm-staff-weekly-off {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #efe7d6;
+  color: #745b1d;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.44rem;
+  text-transform: uppercase;
+}
+
+.crm-staff-note-block {
+  border-radius: 14px;
+  background: #f8f5ef;
+  padding: 0.64rem 0.68rem;
+}
+
+.crm-staff-note-block p {
+  margin: 0;
+  color: #91897a;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.crm-staff-note-block span {
+  display: block;
+  margin-top: 0.26rem;
+  color: #676053;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.crm-staff-coverage-list {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.crm-staff-coverage-list > p {
+  margin: 0;
+  color: #91897a;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.crm-staff-coverage-list .crm-staff-coverage-badge {
+  width: fit-content;
+}
+
+.crm-staff-coverage-list .crm-staff-coverage-badge + .crm-staff-coverage-badge {
+  margin-top: 0.2rem;
+}
+
+.crm-staff-empty {
+  min-height: 280px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 1rem;
 }
 
 .crm-staff-status-pill {

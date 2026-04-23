@@ -56,6 +56,39 @@ const notificationItems = [
   { title: 'Receipt quote updated', detail: 'The receipt header copy was edited 12 minutes ago.' },
 ];
 
+const BRANDING_SWITCHES = [
+  ['showAddressOnReceipt', 'Show address on receipt', 'Display the location address on customer receipts.'],
+  ['showPhoneOnReceipt', 'Show phone on receipt', 'Display the business phone number on receipts.'],
+  ['showEmailOnReceipt', 'Show email on receipt', 'Display the business email on receipts.'],
+  ['showWebsiteOnReceipt', 'Show website on receipt', 'Display the website on receipts.'],
+  ['showTaxIdOnReceipt', 'Show tax/legal ID', 'Include the legal identifier on branded documents.'],
+  ['includeSocialHandles', 'Include social handles', 'Display social or website references on receipts.'],
+  ['showBrandMark', 'Show brand mark', 'Use the uploaded brand mark when available.'],
+];
+
+const panelMetaById = {
+  notifications: {
+    label: 'Notifications',
+    title: 'Live activity and pending actions',
+  },
+  account: {
+    label: 'Account',
+    title: 'Account controls',
+  },
+  privacy: {
+    label: 'Privacy',
+    title: 'Privacy summary',
+  },
+  'special-hours': {
+    label: 'Special Hours',
+    title: 'Holiday closure or seasonal override',
+  },
+  terms: {
+    label: 'Terms',
+    title: 'Terms summary',
+  },
+};
+
 const cloneSettings = (value) => {
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
@@ -229,6 +262,10 @@ const CrmSettings = () => {
     }),
     [dirtySections, validationErrors],
   );
+  const sectionStateById = useMemo(
+    () => Object.fromEntries(sectionStates.map((section) => [section.id, section])),
+    [sectionStates],
+  );
 
   const markChanged = () => {
     setSaveState((current) => (current === 'saving' ? current : 'dirty'));
@@ -392,6 +429,7 @@ const CrmSettings = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
+  const activePanelMeta = activePanel ? panelMetaById[activePanel] || panelMetaById.terms : null;
 
   useEffect(() => {
     const beforeUnload = (event) => {
@@ -434,7 +472,7 @@ const CrmSettings = () => {
               Configure the business profile, operating rhythm, booking rules, guest communication,
               and branded receipt presentation that shape the premium spa experience.
             </p>
-            {loadError ? <p className="crm-settings-subcopy">{loadError}</p> : null}
+            {loadError ? <p className="crm-settings-inline-error">{loadError}</p> : null}
           </div>
 
           <div className="crm-settings-topbar-stack">
@@ -480,7 +518,7 @@ const CrmSettings = () => {
               <span className="crm-settings-tab-group-label">{group.title}</span>
               <div className="crm-settings-tab-group-row">
                 {group.sections.map((section) => {
-                  const sectionState = sectionStates.find((item) => item.id === section.id);
+                  const sectionState = sectionStateById[section.id];
                   return (
                     <SettingsSectionChip
                       key={section.id}
@@ -503,8 +541,8 @@ const CrmSettings = () => {
               kicker="Core Business"
               title="Business Profile"
               description="Public-facing identity and contact details visible to guests."
-              status={sectionStates.find((item) => item.id === 'business-profile')?.stateLabel}
-              statusTone={sectionStates.find((item) => item.id === 'business-profile')?.state}
+              status={sectionStateById['business-profile']?.stateLabel}
+              statusTone={sectionStateById['business-profile']?.state}
               actions={
                 <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('business-profile')}>
                   <span>Reset Section</span>
@@ -545,8 +583,8 @@ const CrmSettings = () => {
             kicker="Core Business"
             title="Operating Hours"
             description="Control the weekly rhythm your booking engine presents to guests."
-            status={sectionStates.find((item) => item.id === 'operating-hours')?.stateLabel}
-            statusTone={sectionStates.find((item) => item.id === 'operating-hours')?.state}
+            status={sectionStateById['operating-hours']?.stateLabel}
+            statusTone={sectionStateById['operating-hours']?.state}
             actions={
               <button className="crm-settings-ghost-action" type="button" onClick={handleAddSpecialHours}>
                 <Sparkles size={15} />
@@ -583,8 +621,8 @@ const CrmSettings = () => {
               kicker="Core Business"
               title="Regional Defaults"
               description="Timezone, currency, date format, and locale settings used across the CRM."
-              status={sectionStates.find((item) => item.id === 'regional-defaults')?.stateLabel}
-              statusTone={sectionStates.find((item) => item.id === 'regional-defaults')?.state}
+              status={sectionStateById['regional-defaults']?.stateLabel}
+              statusTone={sectionStateById['regional-defaults']?.state}
               actions={
                 <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('regional-defaults')}>
                   <span>Reset Section</span>
@@ -600,8 +638,8 @@ const CrmSettings = () => {
               kicker="Booking Engine"
               title="Booking Rules"
               description="Guide guest expectations, booking windows, confirmations, and premium slot handling."
-              status={sectionStates.find((item) => item.id === 'booking-rules')?.stateLabel}
-              statusTone={sectionStates.find((item) => item.id === 'booking-rules')?.state}
+              status={sectionStateById['booking-rules']?.stateLabel}
+              statusTone={sectionStateById['booking-rules']?.state}
               actions={
                 <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('booking-rules')}>
                   <span>Reset Section</span>
@@ -618,9 +656,9 @@ const CrmSettings = () => {
             <SettingsSectionHeader
               kicker="Booking Engine"
               title="Communication Settings"
-        description="Keep booking confirmations and reminders aligned with the guest experience."
-              status={sectionStates.find((item) => item.id === 'communications')?.stateLabel}
-              statusTone={sectionStates.find((item) => item.id === 'communications')?.state}
+              description="Keep booking confirmations and reminders aligned with the guest experience."
+              status={sectionStateById.communications?.stateLabel}
+              statusTone={sectionStateById.communications?.state}
               actions={
                 <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('communications')}>
                   <span>Reset Section</span>
@@ -640,8 +678,8 @@ const CrmSettings = () => {
               kicker="Brand Experience"
               title="Branding & Receipts"
               description="Shape the post-visit touchpoint with polished brand presentation."
-              status={sectionStates.find((item) => item.id === 'branding-receipts')?.stateLabel}
-              statusTone={sectionStates.find((item) => item.id === 'branding-receipts')?.state}
+              status={sectionStateById['branding-receipts']?.stateLabel}
+              statusTone={sectionStateById['branding-receipts']?.state}
               actions={
                 <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('branding-receipts')}>
                   <span>Reset Section</span>
@@ -688,15 +726,7 @@ const CrmSettings = () => {
               </div>
 
               <div className="crm-settings-switch-stack crm-settings-switch-stack-compact">
-                {[
-                  ['showAddressOnReceipt', 'Show address on receipt', 'Display the location address on customer receipts.'],
-                  ['showPhoneOnReceipt', 'Show phone on receipt', 'Display the business phone number on receipts.'],
-                  ['showEmailOnReceipt', 'Show email on receipt', 'Display the business email on receipts.'],
-                  ['showWebsiteOnReceipt', 'Show website on receipt', 'Display the website on receipts.'],
-                  ['showTaxIdOnReceipt', 'Show tax/legal ID', 'Include the legal identifier on branded documents.'],
-                  ['includeSocialHandles', 'Include social handles', 'Display social or website references on receipts.'],
-                  ['showBrandMark', 'Show brand mark', 'Use the uploaded brand mark when available.'],
-                ].map(([key, label, hint]) => (
+                {BRANDING_SWITCHES.map(([key, label, hint]) => (
                   <div className="crm-settings-switch-row" key={key}>
                     <div>
                       <span>{label}</span>
@@ -746,18 +776,8 @@ const CrmSettings = () => {
             <article className="crm-settings-modal-card" role="dialog" aria-modal="true" aria-label={activePanel} onClick={(e) => e.stopPropagation()}>
               <div className="crm-settings-modal-head">
                 <div>
-                  <p>{activePanel === 'notifications' ? 'Notifications' : activePanel === 'account' ? 'Account' : activePanel === 'privacy' ? 'Privacy' : activePanel === 'special-hours' ? 'Special Hours' : 'Terms'}</p>
-                  <h3>
-                    {activePanel === 'notifications'
-                      ? 'Live activity and pending actions'
-                      : activePanel === 'account'
-                        ? 'Account controls'
-                        : activePanel === 'privacy'
-                          ? 'Privacy summary'
-                          : activePanel === 'special-hours'
-                            ? 'Holiday closure or seasonal override'
-                            : 'Terms summary'}
-                  </h3>
+                  <p>{activePanelMeta?.label || 'Panel'}</p>
+                  <h3>{activePanelMeta?.title || 'Workspace panel'}</h3>
                 </div>
                 <button type="button" className="crm-settings-modal-close" onClick={() => setActivePanel(null)}>Close</button>
               </div>
