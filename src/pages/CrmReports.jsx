@@ -281,7 +281,7 @@ const CrmReports = () => {
   const preset = REPORT_PRESETS[selectedRange] || REPORT_PRESETS['This Month'];
   const hasLiveData = liveRows.length > 0;
   const noDataState = !isLoading && !hasLiveData;
-  const dataSourceLabel = hasLiveData ? 'Live CRM data synced' : 'Sample analytics view';
+  const dataSourceLabel = hasLiveData ? 'Live CRM Data Synced' : 'Sample Analytics View';
   const filterIsActive = staffFilter !== 'All Staff' || serviceFilter !== 'All Services' || branchFilter !== 'All Locations';
 
   const liveSales = extractLiveValue(liveRows, ['sales', 'revenue', 'gross revenue', 'total sales']);
@@ -518,7 +518,7 @@ const CrmReports = () => {
           </span>
           <span className="crm-reports-status-chip">
             <LineChart size={14} />
-            {dataSourceLabel} | Pie view
+            {dataSourceLabel} | Pie View
           </span>
           {noDataState ? (
             <span className="crm-reports-status-chip crm-reports-status-chip-warning">
