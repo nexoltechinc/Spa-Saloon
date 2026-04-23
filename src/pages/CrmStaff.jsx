@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CrmShell from '../components/CrmShell';
 import StaffDetailPanel from '../components/staff/StaffDetailPanel';
@@ -353,7 +353,7 @@ const getLoadDescriptor = (appointmentsToday, capacityToday) => {
   if (booked === 0) {
     return {
       label: 'No Bookings Today',
-      detail: `0 of ${capacity} booked • ${remaining} remaining`,
+      detail: `0 of ${capacity} booked - ${remaining} remaining`,
       tone: 'light',
       utilization,
       isFullyBooked: false,
@@ -364,7 +364,7 @@ const getLoadDescriptor = (appointmentsToday, capacityToday) => {
   if (booked >= capacity) {
     return {
       label: 'Fully Booked',
-      detail: `${booked} of ${capacity} booked • 0 remaining`,
+      detail: `${booked} of ${capacity} booked - 0 remaining`,
       tone: 'full',
       utilization: 100,
       isFullyBooked: true,
@@ -375,7 +375,7 @@ const getLoadDescriptor = (appointmentsToday, capacityToday) => {
   if (utilization >= 85) {
     return {
       label: 'High Load',
-      detail: `${booked} of ${capacity} booked • ${remaining} remaining`,
+      detail: `${booked} of ${capacity} booked - ${remaining} remaining`,
       tone: 'high',
       utilization,
       isFullyBooked: false,
@@ -386,7 +386,7 @@ const getLoadDescriptor = (appointmentsToday, capacityToday) => {
   if (utilization >= 50) {
     return {
       label: 'Moderate Load',
-      detail: `${booked} of ${capacity} booked • ${remaining} remaining`,
+      detail: `${booked} of ${capacity} booked - ${remaining} remaining`,
       tone: 'moderate',
       utilization,
       isFullyBooked: false,
@@ -396,7 +396,7 @@ const getLoadDescriptor = (appointmentsToday, capacityToday) => {
 
   return {
     label: utilization < 35 ? 'Underutilized' : 'Light Load',
-    detail: `${booked} of ${capacity} booked • ${remaining} remaining`,
+    detail: `${booked} of ${capacity} booked - ${remaining} remaining`,
     tone: 'light',
     utilization,
     isFullyBooked: false,
@@ -516,6 +516,7 @@ const CrmStaff = () => {
   const [activeRole] = useState(defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const isMountedRef = useRef(true);
 
   const loadStaff = useCallback(async () => {
     setIsLoading(true);
@@ -523,21 +524,27 @@ const CrmStaff = () => {
 
     try {
       const data = await crmList('staff');
+      if (!isMountedRef.current) return;
       const visibleStaff = Array.isArray(data) ? data.filter((staff) => !shouldHideStaff(staff)) : [];
       const normalized = visibleStaff.length > 0 ? visibleStaff.map(normalizeStaff) : staffSeed;
       setStaffList(normalized);
       setSelectedStaffId((current) => (normalized.some((staff) => staff.id === current) ? current : normalized[0]?.id || ''));
     } catch (error) {
+      if (!isMountedRef.current) return;
       setStaffList(staffSeed);
       setLoadError(error.message || 'Unable to load staff from the CRM API.');
       setSelectedStaffId(staffSeed[0]?.id || '');
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     void loadStaff();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [loadStaff]);
 
   const permissions = roleCapabilities[activeRole] || roleCapabilities.manager;

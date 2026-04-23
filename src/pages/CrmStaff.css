@@ -1197,6 +1197,11 @@
   .crm-staff-content {
     grid-template-columns: 1fr;
   }
+
+  .crm-staff-error {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 860px) {
@@ -1206,6 +1211,16 @@
 
   .crm-staff-header-actions {
     justify-content: flex-start;
+    width: 100%;
+  }
+
+  .crm-staff-header-actions input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .crm-staff-error {
+    padding: 0.9rem;
   }
 
   .crm-staff-summary {
@@ -1220,5 +1235,40 @@
     grid-template-columns: 1fr;
     border-bottom: 1px solid rgba(132, 121, 95, 0.1);
     border-radius: 0;
+    gap: 0.42rem;
+    align-items: start;
+  }
+
+  .crm-staff-cell,
+  .crm-staff-row-actions {
+    text-align: left;
+    justify-content: flex-start;
+  }
+
+  .crm-staff-row-main {
+    gap: 0.26rem;
+  }
+
+  .crm-staff-service-tags {
+    justify-content: flex-start;
+  }
+
+  .crm-staff-control-grid,
+  .crm-staff-detail-meta-grid,
+  .crm-staff-coverage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-staff-operations-card header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .crm-staff-weekly-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .crm-staff-weekly-row span {
+    grid-column: 1 / -1;
   }
 }

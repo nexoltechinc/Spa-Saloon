@@ -54,7 +54,7 @@ const StaffDetailPanel = ({
         </article>
         <article>
           <p>Next Appointment</p>
-          <strong>{staff.nextAppointment ? `${staff.nextAppointment.time} • ${staff.nextAppointment.service}` : 'No upcoming appointment'}</strong>
+          <strong>{staff.nextAppointment ? `${staff.nextAppointment.time} - ${staff.nextAppointment.service}` : 'No upcoming appointment'}</strong>
         </article>
         <article>
           <p>Remaining Today</p>

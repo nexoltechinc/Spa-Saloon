@@ -338,7 +338,8 @@ const CrmServices = () => {
   const [detailTab, setDetailTab] = useState('overview');
   const [activeRole] = useState(defaultRole);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const [syncState, setSyncState] = useState('loading');
+  const [syncMessage, setSyncMessage] = useState('');
   const [editorMode, setEditorMode] = useState(null);
   const [editorDraft, setEditorDraft] = useState(() => buildServiceDraft());
   const [editorError, setEditorError] = useState('');
@@ -347,7 +348,8 @@ const CrmServices = () => {
 
   const loadServices = useCallback(async (mountedRef = { current: true }) => {
     setIsLoading(true);
-    setLoadError('');
+    setSyncState('loading');
+    setSyncMessage('');
 
     try {
       const data = await crmList('services');
@@ -356,10 +358,17 @@ const CrmServices = () => {
       const normalized = data.length > 0 ? data.map(normalizeService) : serviceSeed;
       setServices(normalized);
       setSelectedServiceId((current) => (normalized.some((service) => service.id === current) ? current : normalized[0]?.id || ''));
+      setSyncState('ready');
+      setSyncMessage('');
     } catch (error) {
       if (!mountedRef.current) return;
       setServices(serviceSeed);
-      setLoadError(error.message || 'Unable to load services from the CRM API.');
+      setSyncState('degraded');
+      setSyncMessage(
+        error.status === 502 || String(error.message || '').includes('502')
+          ? 'The live CRM API is temporarily unavailable. The seeded catalog is still visible while the connection recovers.'
+          : 'The live CRM API is unavailable right now. The seeded catalog is still visible while sync is restored.',
+      );
       setSelectedServiceId(serviceSeed[0]?.id || '');
     } finally {
       if (mountedRef.current) setIsLoading(false);
@@ -475,6 +484,7 @@ const CrmServices = () => {
     reviewOnly;
 
   const patchService = (serviceId, updates) => {
+    const previousService = services.find((item) => item.id === serviceId);
     const stamped = {
       ...updates,
       lastUpdated: new Date().toISOString(),
@@ -482,7 +492,11 @@ const CrmServices = () => {
     };
     setServices((current) => current.map((item) => (item.id === serviceId ? { ...item, ...stamped } : item)));
     void crmUpdate('services', serviceId, stamped).catch((error) => {
-      setLoadError(error.message || 'Service update failed.');
+      if (previousService) {
+        setServices((current) => current.map((item) => (item.id === serviceId ? previousService : item)));
+      }
+      setSyncState('degraded');
+      setSyncMessage(error.message || 'Service update failed. The last synced catalog remains on screen.');
     });
   };
 
@@ -627,7 +641,8 @@ const CrmServices = () => {
       setSelectedServiceId(normalized.id);
       setDetailTab('overview');
     } catch (error) {
-      setLoadError(error.message || 'Service duplication failed.');
+      setSyncState('degraded');
+      setSyncMessage(error.message || 'Service duplication failed. The catalog snapshot remains available.');
     }
   };
 
@@ -650,7 +665,8 @@ const CrmServices = () => {
       setEditorMode(null);
       setEditorDraft(buildServiceDraft(nextService || {}));
     } catch (error) {
-      setLoadError(error.message || 'Service deletion failed.');
+      setSyncState('degraded');
+      setSyncMessage(error.message || 'Service deletion failed. The catalog snapshot remains available.');
     }
   };
 
@@ -660,8 +676,12 @@ const CrmServices = () => {
   };
 
   const handleRetryLoad = () => {
-    setLoadError('');
     void loadServices();
+  };
+
+  const handleDismissSyncNotice = () => {
+    setSyncState('ready');
+    setSyncMessage('');
   };
 
   const handleLogout = () => {
@@ -697,20 +717,20 @@ const CrmServices = () => {
           </div>
         </header>
 
-        {loadError ? (
-          <div className="crm-services-banner" role="alert">
+        {syncState === 'degraded' ? (
+          <div className="crm-services-banner" role="status">
             <div>
-              <p className="crm-services-banner-kicker">CRM Sync Issue</p>
-              <h2>{loadError.includes('502') ? 'Temporary backend outage' : 'CRM request failed'}</h2>
+              <p className="crm-services-banner-kicker">CRM Sync Status</p>
+              <h2>Live sync paused</h2>
               <p>
-                We could not sync the services workspace with the backend right now. Your existing catalog data remains on screen, and any unsaved edits should be retried once the connection stabilizes.
+                {syncMessage || 'The services workspace is showing the seeded catalog while the live CRM API reconnects. Try again once the connection stabilizes.'}
               </p>
             </div>
             <div className="crm-services-banner-actions">
               <button type="button" className="crm-services-secondary-btn" onClick={handleRetryLoad}>
-                Retry
+                Retry Sync
               </button>
-              <button type="button" className="crm-services-ghost-btn" onClick={() => setLoadError('')}>
+              <button type="button" className="crm-services-ghost-btn" onClick={handleDismissSyncNotice}>
                 Dismiss
               </button>
             </div>

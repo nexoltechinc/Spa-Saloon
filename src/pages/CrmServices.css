@@ -114,18 +114,19 @@
 .crm-services-banner {
   margin-top: 0.65rem;
   border-radius: 20px;
-  border: 1px solid rgba(160, 80, 80, 0.16);
-  background: linear-gradient(180deg, #fff8f8 0%, #fdf4f4 100%);
+  border: 1px solid rgba(132, 121, 95, 0.14);
+  background: linear-gradient(180deg, rgba(248, 246, 240, 0.98) 0%, rgba(245, 241, 233, 0.96) 100%);
   padding: 0.95rem 1rem;
   display: flex;
   justify-content: space-between;
   gap: 0.9rem;
   align-items: center;
+  box-shadow: 0 10px 24px rgba(68, 53, 19, 0.05);
 }
 
 .crm-services-banner h2 {
   margin: 0.12rem 0 0;
-  color: #9a4f4f;
+  color: #2f2a24;
   font-family: var(--font-editorial);
   font-size: 1.3rem;
   line-height: 1.12;
@@ -134,7 +135,7 @@
 
 .crm-services-banner p {
   margin: 0.3rem 0 0;
-  color: #786864;
+  color: #726b5e;
   font-size: 0.82rem;
   line-height: 1.5;
   opacity: 1;
@@ -143,7 +144,7 @@
 
 .crm-services-banner-kicker {
   margin: 0;
-  color: #a05050;
+  color: #8c7f67;
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.12em;

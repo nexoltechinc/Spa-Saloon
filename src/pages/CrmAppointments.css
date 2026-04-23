@@ -418,10 +418,6 @@
   margin-top: 0.98rem;
 }
 
-.crm-appointments-shell .crm-appointments-empty-state {
-  min-height: 180px;
-}
-
 @media (max-width: 1460px) {
   .crm-appointments-shell {
     --appointments-table-template: minmax(220px, 1.3fr) minmax(132px, 0.9fr) minmax(140px, 0.9fr) minmax(122px, 0.86fr) minmax(180px, 1fr);

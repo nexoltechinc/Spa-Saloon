@@ -990,18 +990,7 @@ const CrmAppointments = () => {
 
                 {selectedAppointment.notes ? <p className="crm-workspace-inline-note">{selectedAppointment.notes}</p> : null}
               </section>
-            ) : (
-              <div className="crm-workspace-empty crm-appointments-empty-state">
-                <h3>No appointment selected</h3>
-                <p>Select a booking from the schedule or create a new one to start working the calendar.</p>
-                <div className="crm-workspace-empty-actions">
-                  <button type="button" className="crm-workspace-primary-btn" onClick={openCreate}>
-                    <Plus size={14} />
-                    New Appointment
-                  </button>
-                </div>
-              </div>
-            )}
+            ) : null}
           </aside>
         </section>
       </main>
