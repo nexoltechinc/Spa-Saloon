@@ -774,6 +774,55 @@ const CrmCustomers = () => {
     return 'Activity Timeline';
   }, [workspaceTab]);
 
+  const workspaceHistoryItems = useMemo(() => {
+    if (!selectedCustomer) return [];
+
+    if (workspaceTab === 'payments') {
+      return selectedCustomer.paymentHistory.map((item) => ({
+        id: item.id,
+        top: formatDateTime(item.date),
+        primary: `${formatCurrency(item.amount)} | ${item.method}`,
+        detail: item.service,
+        badge: item.status,
+      }));
+    }
+
+    if (workspaceTab === 'appointments') {
+      return selectedCustomer.appointmentHistory.map((item) => ({
+        id: item.id,
+        top: formatDateTime(item.dateTime),
+        primary: item.service,
+        detail: item.staff,
+        badge: item.status,
+      }));
+    }
+
+    if (workspaceTab === 'notes') {
+      return selectedCustomer.notes.map((item) => ({
+        id: item.id,
+        top: formatDateTime(item.at),
+        primary: item.author,
+        detail: item.text,
+        badge: 'Note',
+      }));
+    }
+
+    return selectedCustomer.activityTimeline.map((item) => ({
+      id: item.id,
+      top: formatDateTime(item.at),
+      primary: item.type,
+      detail: item.summary,
+      badge: `${item.actor} | ${item.channel}`,
+    }));
+  }, [selectedCustomer, workspaceTab]);
+
+  const workspaceEmptyCopy = useMemo(() => {
+    if (workspaceTab === 'payments') return 'No payment history yet.';
+    if (workspaceTab === 'appointments') return 'No appointment history yet.';
+    if (workspaceTab === 'notes') return 'No notes saved yet.';
+    return 'No timeline activity yet.';
+  }, [workspaceTab]);
+
   return (
     <CrmShell shellClassName="crm-customers-shell">
       <main className="crm-customers-main">
@@ -870,11 +919,11 @@ const CrmCustomers = () => {
                 <h3>No customers found</h3>
                 <p>Try removing a filter or add a new customer profile.</p>
               </div>
-            ) : (
-              <div className="crm-customers-table-body">
-                {filteredCustomers.map((customer) => {
-                  const isSelected = selectedCustomer?.id === customer.id;
-                  return (
+              ) : (
+                <div className="crm-customers-table-body">
+                  {filteredCustomers.map((customer) => {
+                    const isSelected = selectedCustomer?.id === customer.id;
+                    return (
                     <button
                       type="button"
                       key={customer.id}
@@ -884,27 +933,31 @@ const CrmCustomers = () => {
                         setWorkspaceTab('activity');
                       }}
                     >
-                      <div>
+                      <div className="crm-customer-row-main">
                         <p className="crm-customer-name">
-                          {customer.name}
+                          <span className="crm-customer-name-text">{customer.name}</span>
                           <span>{customer.segment}</span>
                         </p>
-                        <p className="crm-customer-sub">{customer.phone}</p>
-                        <p className="crm-customer-sub">{customer.email}</p>
+                        <div className="crm-customer-row-contact">
+                          <p className="crm-customer-sub">{customer.phone || '-'}</p>
+                          <p className="crm-customer-sub">{customer.email || '-'}</p>
+                        </div>
                       </div>
-                      <p>{formatDate(customer.lastVisit)}</p>
-                      <p>{formatDateTime(customer.upcomingAppointment?.dateTime)}</p>
-                      <p>{customer.visitCount}</p>
-                      <p>{formatCurrency(customer.totalSpend)}</p>
-                      <select
-                        value={customer.segment}
-                        onClick={(event) => event.stopPropagation()}
-                        onChange={(event) => handleSegmentUpdate(customer.id, event.target.value)}
-                      >
-                        {TYPE_FILTERS.filter((option) => option !== 'All Segments').map((option) => (
-                          <option key={option}>{option}</option>
-                        ))}
-                      </select>
+                      <p className="crm-customer-row-cell crm-customer-row-date">{formatDate(customer.lastVisit)}</p>
+                      <p className="crm-customer-row-cell crm-customer-row-date">{formatDateTime(customer.upcomingAppointment?.dateTime)}</p>
+                      <p className="crm-customer-row-cell crm-customer-row-stat">{customer.visitCount}</p>
+                      <p className="crm-customer-row-cell crm-customer-row-money">{formatCurrency(customer.totalSpend)}</p>
+                      <div className="crm-customer-row-select-wrap">
+                        <select
+                          value={customer.segment}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => handleSegmentUpdate(customer.id, event.target.value)}
+                        >
+                          {TYPE_FILTERS.filter((option) => option !== 'All Segments').map((option) => (
+                            <option key={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
                     </button>
                   );
                 })}
@@ -955,7 +1008,7 @@ const CrmCustomers = () => {
                   <p className="crm-info-copy">{selectedCustomer.preferredTimes}</p>
                 </div>
 
-                <div className="crm-customer-actions">
+                <div className="crm-customer-actions crm-customer-primary-actions">
                   <button type="button" className="crm-customers-primary-btn" onClick={handleBookAppointment}>
                     Book Appointment
                   </button>
@@ -964,7 +1017,7 @@ const CrmCustomers = () => {
                   </button>
                 </div>
 
-                <div className="crm-customer-actions">
+                <div className="crm-customer-actions crm-customer-tab-actions">
                   <button
                     type="button"
                     className={workspaceTab === 'activity' ? 'crm-customers-secondary-btn' : 'crm-customers-ghost-btn'}
@@ -997,52 +1050,25 @@ const CrmCustomers = () => {
 
                 <div className="crm-customer-history">
                   <p className="crm-info-title">{workspaceTitle}</p>
-                  <ul>
-                    {workspaceTab === 'payments' &&
-                      (selectedCustomer.paymentHistory.length > 0 ? (
-                        selectedCustomer.paymentHistory.map((historyItem) => (
-                          <li key={historyItem.id}>
-                            {formatDateTime(historyItem.date)} | {historyItem.method} | {formatCurrency(historyItem.amount)} | {historyItem.service}
-                          </li>
-                        ))
-                      ) : (
-                        <li>No payment history yet.</li>
+                  {workspaceHistoryItems.length > 0 ? (
+                    <ul className="crm-customer-history-list">
+                      {workspaceHistoryItems.map((historyItem) => (
+                        <li key={historyItem.id} className="crm-customer-history-item">
+                          <div className="crm-customer-history-top">
+                            <span>{historyItem.top}</span>
+                            <span className="crm-customer-history-badge">{historyItem.badge}</span>
+                          </div>
+                          <strong>{historyItem.primary}</strong>
+                          <p>{historyItem.detail}</p>
+                        </li>
                       ))}
-
-                    {workspaceTab === 'appointments' &&
-                      (selectedCustomer.appointmentHistory.length > 0 ? (
-                        selectedCustomer.appointmentHistory.map((historyItem) => (
-                          <li key={historyItem.id}>
-                            {formatDateTime(historyItem.dateTime)} | {historyItem.service} | {historyItem.staff} | {historyItem.status}
-                          </li>
-                        ))
-                      ) : (
-                        <li>No appointment history yet.</li>
-                      ))}
-
-                    {workspaceTab === 'activity' &&
-                      (selectedCustomer.activityTimeline.length > 0 ? (
-                        selectedCustomer.activityTimeline.map((historyItem) => (
-                          <li key={historyItem.id}>
-                            {formatDateTime(historyItem.at)} | {historyItem.type} | {historyItem.summary}
-                          </li>
-                        ))
-                      ) : (
-                        <li>No timeline activity yet.</li>
-                      ))}
-
-                    {workspaceTab === 'notes' &&
-                      (selectedCustomer.notes.length > 0 ? (
-                        selectedCustomer.notes.map((historyItem) => (
-                          <li key={historyItem.id}>
-                            {formatDateTime(historyItem.at)} | {historyItem.author}: {historyItem.text}
-                          </li>
-                        ))
-                      ) : (
-                        <li>No notes saved yet.</li>
-                      ))}
-                  </ul>
-                  <p className="crm-info-copy">Pending balance: {formatCurrency(selectedCustomer.pendingBalance)}</p>
+                    </ul>
+                  ) : (
+                    <div className="crm-customer-history-empty">{workspaceEmptyCopy}</div>
+                  )}
+                  <p className="crm-info-copy crm-customer-balance">
+                    Pending balance: {formatCurrency(selectedCustomer.pendingBalance)}
+                  </p>
                 </div>
               </>
             ) : (

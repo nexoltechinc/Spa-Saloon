@@ -7,7 +7,6 @@ import CrmShell from '../components/CrmShell';
 import AwaitingCheckoutQueue from '../components/payments/AwaitingCheckoutQueue';
 import ReceiptDeliveryPanel from '../components/receipts/ReceiptDeliveryPanel';
 import ReceiptDocumentPreview from '../components/receipts/ReceiptDocumentPreview';
-import ReceiptTransactionSummary from '../components/receipts/ReceiptTransactionSummary';
 import {
   buildPrintableReceiptMarkup,
   buildReceiptBranding,
@@ -540,7 +539,6 @@ const CrmReceipts = () => {
   }, [todayKey, visibleReceipts]);
 
   const awaitingCheckoutQueue = useMemo(() => buildAwaitingQueue(appointments, payments), [appointments, payments]);
-  const recentReceipts = useMemo(() => visibleReceipts.slice(0, 6), [visibleReceipts]);
 
   const recordReceiptPatch = async (paymentId, patch) => {
     let nextPayment = null;
@@ -751,8 +749,6 @@ const CrmReceipts = () => {
           </div>
         </header>
 
-        <ReceiptTransactionSummary receipt={receiptPreview} />
-
         <section className="crm-receipts-controls" aria-label="Receipt filters">
           <input
             type="search"
@@ -892,46 +888,6 @@ const CrmReceipts = () => {
               isBusy={isBusy}
               formatDateTime={formatDateTime}
             />
-
-            <section className="crm-receipts-panel crm-receipts-recent-panel">
-              <header className="crm-receipts-panel-head">
-                <div>
-                  <p className="crm-receipts-kicker">Recent Receipts</p>
-                  <h3>Latest delivery activity</h3>
-                </div>
-              </header>
-
-              <div className="crm-receipts-recent-list">
-                {recentReceipts.map((receipt) => (
-                  <article
-                    key={receipt.id}
-                    className={`crm-receipts-recent-item${receipt.id === selectedReceiptId ? ' crm-receipts-recent-item-active' : ''}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setSelectedReceiptId(receipt.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setSelectedReceiptId(receipt.id);
-                      }
-                    }}
-                  >
-                    <div>
-                      <strong>{receipt.receiptNumber || 'Pending'}</strong>
-                      <span>{receipt.customerName || 'Guest'}</span>
-                    </div>
-                    <div>
-                      <strong>{formatMoney(receipt.totalAmount || receipt.amountReceived || 0)}</strong>
-                      <span>{receipt.receiptStatus || 'Pending'}</span>
-                    </div>
-                    <div>
-                      <strong>{formatDateTime(receipt.issuedAt || receipt.paymentDate)}</strong>
-                      <span>{receipt.method || 'Cash'}</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
           </aside>
         </section>
 

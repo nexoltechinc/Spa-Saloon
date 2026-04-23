@@ -863,7 +863,6 @@
 }
 
 .crm-awaiting-queue-card,
-.crm-payments-recent-card,
 .crm-receipt-workspace-summary,
 .crm-receipt-actions-card,
 .crm-receipt-recent-card {
@@ -885,8 +884,7 @@
   gap: 0.6rem;
 }
 
-.crm-awaiting-queue-head h3,
-.crm-payments-recent-card h3 {
+.crm-awaiting-queue-head h3 {
   margin: 0.3rem 0 0;
   font-family: var(--font-editorial);
   color: #2f2a24;
@@ -900,7 +898,6 @@
 }
 
 .crm-awaiting-queue-list,
-.crm-payments-recent-list,
 .crm-receipt-recent-list {
   margin-top: 0.8rem;
   display: grid;
@@ -908,7 +905,6 @@
 }
 
 .crm-awaiting-queue-item,
-.crm-payments-recent-list article,
 .crm-receipt-recent-list article {
   border-radius: 16px;
   border: 1px solid rgba(132, 121, 95, 0.14);
@@ -923,19 +919,16 @@
 }
 
 .crm-awaiting-queue-item p,
-.crm-payments-recent-list p,
 .crm-receipt-recent-list p {
   margin: 0;
 }
 
 .crm-awaiting-queue-item p,
-.crm-payments-recent-list strong,
 .crm-receipt-recent-list strong {
   color: #2f2a24;
 }
 
 .crm-awaiting-queue-item span,
-.crm-payments-recent-list span,
 .crm-receipt-recent-list span {
   color: #7e7464;
   font-size: 0.74rem;
@@ -1122,19 +1115,6 @@
   font-family: var(--font-editorial);
 }
 
-.crm-payments-recent-card header p {
-  margin: 0.24rem 0 0;
-  color: #7e7465;
-  font-size: 0.8rem;
-}
-
-.crm-payments-recent-list article {
-  display: grid;
-  grid-template-columns: 1.2fr auto auto;
-  gap: 0.5rem;
-  align-items: center;
-}
-
 .crm-receipt-workspace-summary,
 .crm-receipt-actions-card,
 .crm-receipt-recent-card {
@@ -1197,7 +1177,6 @@
 
 @media (max-width: 980px) {
   .crm-awaiting-queue-item,
-  .crm-payments-recent-list article,
   .crm-receipt-recent-list article {
     grid-template-columns: 1fr;
   }

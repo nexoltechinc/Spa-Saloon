@@ -617,50 +617,7 @@
   line-height: 1.35;
 }
 
-.crm-alert-list {
-  margin-top: 0.68rem;
-  display: grid;
-  gap: 0.44rem;
-}
-
-.crm-alert-row {
-  border-radius: 12px;
-  border: 1px solid rgba(132, 121, 95, 0.11);
-  background: #fcfaf6;
-  padding: 0.48rem 0.52rem;
-}
-
-.crm-alert-row p,
-.crm-alert-row span {
-  margin: 0;
-}
-
-.crm-alert-row p {
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.crm-alert-row span {
-  display: block;
-  margin-top: 0.16rem;
-  color: #7f7668;
-  font-size: 0.7rem;
-}
-
-.crm-alert-alert p {
-  color: #b84e44;
-}
-
-.crm-alert-warning p {
-  color: #9f6f1f;
-}
-
-.crm-alert-muted p {
-  color: #7f7465;
-}
-
-.crm-empty-state,
-.crm-empty-mini {
+.crm-empty-state {
   border-radius: 14px;
   border: 1px dashed rgba(132, 121, 95, 0.28);
   background: #fffdf8;
@@ -673,8 +630,7 @@
   font-size: 0.95rem;
 }
 
-.crm-empty-state p,
-.crm-empty-mini p {
+.crm-empty-state p {
   margin: 0.3rem 0 0;
   color: #807668;
   font-size: 0.76rem;

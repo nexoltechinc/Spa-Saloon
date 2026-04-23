@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CrmShell from '../components/CrmShell';
 import StaffDetailPanel from '../components/staff/StaffDetailPanel';
@@ -512,42 +512,33 @@ const CrmStaff = () => {
   const [fullyBookedOnly, setFullyBookedOnly] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState(staffSeed[0].id);
   const [detailTab, setDetailTab] = useState('overview');
-  const [operationTab, setOperationTab] = useState('roster');
+  const [operationTab, setOperationTab] = useState('coverage');
   const [activeRole] = useState(defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
-    let mounted = true;
+  const loadStaff = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError('');
 
-    const loadStaff = async () => {
-      setIsLoading(true);
-      setLoadError('');
-
-      try {
-        const data = await crmList('staff');
-        if (!mounted) return;
-
-        const visibleStaff = Array.isArray(data) ? data.filter((staff) => !shouldHideStaff(staff)) : [];
-        const normalized = visibleStaff.length > 0 ? visibleStaff.map(normalizeStaff) : staffSeed;
-        setStaffList(normalized);
-        setSelectedStaffId((current) => (normalized.some((staff) => staff.id === current) ? current : normalized[0]?.id || ''));
-      } catch (error) {
-        if (!mounted) return;
-        setStaffList(staffSeed);
-        setLoadError(error.message || 'Unable to load staff from the CRM API.');
-        setSelectedStaffId(staffSeed[0]?.id || '');
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    void loadStaff();
-
-    return () => {
-      mounted = false;
-    };
+    try {
+      const data = await crmList('staff');
+      const visibleStaff = Array.isArray(data) ? data.filter((staff) => !shouldHideStaff(staff)) : [];
+      const normalized = visibleStaff.length > 0 ? visibleStaff.map(normalizeStaff) : staffSeed;
+      setStaffList(normalized);
+      setSelectedStaffId((current) => (normalized.some((staff) => staff.id === current) ? current : normalized[0]?.id || ''));
+    } catch (error) {
+      setStaffList(staffSeed);
+      setLoadError(error.message || 'Unable to load staff from the CRM API.');
+      setSelectedStaffId(staffSeed[0]?.id || '');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadStaff();
+  }, [loadStaff]);
 
   const permissions = roleCapabilities[activeRole] || roleCapabilities.manager;
 
@@ -815,9 +806,6 @@ const CrmStaff = () => {
     setFullyBookedOnly(false);
   };
 
-  const onDutyStaffNames = enrichedStaff.filter((member) => member.onDuty).map((member) => member.name);
-  const availableStaffNames = enrichedStaff.filter((member) => member.availableNow).map((member) => member.name);
-
   const coverageRows = Object.values(coverageByService)
     .sort((a, b) => a.service.localeCompare(b.service))
     .slice(0, 8);
@@ -835,6 +823,10 @@ const CrmStaff = () => {
   const handleLogout = () => {
     clearCrmToken();
     navigate('/crm-login');
+  };
+
+  const handleRetryLoad = () => {
+    void loadStaff();
   };
 
   return (
@@ -866,7 +858,18 @@ const CrmStaff = () => {
           </div>
         </header>
 
-        {loadError ? <p className="crm-staff-error">{loadError}</p> : null}
+        {loadError ? (
+          <section className="crm-staff-error" role="status" aria-live="polite">
+            <div>
+              <p>CRM sync issue</p>
+              <h2>Staff data loaded with a fallback</h2>
+              <span>{loadError}. The curated staff seed is still available so the workspace stays usable while the backend recovers.</span>
+            </div>
+            <button type="button" className="crm-staff-secondary-btn" onClick={handleRetryLoad}>
+              Retry Sync
+            </button>
+          </section>
+        ) : null}
 
         <section className="crm-staff-summary">
           {summaryCards.map((card) => (
@@ -904,21 +907,20 @@ const CrmStaff = () => {
         <section className="crm-staff-content">
           <div className="crm-staff-primary-column">
             <article className="crm-staff-table-card">
-              <header>
-                <p>Name &amp; Role</p>
-                <p>Services</p>
-                <p>Shift Hours</p>
-                <p>Next Appointment</p>
-                <p>Today&apos;s Load</p>
-                <p>Shift Status</p>
-                <p>Employment</p>
-                <p>Action</p>
-              </header>
+                <header>
+                  <p>Name &amp; Role</p>
+                  <p>Services</p>
+                  <p>Shift Hours</p>
+                  <p>Next Appointment</p>
+                  <p>Today&apos;s Load</p>
+                  <p>Status</p>
+                  <p>Action</p>
+                </header>
 
               {isLoading ? (
                 <div className="crm-staff-empty">
                   <h3>Loading staff</h3>
-                  <p>Fetching the latest staff roster from the CRM backend.</p>
+                  <p>Fetching the latest staff data from the CRM backend.</p>
                 </div>
               ) : filteredStaff.length === 0 ? (
                 <div className="crm-staff-empty">
@@ -944,12 +946,9 @@ const CrmStaff = () => {
             </article>
 
             <StaffOperationsWorkspace
-              selectedStaff={selectedStaff}
               operationTab={operationTab}
               onTabChange={setOperationTab}
               coverageRows={coverageRows}
-              onDutyStaff={onDutyStaffNames}
-              availableStaff={availableStaffNames}
               recentActivity={recentActivity}
             />
           </div>

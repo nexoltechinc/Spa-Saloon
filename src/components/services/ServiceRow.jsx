@@ -3,6 +3,7 @@ import StaffCoverageIndicator from './StaffCoverageIndicator';
 
 const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency }) => {
   const visibleSignals = service.healthSignals.slice(0, 2);
+  const branchLabel = service.branchName || 'Unassigned';
 
   const handleKeyDown = (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -34,6 +35,11 @@ const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency
       <p className="crm-service-cell crm-service-row-duration">{service.duration} min</p>
       <p className="crm-service-cell crm-service-row-price">{formatCurrency(service.price)}</p>
 
+      <div className="crm-service-row-branch">
+        <p className="crm-service-row-label">Branch</p>
+        <strong>{branchLabel}</strong>
+      </div>
+
       <div className="crm-service-row-staff">
         <StaffCoverageIndicator
           coverage={service.staffCoverage}
@@ -43,22 +49,20 @@ const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency
         />
       </div>
 
-      <div className="crm-service-row-health">
-        {visibleSignals.length > 0
-          ? visibleSignals.map((signal) => <ServiceHealthBadge key={signal.key} label={signal.label} tone={signal.tone} />)
-          : <ServiceHealthBadge label="Healthy" tone="good" />}
-      </div>
-
-      <div className="crm-service-row-bookable">
-        <span className={`crm-service-state-pill ${service.bookingVisible ? 'crm-service-state-positive' : 'crm-service-state-warning'}`}>
-          {service.bookingVisible ? 'Bookable' : 'Not Bookable'}
-        </span>
-      </div>
-
-      <div className="crm-service-row-status">
-        <span className={`crm-service-state-pill ${service.active ? 'crm-service-state-positive' : 'crm-service-state-muted'}`}>
-          {service.active ? 'Active' : 'Inactive'}
-        </span>
+      <div className="crm-service-row-status-stack">
+        <div className="crm-service-row-health">
+          {visibleSignals.length > 0
+            ? visibleSignals.map((signal) => <ServiceHealthBadge key={signal.key} label={signal.label} tone={signal.tone} />)
+            : <ServiceHealthBadge label="Healthy" tone="good" />}
+        </div>
+        <div className="crm-service-row-state-line">
+          <span className={`crm-service-state-pill ${service.bookingVisible ? 'crm-service-state-positive' : 'crm-service-state-warning'}`}>
+            {service.bookingVisible ? 'Bookable' : 'Hidden'}
+          </span>
+          <span className={`crm-service-state-pill ${service.active ? 'crm-service-state-positive' : 'crm-service-state-muted'}`}>
+            {service.active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
       </div>
 
       <div className="crm-service-row-actions">

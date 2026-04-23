@@ -30,6 +30,7 @@ import {
   toLocalInput,
 } from './crmWorkspaceUtils';
 import './CrmWorkspace.css';
+import './CrmAppointments.css';
 
 const STATUS_OPTIONS = ['Confirmed', 'Awaiting Arrival', 'Arrived', 'In Progress', 'Completed', 'Cancelled', 'No Show', 'Payment Pending'];
 const STATUS_FILTERS = ['All Statuses', ...STATUS_OPTIONS];
@@ -515,10 +516,10 @@ const CrmAppointments = () => {
   };
 
   return (
-    <CrmShell shellClassName="crm-workspace-shell">
-      <main className="crm-workspace-main">
-        <header className="crm-workspace-header">
-          <div className="crm-workspace-header-copy">
+    <CrmShell shellClassName="crm-workspace-shell crm-appointments-shell">
+      <main className="crm-workspace-main crm-appointments-main">
+        <header className="crm-workspace-header crm-appointments-header">
+          <div className="crm-workspace-header-copy crm-appointments-header-copy">
             <p className="crm-workspace-kicker">Appointment Operations</p>
             <h1>Appointments</h1>
             <p>
@@ -526,13 +527,14 @@ const CrmAppointments = () => {
             </p>
           </div>
 
-          <div className="crm-workspace-header-stack">
-            <div className="crm-workspace-actions">
+          <div className="crm-workspace-header-stack crm-appointments-header-stack">
+            <div className="crm-workspace-actions crm-appointments-actions">
               <input
                 type="search"
                 placeholder="Search by guest, service, staff, branch, or source..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
+                className="crm-appointments-search"
               />
               <button type="button" className="crm-workspace-primary-btn" onClick={openCreate}>
                 <Plus size={14} />
@@ -549,7 +551,7 @@ const CrmAppointments = () => {
           </div>
         </header>
 
-        <section className="crm-workspace-summary">
+        <section className="crm-workspace-summary crm-appointments-summary">
           {summaryCards.map((card) => (
             <article key={card.label} className="crm-workspace-card">
               <p>{card.label}</p>
@@ -559,7 +561,7 @@ const CrmAppointments = () => {
           ))}
         </section>
 
-        <section className="crm-workspace-filters">
+        <section className="crm-workspace-filters crm-appointments-filters">
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             {STATUS_FILTERS.map((option) => (
               <option key={option}>{option}</option>
@@ -595,12 +597,9 @@ const CrmAppointments = () => {
 
         {loadError ? <p className="crm-workspace-inline-error">{loadError}</p> : null}
 
-        <section className="crm-workspace-grid">
-          <article className="crm-workspace-table-card">
-            <header
-              className="crm-workspace-table-head"
-              style={{ gridTemplateColumns: 'minmax(220px, 1.25fr) 1fr 0.85fr 0.9fr 0.95fr' }}
-            >
+        <section className="crm-workspace-grid crm-appointments-grid">
+          <article className="crm-workspace-table-card crm-appointments-table-card">
+            <header className="crm-workspace-table-head crm-appointments-table-head">
               <span>Guest</span>
               <span>Service</span>
               <span>Schedule</span>
@@ -644,9 +643,8 @@ const CrmAppointments = () => {
                           <button
                             key={appointment.id}
                             type="button"
-                            className={`crm-workspace-row${isSelected ? ' crm-workspace-row-active' : ''}`}
+                            className={`crm-workspace-row crm-appointments-row${isSelected ? ' crm-workspace-row-active' : ''}`}
                             onClick={() => openEdit(appointment)}
-                            style={{ gridTemplateColumns: 'minmax(220px, 1.25fr) 1fr 0.85fr 0.9fr 0.95fr' }}
                           >
                             <div className="crm-workspace-row-primary">
                               <p className="crm-workspace-row-title">{appointment.customerName}</p>
@@ -683,17 +681,19 @@ const CrmAppointments = () => {
             )}
           </article>
 
-          <aside className="crm-workspace-detail-card">
-            <div className="crm-workspace-detail-head">
-              <p className="crm-workspace-detail-kicker">{mode === 'create' ? 'New Appointment' : 'Appointment Detail'}</p>
-              <h3>{mode === 'create' ? 'Create appointment record' : selectedAppointment?.customerName || 'Select an appointment'}</h3>
-              <p>
-                {mode === 'create'
-                  ? 'Enter the booking once, then manage its operational flow directly from Postgres.'
-                  : selectedAppointment
-                    ? `Last updated ${formatDateTime(selectedAppointment.updatedAt)}`
-                    : 'Pick a row to inspect the booking, payment state, and schedule details.'}
-              </p>
+          <aside className="crm-workspace-detail-card crm-appointments-detail-card">
+            <div className="crm-workspace-detail-head crm-appointments-detail-head">
+              <div className="crm-appointments-detail-copy">
+                <p className="crm-workspace-detail-kicker">{mode === 'create' ? 'New Appointment' : 'Appointment Detail'}</p>
+                <h3>{mode === 'create' ? 'Create appointment record' : selectedAppointment?.customerName || 'Select an appointment'}</h3>
+                <p>
+                  {mode === 'create'
+                    ? 'Enter the booking once, then manage its operational flow directly from Postgres.'
+                    : selectedAppointment
+                      ? `Last updated ${formatDateTime(selectedAppointment.updatedAt)}`
+                      : 'Pick a row to inspect the booking, payment state, and schedule details.'}
+                </p>
+              </div>
             </div>
 
             {selectedAppointment ? (
@@ -717,10 +717,10 @@ const CrmAppointments = () => {
               </div>
             ) : null}
 
-            <form className="crm-workspace-form" onSubmit={handleSubmit}>
+            <form className="crm-workspace-form crm-appointments-form" onSubmit={handleSubmit}>
               {formError ? <p className="crm-workspace-inline-error">{formError}</p> : null}
 
-              <div className="crm-workspace-form-grid">
+              <div className="crm-workspace-form-grid crm-appointments-form-grid">
                 <label className="crm-workspace-field crm-workspace-field-full">
                   <span>Customer Name</span>
                   <input
@@ -858,30 +858,36 @@ const CrmAppointments = () => {
                 </label>
               </div>
 
-              <div className="crm-workspace-badge-row">
-                {STATUS_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`crm-workspace-chip${draft.status === option ? ' crm-workspace-chip-active' : ''}`}
-                    onClick={() => updateStatusDraft(option)}
-                  >
-                    {option}
-                  </button>
-                ))}
+              <div className="crm-appointments-chip-group">
+                <p className="crm-appointments-chip-label">Quick Status</p>
+                <div className="crm-workspace-badge-row">
+                  {STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`crm-workspace-chip${draft.status === option ? ' crm-workspace-chip-active' : ''}`}
+                      onClick={() => updateStatusDraft(option)}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="crm-workspace-badge-row">
-                {PAYMENT_STATUS_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    className={`crm-workspace-chip${draft.paymentStatus === option ? ' crm-workspace-chip-active' : ''}`}
-                    onClick={() => setDraft((current) => ({ ...current, paymentStatus: option }))}
-                  >
-                    {option}
-                  </button>
-                ))}
+              <div className="crm-appointments-chip-group">
+                <p className="crm-appointments-chip-label">Payment State</p>
+                <div className="crm-workspace-badge-row">
+                  {PAYMENT_STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className={`crm-workspace-chip${draft.paymentStatus === option ? ' crm-workspace-chip-active' : ''}`}
+                      onClick={() => setDraft((current) => ({ ...current, paymentStatus: option }))}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="crm-workspace-detail-summary">
@@ -985,7 +991,7 @@ const CrmAppointments = () => {
                 {selectedAppointment.notes ? <p className="crm-workspace-inline-note">{selectedAppointment.notes}</p> : null}
               </section>
             ) : (
-              <div className="crm-workspace-empty" style={{ minHeight: '180px' }}>
+              <div className="crm-workspace-empty crm-appointments-empty-state">
                 <h3>No appointment selected</h3>
                 <p>Select a booking from the schedule or create a new one to start working the calendar.</p>
                 <div className="crm-workspace-empty-actions">

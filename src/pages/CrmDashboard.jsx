@@ -29,7 +29,6 @@ const WIDGET_ACCESS = {
   appointments: ['receptionist', 'manager', 'owner'],
   conciergeActions: ['receptionist', 'manager'],
   financialOverview: ['manager', 'owner', 'receptionist'],
-  alerts: ['receptionist', 'manager', 'owner'],
 };
 
 const quickActions = [
@@ -1214,25 +1213,6 @@ const CrmDashboard = () => {
             </article>
           ) : null}
 
-          {roleAllows('alerts') ? (
-            <article className="crm-insight-card">
-              <h3>Alerts & Exceptions</h3>
-              {alertsList.length === 0 ? (
-                <div className="crm-empty-mini">
-                  <p>No active exceptions right now.</p>
-                </div>
-              ) : (
-                <div className="crm-alert-list">
-                  {alertsList.map((alert) => (
-                    <article key={alert.id} className={`crm-alert-row crm-alert-${alert.tone}`}>
-                      <p>{alert.title}</p>
-                      <span>{alert.detail}</span>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </article>
-          ) : null}
         </section>
       </main>
     </CrmShell>

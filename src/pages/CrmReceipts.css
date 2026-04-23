@@ -125,13 +125,6 @@
   color: #745b1e;
 }
 
-.crm-receipts-summary-grid-shell {
-  margin-top: 0.85rem;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
 .crm-receipts-kpi-card {
   background: #fff;
   border-radius: 20px;
@@ -295,68 +288,6 @@
   padding-inline: 0.58rem;
 }
 
-.crm-receipts-summary-strip {
-  margin-top: 0.85rem;
-  background: #f7f4ee;
-  border: 1px solid rgba(132, 121, 95, 0.1);
-  border-radius: 20px;
-  padding: 0.95rem;
-}
-
-.crm-receipts-summary-strip-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  align-items: flex-start;
-  margin-bottom: 0.85rem;
-}
-
-.crm-receipts-summary-strip-head h2 {
-  margin: 0.22rem 0 0;
-  font-family: var(--font-editorial);
-  font-size: 1.55rem;
-  font-weight: 400;
-  color: #2f2a24;
-}
-
-.crm-receipts-summary-strip-badges {
-  display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.crm-receipts-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-
-.crm-receipts-summary-item {
-  background: #fff;
-  border: 1px solid rgba(132, 121, 95, 0.1);
-  border-radius: 16px;
-  padding: 0.78rem 0.82rem;
-  min-height: 84px;
-  display: grid;
-  align-content: space-between;
-}
-
-.crm-receipts-summary-item p {
-  margin: 0;
-  color: #8a8272;
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 800;
-}
-
-.crm-receipts-summary-item strong {
-  margin-top: 0.14rem;
-  color: #2f2a24;
-  font-size: 0.9rem;
-  word-break: break-word;
-}
-
 .crm-receipts-preview-card {
   padding: 1rem;
 }
@@ -448,8 +379,7 @@
 .crm-receipts-preview-delivery p,
 .crm-receipts-delivery-summary p,
 .crm-receipts-delivery-log p,
-.crm-receipts-delivery-foot p,
-.crm-receipts-recent-item span {
+.crm-receipts-delivery-foot p {
   margin: 0;
   color: #908575;
   font-size: 0.58rem;
@@ -464,8 +394,7 @@
 .crm-receipts-preview-delivery strong,
 .crm-receipts-delivery-summary strong,
 .crm-receipts-delivery-log strong,
-.crm-receipts-delivery-foot strong,
-.crm-receipts-recent-item strong {
+.crm-receipts-delivery-foot strong {
   display: block;
   margin-top: 0.14rem;
   color: #2f2a24;
@@ -676,40 +605,6 @@
   gap: 0.5rem;
 }
 
-.crm-receipts-recent-panel {
-  padding-bottom: 0.9rem;
-}
-
-.crm-receipts-recent-list {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.crm-receipts-recent-item {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
-  border-radius: 16px;
-  border: 1px solid rgba(132, 121, 95, 0.1);
-  background: #fff;
-  padding: 0.72rem 0.8rem;
-  cursor: pointer;
-}
-
-.crm-receipts-recent-item-active {
-  background: #f7f0e1;
-  border-color: rgba(167, 131, 46, 0.18);
-}
-
-.crm-receipts-recent-item div {
-  min-width: 0;
-}
-
-.crm-receipts-recent-item span {
-  display: block;
-  word-break: break-word;
-}
-
 .crm-receipts-bottom-grid {
   margin-top: 0.95rem;
   display: grid;
@@ -838,14 +733,6 @@
 }
 
 @media (max-width: 1300px) {
-  .crm-receipts-summary-grid-shell {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .crm-receipts-summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .crm-receipts-workspace {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -865,13 +752,8 @@
     max-width: 100%;
   }
 
-  .crm-receipts-summary-grid-shell,
   .crm-receipts-bottom-grid {
     grid-template-columns: 1fr;
-  }
-
-  .crm-receipts-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .crm-receipts-preview-contact,
@@ -897,15 +779,12 @@
 
   .crm-receipts-header-actions,
   .crm-receipts-controls,
-  .crm-receipts-summary-strip-head,
   .crm-receipts-panel-head,
   .crm-receipts-preview-head {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .crm-receipts-summary-grid-shell,
-  .crm-receipts-summary-grid,
   .crm-receipts-preview-contact,
   .crm-receipts-preview-meta,
   .crm-receipts-preview-totals-grid,
@@ -913,8 +792,7 @@
   .crm-receipts-delivery-summary,
   .crm-receipts-delivery-log,
   .crm-receipts-delivery-foot,
-  .crm-receipts-empty-grid,
-  .crm-receipts-recent-item {
+  .crm-receipts-empty-grid {
     grid-template-columns: 1fr;
   }
 
@@ -924,7 +802,6 @@
     min-width: 0;
   }
 
-  .crm-receipts-summary-item,
   .crm-receipts-kpi-card,
   .crm-receipts-panel,
   .crm-receipts-preview-card,

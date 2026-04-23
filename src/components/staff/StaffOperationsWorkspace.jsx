@@ -1,39 +1,16 @@
 import CoverageWarningBadge from './CoverageWarningBadge';
-import WeeklyAvailabilityVisual from './WeeklyAvailabilityVisual';
 
 const operationTabs = [
-  { key: 'roster', label: 'Weekly Roster' },
   { key: 'coverage', label: 'Service Coverage' },
   { key: 'activity', label: 'Notes / Activity' },
 ];
 
 const StaffOperationsWorkspace = ({
-  selectedStaff,
   operationTab,
   onTabChange,
   coverageRows,
-  onDutyStaff,
-  availableStaff,
   recentActivity,
 }) => {
-  const renderRoster = () => (
-    <div className="crm-staff-ops-panel">
-      {selectedStaff ? <WeeklyAvailabilityVisual weeklyAvailability={selectedStaff.weeklyAvailability} /> : null}
-      <div className="crm-staff-ops-meta">
-        <article>
-          <p>On Duty Now</p>
-          <strong>{onDutyStaff.length}</strong>
-          <span>{onDutyStaff.join(', ') || 'No on-duty staff'}</span>
-        </article>
-        <article>
-          <p>Available Now</p>
-          <strong>{availableStaff.length}</strong>
-          <span>{availableStaff.join(', ') || 'No immediately available staff'}</span>
-        </article>
-      </div>
-    </div>
-  );
-
   const renderCoverage = () => (
     <div className="crm-staff-ops-panel">
       <div className="crm-staff-coverage-grid">
@@ -67,7 +44,7 @@ const StaffOperationsWorkspace = ({
     <article className="crm-staff-operations-card">
       <header>
         <h3>Staff Operations Workspace</h3>
-        <p>Use this area for real-time roster, coverage, and activity decisions.</p>
+        <p>Use this area for real-time coverage and activity decisions.</p>
       </header>
 
       <div className="crm-staff-operations-tabs" role="tablist" aria-label="Staff operations tabs">
@@ -85,7 +62,6 @@ const StaffOperationsWorkspace = ({
         ))}
       </div>
 
-      {operationTab === 'roster' ? renderRoster() : null}
       {operationTab === 'coverage' ? renderCoverage() : null}
       {operationTab === 'activity' ? renderActivity() : null}
     </article>

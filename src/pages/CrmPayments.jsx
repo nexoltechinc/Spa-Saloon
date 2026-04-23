@@ -1102,30 +1102,6 @@ const CrmPayments = () => {
               )}
             </article>
 
-            <article className="crm-payments-recent-card">
-              <header>
-                <h3>Recent Payment Activity</h3>
-                <p>Latest payment entries with receipt readiness and cashier visibility.</p>
-              </header>
-              <div className="crm-payments-recent-list">
-                {recentPayments.slice(0, 6).map((payment) => (
-                  <article key={`recent-${payment.id}`}>
-                    <div>
-                      <strong>{payment.customerName}</strong>
-                      <span>{payment.id} - {payment.method}</span>
-                    </div>
-                    <div>
-                      <p>{formatMoney(payment.amountPaid)}</p>
-                      <span>{payment.receiptGenerated ? 'Receipt generated' : 'Receipt pending'}</span>
-                    </div>
-                    <div>
-                      <p>{formatDateTime(payment.paymentDate)}</p>
-                      <span>{payment.recordedBy}</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </article>
           </div>
 
           {isRecordOpen ? (

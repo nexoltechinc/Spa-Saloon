@@ -24,6 +24,7 @@ import {
   toLocalInput,
 } from './crmWorkspaceUtils';
 import './CrmWorkspace.css';
+import './CrmLeads.css';
 
 const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Proposal', 'Booked', 'Lost', 'Disqualified'];
 const STATUS_FILTERS = ['All Statuses', ...STATUS_OPTIONS];
@@ -32,6 +33,7 @@ const PRIORITY_FILTERS = ['All Priorities', ...PRIORITY_OPTIONS];
 const SOURCE_OPTIONS = ['CRM', 'Website Form', 'Walk-In', 'Phone', 'Instagram', 'Google', 'Referral', 'Partner'];
 const SOURCE_FILTERS = ['All Sources', ...SOURCE_OPTIONS];
 const FOLLOW_UP_FILTERS = ['All Leads', 'Needs Follow-Up', 'Due Today', 'Overdue', 'Booked', 'Open Pipeline'];
+const LEAD_GRID_COLUMNS = 'minmax(248px, 1.34fr) minmax(124px, 0.92fr) minmax(108px, 0.78fr) minmax(96px, 0.72fr) minmax(132px, 0.94fr) minmax(154px, 1fr) minmax(98px, 0.74fr) minmax(120px, 0.84fr) minmax(84px, 0.64fr)';
 
 const getStatusTone = (status) => {
   const normalized = String(status || '').toLowerCase();
@@ -451,7 +453,7 @@ const CrmLeads = () => {
   const dirtyModeLabel = mode === 'create' ? 'New Lead Entry' : 'Lead Detail';
 
   return (
-    <CrmShell shellClassName="crm-workspace-shell">
+    <CrmShell shellClassName="crm-workspace-shell crm-leads-shell">
       <main className="crm-workspace-main">
         <header className="crm-workspace-header">
           <div className="crm-workspace-header-copy">
@@ -529,10 +531,7 @@ const CrmLeads = () => {
 
         <section className="crm-workspace-grid">
           <article className="crm-workspace-table-card">
-            <header
-              className="crm-workspace-table-head"
-              style={{ gridTemplateColumns: 'minmax(220px, 1.2fr) 0.8fr 0.75fr 0.72fr 0.9fr 1fr 0.78fr 0.88fr 0.8fr' }}
-            >
+            <header className="crm-workspace-table-head" style={{ gridTemplateColumns: LEAD_GRID_COLUMNS }}>
               <span>Lead</span>
               <span>Source</span>
               <span>Status</span>
@@ -575,12 +574,13 @@ const CrmLeads = () => {
                       type="button"
                       className={`crm-workspace-row${isSelected ? ' crm-workspace-row-active' : ''}`}
                       onClick={() => openEdit(lead)}
-                      style={{ gridTemplateColumns: 'minmax(220px, 1.2fr) 0.8fr 0.75fr 0.72fr 0.9fr 1fr 0.78fr 0.88fr 0.8fr' }}
+                      style={{ gridTemplateColumns: LEAD_GRID_COLUMNS }}
                     >
                       <div className="crm-workspace-row-primary">
                         <p className="crm-workspace-row-title">{lead.fullName}</p>
                         <p className="crm-workspace-row-subtitle">
-                          {lead.email || 'No email'} <span>|</span> {lead.phone || 'No phone'}
+                          <span>{lead.email || 'No email'}</span>
+                          <span>{lead.phone || 'No phone'}</span>
                         </p>
                       </div>
                       <div className="crm-workspace-row-meta">

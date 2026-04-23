@@ -212,6 +212,11 @@ const ServiceDetailPanel = ({
         <div>
           <p className="crm-services-kicker">{service.category || 'Uncategorized'}</p>
           <h3>{service.name}</h3>
+          <div className="crm-services-detail-meta">
+            <span className="crm-services-detail-meta-chip">Branch: {service.branchName || 'Unassigned'}</span>
+            <span className="crm-services-detail-meta-chip">{service.assignedStaff.length} staff assigned</span>
+            <span className="crm-services-detail-meta-chip">{service.active ? 'Live in catalog' : 'Inactive record'}</span>
+          </div>
         </div>
         <p className="crm-services-id">{service.id}</p>
       </div>

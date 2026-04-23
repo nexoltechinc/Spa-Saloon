@@ -173,6 +173,7 @@ const buildServiceDraft = (service = {}) => {
     active: Boolean(normalized.active),
     bookingVisible: Boolean(normalized.bookingVisible),
     posAvailable: Boolean(normalized.posAvailable),
+    branchName: normalized.branchName || '',
     description: normalized.description || '',
     note: normalized.note || '',
     updatedBy: normalized.updatedBy || 'System Sync',
@@ -202,6 +203,7 @@ const buildServicePayload = (draft) => ({
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean),
+  branchName: normalizeText(draft.branchName),
   active: Boolean(draft.active),
   bookingVisible: Boolean(draft.bookingVisible),
   posAvailable: Boolean(draft.posAvailable),
@@ -298,7 +300,7 @@ const enrichService = (service) => {
   const reviewReasons = getReviewReasons(service, staffCoverage);
   const reviewNeeded = reviewReasons.length > 0;
   const healthSignals = [];
-    if (reviewNeeded) healthSignals.push({ key: 'review', label: 'Needs Review', tone: 'warning' });
+  if (reviewNeeded) healthSignals.push({ key: 'review', label: 'Needs Review', tone: 'warning' });
   if (staffCoverage.level === 'none') healthSignals.push({ key: 'no-staff', label: 'No Staff', tone: 'risk' });
   if (staffCoverage.level === 'limited') healthSignals.push({ key: 'limited-staff', label: 'Limited Coverage', tone: 'warning' });
   if (!service.bookingVisible) healthSignals.push({ key: 'not-bookable', label: 'Not Bookable', tone: 'warning' });
@@ -508,21 +510,23 @@ const CrmServices = () => {
 
   const openServiceEditor = (service = null, mode = 'edit') => {
     setEditorMode(mode);
-    setEditorDraft(buildServiceDraft(service || {}));
+    const fallbackService = service || (mode === 'create' ? { branchName: branchFilter !== 'All Branches' ? branchFilter : '' } : {});
+    setEditorDraft(buildServiceDraft(fallbackService));
     setEditorError('');
   };
 
   const handleQuickCreateService = () => {
-    openServiceEditor(null, 'create');
+    openServiceEditor({ branchName: branchFilter !== 'All Branches' ? branchFilter : '' }, 'create');
   };
 
   const handleExportServices = () => {
     const rows = [
-      ['Service ID', 'Name', 'Category', 'Duration', 'Price', 'Assigned Staff', 'Coverage', 'Bookable', 'POS', 'Active', 'Needs Review', 'Review Reasons'],
+      ['Service ID', 'Name', 'Category', 'Branch', 'Duration', 'Price', 'Assigned Staff', 'Coverage', 'Bookable', 'POS', 'Active', 'Needs Review', 'Review Reasons'],
       ...filteredServices.map((service) => [
         service.id,
         service.name,
         service.category,
+        service.branchName || 'Unassigned',
         service.duration,
         service.price,
         service.assignedStaff.join(' / '),
@@ -761,10 +765,9 @@ const CrmServices = () => {
               <p>Category</p>
               <p>Duration</p>
               <p>Price</p>
+              <p>Branch</p>
               <p>Staff</p>
-              <p>Health</p>
-              <p>Bookable</p>
-              <p>Status</p>
+              <p>State</p>
               <p>Action</p>
             </header>
 
@@ -854,6 +857,23 @@ const CrmServices = () => {
                           onChange={(event) => setEditorDraft((current) => ({ ...current, category: event.target.value }))}
                           placeholder="Facial"
                         />
+                      </label>
+                      <label className="crm-services-editor-field">
+                        <span>Branch</span>
+                        <select
+                          value={editorDraft.branchName}
+                          onChange={(event) => setEditorDraft((current) => ({ ...current, branchName: event.target.value }))}
+                        >
+                          <option value="">Unassigned</option>
+                          {availableBranches.filter((option) => option !== 'All Branches').map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                          {!availableBranches.some((option) => option === editorDraft.branchName) && editorDraft.branchName ? (
+                            <option value={editorDraft.branchName}>{editorDraft.branchName}</option>
+                          ) : null}
+                        </select>
                       </label>
                       <label className="crm-services-editor-field">
                         <span>Duration Minutes</span>
