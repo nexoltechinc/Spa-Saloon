@@ -19,6 +19,7 @@ const AwaitingCheckoutQueue = ({ items, formatMoney, onRecordPayment, onOpenChec
                 <p>{item.customerName}</p>
                 <span>
                   {item.appointmentId} - {item.serviceName}
+                  {item.branchName ? ` | ${item.branchName}` : ''}
                 </span>
               </div>
               <div>

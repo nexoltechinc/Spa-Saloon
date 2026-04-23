@@ -257,6 +257,59 @@ const appointmentReservedKeys = [
   'metadata',
 ];
 
+const serviceReservedKeys = [
+  'id',
+  'resource',
+  'createdAt',
+  'updatedAt',
+  'created_at',
+  'updated_at',
+  'name',
+  'serviceName',
+  'title',
+  'category',
+  'serviceCategory',
+  'service_category',
+  'duration',
+  'durationMinutes',
+  'duration_minutes',
+  'price',
+  'cost',
+  'amount',
+  'previousPrice',
+  'previous_price',
+  'priceReviewNeeded',
+  'price_review_needed',
+  'priceLastUpdated',
+  'priceUpdatedAt',
+  'price_updated_at',
+  'priceUpdatedBy',
+  'price_updated_by',
+  'assignedStaff',
+  'staff',
+  'active',
+  'isActive',
+  'bookingVisible',
+  'bookable',
+  'posAvailable',
+  'posVisible',
+  'description',
+  'summary',
+  'note',
+  'notes',
+  'updatedBy',
+  'editor',
+  'bookingsWeek',
+  'bookingsMonth',
+  'revenueMonth',
+  'lastBooked',
+  'lastBookedAt',
+  'lastBookingAt',
+  'popularityRank',
+  'packageReadiness',
+  'metadata',
+];
+
 const normalizeBranchInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const name = normalizeText(source.name ?? source.branchName ?? existing.name, normalizeText(existing.name));
@@ -390,6 +443,98 @@ const normalizeAppointmentInput = (payload, existing = {}) => {
   };
 };
 
+const normalizeServiceInput = (payload, existing = {}) => {
+  const source = ensureObject(payload);
+  const name = normalizeText(source.name ?? source.serviceName ?? source.title, normalizeText(existing.name));
+
+  if (!name) {
+    const error = new Error('Service name is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const category = normalizeText(source.category ?? source.serviceCategory ?? source.service_category, existing.category || 'General');
+  const duration = Math.max(0, Math.round(normalizeNumber(source.duration ?? source.durationMinutes ?? source.duration_minutes, existing.duration ?? 60)));
+  const price = Math.max(0, normalizeNumber(source.price ?? source.cost ?? source.amount, existing.price ?? 0));
+  const previousPrice = Math.max(0, normalizeNumber(source.previousPrice ?? source.previous_price, existing.previousPrice ?? price));
+  const priceReviewNeeded = normalizeBoolean(source.priceReviewNeeded ?? source.price_review_needed, existing.priceReviewNeeded ?? false);
+  const priceLastUpdated = normalizeDateString(
+    source.priceLastUpdated ?? source.priceUpdatedAt ?? source.price_updated_at,
+    existing.priceLastUpdated || new Date().toISOString(),
+  );
+  const priceUpdatedBy = normalizeText(source.priceUpdatedBy ?? source.price_updated_by ?? source.updatedBy ?? source.editor, existing.priceUpdatedBy || existing.updatedBy || 'System Sync');
+  const rawAssignedStaff = Array.isArray(source.assignedStaff)
+    ? source.assignedStaff
+    : Array.isArray(source.staff)
+      ? source.staff
+      : typeof source.assignedStaff === 'string'
+        ? source.assignedStaff.split(',').map((item) => item.trim()).filter(Boolean)
+        : typeof source.staff === 'string'
+          ? source.staff.split(',').map((item) => item.trim()).filter(Boolean)
+          : Array.isArray(existing.assignedStaff)
+            ? existing.assignedStaff
+            : [];
+  const assignedStaff = rawAssignedStaff.map((item) => normalizeText(item)).filter(Boolean);
+  const active = normalizeBoolean(source.active ?? source.isActive, existing.active ?? true);
+  const bookingVisible = normalizeBoolean(source.bookingVisible ?? source.bookable, existing.bookingVisible ?? true);
+  const posAvailable = normalizeBoolean(source.posAvailable ?? source.posVisible, existing.posAvailable ?? true);
+  const description = normalizeText(source.description ?? source.summary, existing.description || '');
+  const note = normalizeText(source.note ?? source.notes, existing.note || '');
+  const updatedBy = normalizeText(source.updatedBy ?? source.editor, existing.updatedBy || 'System Sync');
+  const bookingsWeek = Math.max(0, Math.round(normalizeNumber(source.bookingsWeek, existing.bookingsWeek ?? 0)));
+  const bookingsMonth = Math.max(0, Math.round(normalizeNumber(source.bookingsMonth, existing.bookingsMonth ?? 0)));
+  const revenueMonth = Math.max(0, normalizeNumber(source.revenueMonth, existing.revenueMonth ?? bookingsMonth * price));
+  const lastBooked = normalizeDateString(source.lastBooked ?? source.lastBookedAt ?? source.lastBookingAt, existing.lastBooked || '');
+  const popularityRank = Math.max(1, Math.round(normalizeNumber(source.popularityRank, existing.popularityRank ?? 9)));
+  const packageReadiness = {
+    ...(toObject(existing.packageReadiness) || {}),
+    ...toObject(source.packageReadiness),
+  };
+
+  return {
+    name,
+    serviceName: name,
+    title: name,
+    category,
+    serviceCategory: category,
+    duration,
+    durationMinutes: duration,
+    price,
+    cost: price,
+    amount: price,
+    previousPrice,
+    priceReviewNeeded,
+    priceLastUpdated,
+    priceUpdatedBy,
+    assignedStaff,
+    staff: assignedStaff,
+    active,
+    isActive: active,
+    bookingVisible,
+    bookable: bookingVisible,
+    posAvailable,
+    posVisible: posAvailable,
+    description,
+    summary: description,
+    note,
+    notes: note,
+    updatedBy,
+    editor: updatedBy,
+    bookingsWeek,
+    bookingsMonth,
+    revenueMonth,
+    lastBooked,
+    lastBookedAt: lastBooked,
+    lastBookingAt: lastBooked,
+    popularityRank,
+    packageReadiness,
+    metadata: {
+      ...(toObject(existing.metadata) || {}),
+      ...getMetadata(source, serviceReservedKeys),
+    },
+  };
+};
+
 const normalizeSettingsDocument = (payload) => {
   const source = ensureObject(payload);
   const profile = toObject(source.profile);
@@ -512,6 +657,53 @@ const appointmentRowToView = (row) => {
   };
 };
 
+const serviceRowToView = (row) => {
+  const metadata = toObject(row.metadata);
+  const assignedStaff = Array.isArray(row.assigned_staff) ? row.assigned_staff : [];
+  return {
+    ...metadata,
+    ...structuredView('services', row, {
+      name: row.name,
+      serviceName: row.name,
+      title: row.name,
+      category: row.category,
+      serviceCategory: row.category,
+      duration: Number(row.duration_minutes || 0),
+      durationMinutes: Number(row.duration_minutes || 0),
+      price: Number(row.price || 0),
+      cost: Number(row.price || 0),
+      amount: Number(row.price || 0),
+      previousPrice: Number(row.previous_price || 0),
+      priceReviewNeeded: row.price_review_needed,
+      priceLastUpdated: toIso(row.price_last_updated),
+      priceUpdatedBy: row.price_updated_by,
+      assignedStaff,
+      staff: assignedStaff,
+      active: row.active,
+      isActive: row.active,
+      bookingVisible: row.booking_visible,
+      bookable: row.booking_visible,
+      posAvailable: row.pos_available,
+      posVisible: row.pos_available,
+      description: row.description,
+      summary: row.description,
+      note: row.note,
+      notes: row.note,
+      updatedBy: row.updated_by,
+      editor: row.updated_by,
+      bookingsWeek: Number(row.bookings_week || 0),
+      bookingsMonth: Number(row.bookings_month || 0),
+      revenueMonth: Number(row.revenue_month || 0),
+      lastBooked: toIso(row.last_booked),
+      lastBookedAt: toIso(row.last_booked),
+      lastBookingAt: toIso(row.last_booked),
+      popularityRank: Number(row.popularity_rank || 0),
+      packageReadiness: toObject(row.package_readiness),
+      metadata,
+    }),
+  };
+};
+
 const settingsRowToView = (row) => ({
   ...normalizeSettingsDocument(row.data || {}),
   id: row.id,
@@ -524,6 +716,7 @@ const structuredFilterKeys = {
   branches: ['name', 'branchName', 'manager', 'managerName', 'city', 'state', 'hours'],
   leads: ['fullName', 'name', 'ownerName', 'owner', 'source', 'priority', 'branchName', 'serviceInterest'],
   appointments: ['customerName', 'serviceName', 'staffName', 'branchName', 'paymentStatus', 'source'],
+  services: ['name', 'serviceName', 'title', 'category', 'serviceCategory', 'assignedStaff', 'note'],
 };
 
 const listStructuredRows = async (resource, query = {}) => {
@@ -552,6 +745,15 @@ const listStructuredRows = async (resource, query = {}) => {
       ORDER BY appointment_at DESC, updated_at DESC, created_at DESC
     `);
     return applyQueryFilters(rows.map(appointmentRowToView), query, structuredFilterKeys.appointments);
+  }
+
+  if (resource === 'services') {
+    const { rows } = await pool.query(`
+      SELECT id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+      FROM crm_services
+      ORDER BY updated_at DESC, created_at DESC
+    `);
+    return applyQueryFilters(rows.map(serviceRowToView), query, structuredFilterKeys.services);
   }
 
   return [];
@@ -597,6 +799,19 @@ const getStructuredRecord = async (resource, id) => {
       [id],
     );
     return rows[0] ? appointmentRowToView(rows[0]) : null;
+  }
+
+  if (resource === 'services') {
+    const { rows } = await pool.query(
+      `
+        SELECT id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+        FROM crm_services
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [id],
+    );
+    return rows[0] ? serviceRowToView(rows[0]) : null;
   }
 
   return null;
@@ -783,6 +998,73 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
     return record;
   }
 
+  if (resource === 'services') {
+    const normalized = normalizeServiceInput(payload, existing || {});
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_services (
+          id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $9, $10::jsonb, $11, $12, $13, $14, $15, $16, $17, $18, $19, NULLIF($20, '')::timestamptz, $21, $22::jsonb, $23::jsonb, $24, $25
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          category = EXCLUDED.category,
+          duration_minutes = EXCLUDED.duration_minutes,
+          price = EXCLUDED.price,
+          previous_price = EXCLUDED.previous_price,
+          price_review_needed = EXCLUDED.price_review_needed,
+          price_last_updated = EXCLUDED.price_last_updated,
+          price_updated_by = EXCLUDED.price_updated_by,
+          assigned_staff = EXCLUDED.assigned_staff,
+          active = EXCLUDED.active,
+          booking_visible = EXCLUDED.booking_visible,
+          pos_available = EXCLUDED.pos_available,
+          description = EXCLUDED.description,
+          note = EXCLUDED.note,
+          updated_by = EXCLUDED.updated_by,
+          bookings_week = EXCLUDED.bookings_week,
+          bookings_month = EXCLUDED.bookings_month,
+          revenue_month = EXCLUDED.revenue_month,
+          last_booked = EXCLUDED.last_booked,
+          popularity_rank = EXCLUDED.popularity_rank,
+          package_readiness = EXCLUDED.package_readiness,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+      `,
+      [
+        id,
+        normalized.name,
+        normalized.category,
+        normalized.duration,
+        normalized.price,
+        normalized.previousPrice,
+        normalized.priceReviewNeeded,
+        normalized.priceLastUpdated,
+        normalized.priceUpdatedBy,
+        JSON.stringify(normalized.assignedStaff),
+        normalized.active,
+        normalized.bookingVisible,
+        normalized.posAvailable,
+        normalized.description,
+        normalized.note,
+        normalized.updatedBy,
+        normalized.bookingsWeek,
+        normalized.bookingsMonth,
+        normalized.revenueMonth,
+        normalized.lastBooked,
+        normalized.popularityRank,
+        JSON.stringify(normalized.packageReadiness),
+        JSON.stringify(normalized.metadata),
+        existing?.createdAt ? new Date(existing.createdAt) : now,
+        now,
+      ],
+    );
+    return serviceRowToView(rows[0]);
+  }
+
   const error = new Error(`Unsupported structured resource: ${resource}`);
   error.statusCode = 404;
   throw error;
@@ -801,6 +1083,11 @@ const deleteStructuredRecord = async (resource, id) => {
 
   if (resource === 'appointments') {
     const { rowCount } = await pool.query('DELETE FROM crm_appointments WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'services') {
+    const { rowCount } = await pool.query('DELETE FROM crm_services WHERE id = $1', [id]);
     return rowCount;
   }
 
@@ -920,6 +1207,51 @@ const migrateStructuredRecords = async (client) => {
       updated_at
     FROM crm_records
     WHERE resource = 'appointments'
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_services (
+      id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+    )
+    SELECT
+      id,
+      COALESCE(NULLIF(data->>'name', ''), NULLIF(data->>'serviceName', ''), NULLIF(data->>'title', ''), 'Untitled Service'),
+      COALESCE(NULLIF(data->>'category', ''), NULLIF(data->>'serviceCategory', ''), NULLIF(data->>'service_category', ''), 'General'),
+      COALESCE(NULLIF(data->>'durationMinutes', '')::integer, NULLIF(data->>'duration', '')::integer, 60),
+      COALESCE(NULLIF(data->>'price', '')::numeric, NULLIF(data->>'amount', '')::numeric, NULLIF(data->>'cost', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'previousPrice', '')::numeric, NULLIF(data->>'previous_price', '')::numeric, COALESCE(NULLIF(data->>'price', '')::numeric, NULLIF(data->>'amount', '')::numeric, 0)),
+      COALESCE(NULLIF(data->>'priceReviewNeeded', '')::boolean, NULLIF(data->>'price_review_needed', '')::boolean, false),
+      NULLIF(COALESCE(data->>'priceLastUpdated', data->>'priceUpdatedAt', data->>'price_updated_at', ''), '')::timestamptz,
+      COALESCE(NULLIF(data->>'priceUpdatedBy', ''), NULLIF(data->>'price_updated_by', ''), NULLIF(data->>'updatedBy', ''), 'System Sync'),
+      COALESCE(NULLIF(data->>'assignedStaff', ''), NULLIF(data->>'staff', ''), '[]')::jsonb,
+      COALESCE(NULLIF(data->>'active', '')::boolean, NULLIF(data->>'isActive', '')::boolean, true),
+      COALESCE(NULLIF(data->>'bookingVisible', '')::boolean, NULLIF(data->>'bookable', '')::boolean, true),
+      COALESCE(NULLIF(data->>'posAvailable', '')::boolean, NULLIF(data->>'posVisible', '')::boolean, true),
+      COALESCE(NULLIF(data->>'description', ''), NULLIF(data->>'summary', ''), ''),
+      COALESCE(NULLIF(data->>'note', ''), NULLIF(data->>'notes', ''), ''),
+      COALESCE(NULLIF(data->>'updatedBy', ''), NULLIF(data->>'editor', ''), 'System Sync'),
+      COALESCE(NULLIF(data->>'bookingsWeek', '')::integer, 0),
+      COALESCE(NULLIF(data->>'bookingsMonth', '')::integer, 0),
+      COALESCE(NULLIF(data->>'revenueMonth', '')::numeric, 0),
+      NULLIF(COALESCE(data->>'lastBooked', data->>'lastBookedAt', data->>'lastBookingAt', ''), '')::timestamptz,
+      COALESCE(NULLIF(data->>'popularityRank', '')::integer, 9),
+      COALESCE(NULLIF(data->>'packageReadiness', '')::jsonb, '{}'::jsonb),
+      COALESCE(
+        data
+          - 'name' - 'serviceName' - 'title' - 'category' - 'serviceCategory' - 'service_category' - 'duration'
+          - 'durationMinutes' - 'duration_minutes' - 'price' - 'cost' - 'amount' - 'previousPrice' - 'previous_price'
+          - 'priceReviewNeeded' - 'price_review_needed' - 'priceLastUpdated' - 'priceUpdatedAt' - 'price_updated_at'
+          - 'priceUpdatedBy' - 'price_updated_by' - 'assignedStaff' - 'staff' - 'active' - 'isActive'
+          - 'bookingVisible' - 'bookable' - 'posAvailable' - 'posVisible' - 'description' - 'summary'
+          - 'note' - 'notes' - 'updatedBy' - 'editor' - 'bookingsWeek' - 'bookingsMonth' - 'revenueMonth'
+          - 'lastBooked' - 'lastBookedAt' - 'lastBookingAt' - 'popularityRank' - 'packageReadiness',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'services'
     ON CONFLICT (id) DO NOTHING
   `);
 };
@@ -1058,6 +1390,46 @@ const MIGRATIONS = [
       `);
 
       await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_services (
+          id text PRIMARY KEY,
+          name text NOT NULL,
+          category text NOT NULL DEFAULT 'General',
+          duration_minutes integer NOT NULL DEFAULT 60,
+          price numeric(12,2) NOT NULL DEFAULT 0,
+          previous_price numeric(12,2) NOT NULL DEFAULT 0,
+          price_review_needed boolean NOT NULL DEFAULT false,
+          price_last_updated timestamptz NOT NULL DEFAULT NOW(),
+          price_updated_by text NOT NULL DEFAULT 'System Sync',
+          assigned_staff jsonb NOT NULL DEFAULT '[]'::jsonb,
+          active boolean NOT NULL DEFAULT true,
+          booking_visible boolean NOT NULL DEFAULT true,
+          pos_available boolean NOT NULL DEFAULT true,
+          description text NOT NULL DEFAULT '',
+          note text NOT NULL DEFAULT '',
+          updated_by text NOT NULL DEFAULT 'System Sync',
+          bookings_week integer NOT NULL DEFAULT 0,
+          bookings_month integer NOT NULL DEFAULT 0,
+          revenue_month numeric(12,2) NOT NULL DEFAULT 0,
+          last_booked timestamptz NULL,
+          popularity_rank integer NOT NULL DEFAULT 9,
+          package_readiness jsonb NOT NULL DEFAULT '{}'::jsonb,
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_updated_idx
+        ON crm_services (updated_at DESC)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_category_idx
+        ON crm_services (category)
+      `);
+
+      await client.query(`
         CREATE TABLE IF NOT EXISTS crm_settings (
           id text PRIMARY KEY,
           data jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -1083,6 +1455,52 @@ const MIGRATIONS = [
   {
     id: '003_backfill_structured_resources',
     up: async (client) => {
+      await migrateStructuredRecords(client);
+    },
+  },
+  {
+    id: '004_services_structured',
+    up: async (client) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_services (
+          id text PRIMARY KEY,
+          name text NOT NULL,
+          category text NOT NULL DEFAULT 'General',
+          duration_minutes integer NOT NULL DEFAULT 60,
+          price numeric(12,2) NOT NULL DEFAULT 0,
+          previous_price numeric(12,2) NOT NULL DEFAULT 0,
+          price_review_needed boolean NOT NULL DEFAULT false,
+          price_last_updated timestamptz NOT NULL DEFAULT NOW(),
+          price_updated_by text NOT NULL DEFAULT 'System Sync',
+          assigned_staff jsonb NOT NULL DEFAULT '[]'::jsonb,
+          active boolean NOT NULL DEFAULT true,
+          booking_visible boolean NOT NULL DEFAULT true,
+          pos_available boolean NOT NULL DEFAULT true,
+          description text NOT NULL DEFAULT '',
+          note text NOT NULL DEFAULT '',
+          updated_by text NOT NULL DEFAULT 'System Sync',
+          bookings_week integer NOT NULL DEFAULT 0,
+          bookings_month integer NOT NULL DEFAULT 0,
+          revenue_month numeric(12,2) NOT NULL DEFAULT 0,
+          last_booked timestamptz NULL,
+          popularity_rank integer NOT NULL DEFAULT 9,
+          package_readiness jsonb NOT NULL DEFAULT '{}'::jsonb,
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_updated_idx
+        ON crm_services (updated_at DESC)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_category_idx
+        ON crm_services (category)
+      `);
+
       await migrateStructuredRecords(client);
     },
   },
@@ -1244,7 +1662,7 @@ export const listRecords = async (resource, query = {}) => {
     return buildReportRows();
   }
 
-  if (['appointments', 'branches', 'leads'].includes(normalizedResource)) {
+  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
     return listStructuredRows(normalizedResource, query);
   }
 
@@ -1265,7 +1683,7 @@ export const getRecord = async (resource, id) => {
     return rows.find((row) => row.id === id) || null;
   }
 
-  if (['appointments', 'branches', 'leads'].includes(normalizedResource)) {
+  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
     return getStructuredRecord(normalizedResource, id);
   }
 
@@ -1287,7 +1705,7 @@ export const createRecord = async (resource, payload) => {
     throw error;
   }
 
-  if (['appointments', 'branches', 'leads'].includes(normalizedResource)) {
+  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
     return upsertStructuredRecord(normalizedResource, payload);
   }
 
@@ -1303,7 +1721,7 @@ export const updateRecord = async (resource, id, patch) => {
     throw error;
   }
 
-  if (['appointments', 'branches', 'leads'].includes(normalizedResource)) {
+  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
     const current = await getStructuredRecord(normalizedResource, id);
     if (!current) {
       const error = new Error(`${normalizedResource} record not found.`);
@@ -1337,7 +1755,7 @@ export const deleteRecord = async (resource, id) => {
     throw error;
   }
 
-  const rowCount = ['appointments', 'branches', 'leads'].includes(normalizedResource)
+  const rowCount = ['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)
     ? await deleteStructuredRecord(normalizedResource, id)
     : await deleteGenericRecord(normalizedResource, id);
 
@@ -1396,12 +1814,7 @@ export const buildReportRows = async () => {
     listRecords('branches'),
   ]);
 
-  const hasData = [appointments, payments, customers, services, staff, leads, branches].some((collection) => collection.length > 0);
-  if (!hasData) {
-    return [];
-  }
-
-  const totalSales = sumBy(payments, (payment) => payment.amountPaid ?? payment.totalPaid ?? payment.amountDue ?? payment.total ?? 0);
+    const totalSales = sumBy(payments, (payment) => payment.amountPaid ?? payment.totalPaid ?? payment.amountDue ?? payment.total ?? 0);
   const totalAppointments = appointments.length;
   const completedAppointments = appointments.filter((appointment) => asLower(appointment.status) === 'completed').length;
   const cancelledAppointments = appointments.filter((appointment) => asLower(appointment.status).includes('cancel')).length;

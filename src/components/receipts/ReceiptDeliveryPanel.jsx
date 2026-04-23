@@ -34,7 +34,6 @@ const ReceiptDeliveryPanel = ({
   onOpenPayment,
   onOpenCheckout,
   onOpenCustomer,
-  onOpenHistory,
   isBusy,
   formatDateTime,
 }) => {
@@ -126,9 +125,6 @@ const ReceiptDeliveryPanel = ({
         </ActionButton>
         <ActionButton variant="ghost" onClick={onOpenCustomer}>
           Open Customer Profile
-        </ActionButton>
-        <ActionButton variant="ghost" onClick={onOpenHistory}>
-          View Receipt History
         </ActionButton>
       </div>
 

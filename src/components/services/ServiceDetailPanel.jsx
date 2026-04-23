@@ -20,6 +20,7 @@ const ServiceDetailPanel = ({
   onAssignStaff,
   onUpdatePrice,
   onDuplicateService,
+  onDeleteService,
   formatCurrency,
   formatDate,
   formatRelativeDate,
@@ -278,6 +279,12 @@ const ServiceDetailPanel = ({
         <button type="button" className="crm-services-ghost-btn" onClick={onDuplicateService}>
           Duplicate Service
         </button>
+
+        {canManageServices ? (
+          <button type="button" className="crm-services-danger-btn" onClick={onDeleteService}>
+            Delete Service
+          </button>
+        ) : null}
       </div>
     </>
   );

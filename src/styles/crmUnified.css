@@ -281,7 +281,6 @@
     .crm-staff-detail-card,
     .crm-payments-table-card,
     .crm-payments-detail-card,
-    .crm-payments-cash-snapshot,
     .crm-reports-panel,
     .crm-reports-highlight-card,
     .crm-reports-health-card,
@@ -572,7 +571,6 @@ body :is(
     .crm-dashboard-main .crm-kpi-card,
     .crm-dashboard-main .crm-summary-card,
     .crm-dashboard-main .crm-concierge-card,
-    .crm-dashboard-main .crm-staff-card,
     .crm-dashboard-main .crm-kpi-card,
     .crm-dashboard-main .crm-welcome,
     .crm-reports-main .crm-reports-panel,
@@ -686,7 +684,6 @@ body :is(
 body :is(
     .crm-dashboard-main .crm-section-head h3,
     .crm-dashboard-main .crm-concierge-card h3,
-    .crm-dashboard-main .crm-staff-card h3,
     .crm-dashboard-main .crm-summary-card h3,
     .crm-reports-main .crm-reports-panel-kicker,
     .crm-settings-main .crm-settings-kicker,

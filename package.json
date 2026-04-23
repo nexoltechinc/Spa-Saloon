@@ -10,6 +10,9 @@
     "dev:full": "concurrently -k \"npm:dev:web\" \"npm:dev:api\"",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "node --test tests/integration/crm.integration.test.js",
+    "test:integration": "node --test tests/integration/crm.integration.test.js",
+    "test:smoke": "node scripts/smoke-test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -29,6 +32,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
+    "embedded-postgres": "^18.3.0-beta.17",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",

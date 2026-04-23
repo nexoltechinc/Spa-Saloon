@@ -449,7 +449,6 @@
 .crm-receipts-delivery-summary p,
 .crm-receipts-delivery-log p,
 .crm-receipts-delivery-foot p,
-.crm-receipts-history-item-sub span,
 .crm-receipts-recent-item span {
   margin: 0;
   color: #908575;
@@ -714,96 +713,8 @@
 .crm-receipts-bottom-grid {
   margin-top: 0.95rem;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 0.9rem;
-}
-
-.crm-receipts-history-panel {
-  min-width: 0;
-}
-
-.crm-receipts-history-head strong {
-  color: #8b5f17;
-  font-size: 1rem;
-}
-
-.crm-receipts-history-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.crm-receipts-history-empty {
-  margin: 0;
-  color: #766d60;
-  font-size: 0.84rem;
-}
-
-.crm-receipts-history-list {
-  display: grid;
-  gap: 0.55rem;
-}
-
-.crm-receipts-history-item {
-  border-radius: 18px;
-  border: 1px solid rgba(132, 121, 95, 0.11);
-  background: #fff;
-  padding: 0.9rem;
-  cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
-}
-
-.crm-receipts-history-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(40, 30, 12, 0.05);
-}
-
-.crm-receipts-history-item-active {
-  background: #f8f2e4;
-  border-color: rgba(167, 131, 46, 0.18);
-}
-
-.crm-receipts-history-item-main {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: flex-start;
-}
-
-.crm-receipts-history-item-main strong {
-  display: block;
-  color: #312c24;
-  font-size: 1rem;
-}
-
-.crm-receipts-history-item-main span {
-  color: #766d5f;
-  font-size: 0.78rem;
-}
-
-.crm-receipts-history-item-amount {
-  text-align: right;
-}
-
-.crm-receipts-history-item-sub {
-  margin-top: 0.45rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.6rem;
-}
-
-.crm-receipts-history-item-badges {
-  margin-top: 0.65rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.crm-receipts-history-item-actions {
-  margin-top: 0.7rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
 }
 
 .crm-receipts-empty-state {
@@ -988,8 +899,7 @@
   .crm-receipts-controls,
   .crm-receipts-summary-strip-head,
   .crm-receipts-panel-head,
-  .crm-receipts-preview-head,
-  .crm-receipts-history-item-main {
+  .crm-receipts-preview-head {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -1023,7 +933,6 @@
     border-radius: 20px;
   }
 
-  .crm-receipts-history-item-actions,
   .crm-receipts-action-stack {
     flex-direction: column;
     align-items: stretch;

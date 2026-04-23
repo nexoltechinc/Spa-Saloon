@@ -2,7 +2,7 @@ import PaymentAgingIndicator from './PaymentAgingIndicator';
 import PaymentStatusBadge from './PaymentStatusBadge';
 
 const PaymentRow = ({ payment, active, formatMoney, formatDateTime, onSelect, onAction }) => {
-  const receiptLabel = payment.receiptGenerated ? 'Receipt Generated' : 'Receipt Pending';
+  const receiptLabel = payment.receiptStatus || (payment.receiptGenerated ? 'Generated' : 'Pending');
 
   const handleRowSelect = () => {
     onSelect(payment);
@@ -26,7 +26,10 @@ const PaymentRow = ({ payment, active, formatMoney, formatDateTime, onSelect, on
 
         <div>
           <p className="crm-payment-name">{payment.customerName}</p>
-          <p className="crm-payment-sub">{payment.recordedBy}</p>
+          <p className="crm-payment-sub">
+            {payment.recordedBy}
+            {payment.branchName ? ` | ${payment.branchName}` : ''}
+          </p>
         </div>
 
         <div>

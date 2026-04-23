@@ -4,8 +4,10 @@ const StaffCoverageIndicator = ({ coverage, staffCount, staff = [], compact = fa
 
   return (
     <div className={`crm-service-staff-coverage${compact ? ' crm-service-staff-coverage-compact' : ''}`}>
-      <span className={`crm-service-coverage-pill crm-service-coverage-${coverage.tone}`}>{coverage.label}</span>
-      <span className="crm-service-coverage-count">{staffCount} staff</span>
+      <div className="crm-service-coverage-meta">
+        <span className={`crm-service-coverage-pill crm-service-coverage-${coverage.tone}`}>{coverage.label}</span>
+        <span className="crm-service-coverage-count">{staffCount} staff</span>
+      </div>
       <div className="crm-service-staff-preview" aria-hidden="true">
         {previewStaff.map((name) => (
           <span key={name} className="crm-service-staff-avatar" title={name}>

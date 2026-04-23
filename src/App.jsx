@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import RequireCrmAuth from './components/RequireCrmAuth';
@@ -5,22 +6,44 @@ import Home from './pages/Home';
 import Services from './pages/Services';
 import Booking from './pages/Booking';
 import Contact from './pages/Contact';
-import CrmLogin from './pages/CrmLogin';
-import CrmDashboard from './pages/CrmDashboard';
-import CrmAppointments from './pages/CrmAppointments';
-import CrmCustomers from './pages/CrmCustomers';
-import CrmServices from './pages/CrmServices';
-import CrmStaff from './pages/CrmStaff';
-import CrmPayments from './pages/CrmPayments';
-import CrmReceipts from './pages/CrmReceipts';
-import CrmReports from './pages/CrmReports';
-import CrmBranches from './pages/CrmBranches';
-import CrmSettings from './pages/CrmSettings';
+
+const CrmLogin = lazy(() => import('./pages/CrmLogin'));
+const CrmDashboard = lazy(() => import('./pages/CrmDashboard'));
+const CrmLeads = lazy(() => import('./pages/CrmLeads'));
+const CrmAppointments = lazy(() => import('./pages/CrmAppointments'));
+const CrmCustomers = lazy(() => import('./pages/CrmCustomers'));
+const CrmServices = lazy(() => import('./pages/CrmServices'));
+const CrmStaff = lazy(() => import('./pages/CrmStaff'));
+const CrmPayments = lazy(() => import('./pages/CrmPayments'));
+const CrmReceipts = lazy(() => import('./pages/CrmReceipts'));
+const CrmReports = lazy(() => import('./pages/CrmReports'));
+const CrmSettings = lazy(() => import('./pages/CrmSettings'));
 
 const Placeholder = ({ title }) => (
   <div style={{ paddingTop: '150px', textAlign: 'center', minHeight: '60vh' }}>
     <h2>{title} Page Coming Soon</h2>
   </div>
+);
+
+const RouteFallback = ({ label }) => (
+  <div style={{ minHeight: '42vh', display: 'grid', placeItems: 'center', padding: '6rem 1rem', textAlign: 'center' }}>
+    <div>
+      <p style={{ margin: 0, letterSpacing: '0.24em', textTransform: 'uppercase', fontSize: '0.72rem', color: '#8f7451' }}>
+        Spa Saloon CRM
+      </p>
+      <h2 style={{ margin: '0.45rem 0 0', fontFamily: 'var(--font-editorial)', fontSize: '2rem', color: '#2b241c' }}>
+        {label}
+      </h2>
+    </div>
+  </div>
+);
+
+const withCrmSuspense = (element, label) => (
+  <RequireCrmAuth>
+    <Suspense fallback={<RouteFallback label={label} />}>
+      {element}
+    </Suspense>
+  </RequireCrmAuth>
 );
 
 function App() {
@@ -34,113 +57,35 @@ function App() {
           <Route path="/wellness" element={<Placeholder title="Wellness" />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/crm-login" element={<CrmLogin />} />
+          <Route
+            path="/crm-login"
+            element={(
+              <Suspense fallback={<RouteFallback label="Loading CRM login..." />}>
+                <CrmLogin />
+              </Suspense>
+            )}
+          />
         </Route>
 
-        <Route
-          path="/crm/dashboard"
-          element={(
-            <RequireCrmAuth>
-              <CrmDashboard />
-            </RequireCrmAuth>
-          )}
-        />
+        <Route path="/crm/dashboard" element={withCrmSuspense(<CrmDashboard />, 'Loading dashboard...')} />
         <Route
           path="/crm/branches"
-          element={(
-            <RequireCrmAuth>
-              <CrmBranches />
-            </RequireCrmAuth>
-          )}
+          element={withCrmSuspense(<Navigate to="/crm/dashboard" replace />, 'Loading dashboard...')}
         />
-        <Route
-          path="/crm/settings"
-          element={(
-            <RequireCrmAuth>
-              <CrmSettings />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/leads"
-          element={(
-            <RequireCrmAuth>
-              <Navigate to="/crm/customers" replace />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/inquiries"
-          element={(
-            <RequireCrmAuth>
-              <Navigate to="/crm/customers" replace />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/customers"
-          element={(
-            <RequireCrmAuth>
-              <CrmCustomers />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/appointments"
-          element={(
-            <RequireCrmAuth>
-              <CrmAppointments />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/services"
-          element={(
-            <RequireCrmAuth>
-              <CrmServices />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/staff"
-          element={(
-            <RequireCrmAuth>
-              <CrmStaff />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/payments"
-          element={(
-            <RequireCrmAuth>
-              <CrmPayments />
-            </RequireCrmAuth>
-          )}
-        />
-        <Route
-          path="/crm/receipts"
-          element={(
-            <RequireCrmAuth>
-              <CrmReceipts />
-            </RequireCrmAuth>
-          )}
-        />
+        <Route path="/crm/settings" element={withCrmSuspense(<CrmSettings />, 'Loading settings...')} />
+        <Route path="/crm/leads" element={withCrmSuspense(<CrmLeads />, 'Loading leads...')} />
+        <Route path="/crm/inquiries" element={withCrmSuspense(<CrmLeads />, 'Loading leads...')} />
+        <Route path="/crm/customers" element={withCrmSuspense(<CrmCustomers />, 'Loading customers...')} />
+        <Route path="/crm/appointments" element={withCrmSuspense(<CrmAppointments />, 'Loading appointments...')} />
+        <Route path="/crm/services" element={withCrmSuspense(<CrmServices />, 'Loading services...')} />
+        <Route path="/crm/staff" element={withCrmSuspense(<CrmStaff />, 'Loading staff...')} />
+        <Route path="/crm/payments" element={withCrmSuspense(<CrmPayments />, 'Loading payments...')} />
+        <Route path="/crm/receipts" element={withCrmSuspense(<CrmReceipts />, 'Loading receipts...')} />
         <Route
           path="/crm/receipt"
-          element={(
-            <RequireCrmAuth>
-              <Navigate to="/crm/receipts" replace />
-            </RequireCrmAuth>
-          )}
+          element={withCrmSuspense(<Navigate to="/crm/receipts" replace />, 'Loading receipts...')}
         />
-        <Route
-          path="/crm/reports"
-          element={(
-            <RequireCrmAuth>
-              <CrmReports />
-            </RequireCrmAuth>
-          )}
-        />
+        <Route path="/crm/reports" element={withCrmSuspense(<CrmReports />, 'Loading reports...')} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

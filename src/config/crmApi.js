@@ -1,7 +1,9 @@
-import { getCrmToken } from './crm';
+import { getCrmToken } from './crm.js';
 
-export const CRM_API_BASE_URL = import.meta.env.VITE_CRM_API_BASE_URL || '';
-export const CRM_API_PREFIX = import.meta.env.VITE_CRM_API_PREFIX || '/api/crm';
+const runtimeEnv = import.meta.env ?? {};
+
+export const CRM_API_BASE_URL = runtimeEnv.VITE_CRM_API_BASE_URL || '';
+export const CRM_API_PREFIX = runtimeEnv.VITE_CRM_API_PREFIX || '/api/crm';
 
 export const CRM_API_RESOURCES = {
   branches: '/branches',

@@ -20,19 +20,19 @@ const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency
       onKeyDown={handleKeyDown}
       aria-label={`View details for ${service.name}`}
     >
-      <div>
+      <div className="crm-service-row-service">
         <p className="crm-service-name">{service.name}</p>
         <p className="crm-service-sub" title={service.description || 'No description'}>
           {service.description || 'Description missing'}
         </p>
       </div>
 
-      <div>
+      <div className="crm-service-row-category">
         <span className="crm-service-category-pill">{service.category || 'Uncategorized'}</span>
       </div>
 
-      <p className="crm-service-cell">{service.duration} min</p>
-      <p className="crm-service-cell">{formatCurrency(service.price)}</p>
+      <p className="crm-service-cell crm-service-row-duration">{service.duration} min</p>
+      <p className="crm-service-cell crm-service-row-price">{formatCurrency(service.price)}</p>
 
       <div className="crm-service-row-staff">
         <StaffCoverageIndicator
@@ -49,13 +49,13 @@ const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency
           : <ServiceHealthBadge label="Healthy" tone="good" />}
       </div>
 
-      <div>
+      <div className="crm-service-row-bookable">
         <span className={`crm-service-state-pill ${service.bookingVisible ? 'crm-service-state-positive' : 'crm-service-state-warning'}`}>
           {service.bookingVisible ? 'Bookable' : 'Not Bookable'}
         </span>
       </div>
 
-      <div>
+      <div className="crm-service-row-status">
         <span className={`crm-service-state-pill ${service.active ? 'crm-service-state-positive' : 'crm-service-state-muted'}`}>
           {service.active ? 'Active' : 'Inactive'}
         </span>

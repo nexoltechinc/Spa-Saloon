@@ -7,9 +7,9 @@ import { fetchReceiptSettings, loadReceiptSettings } from '../config/receiptSett
 import CrmShell from '../components/CrmShell';
 import ReceiptPreviewPanel from '../components/ReceiptPreviewPanel';
 import AwaitingCheckoutQueue from '../components/payments/AwaitingCheckoutQueue';
-import CashSnapshotCards from '../components/payments/CashSnapshotCards';
 import PaymentRow from '../components/payments/PaymentRow';
 import ReceiptWorkspacePanel from '../components/payments/ReceiptWorkspacePanel';
+import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmPayments.css';
 
 const paymentSeed = [
@@ -17,6 +17,7 @@ const paymentSeed = [
     id: 'PAY-9921',
     customerName: 'Eleanor Hebert',
     customerEmail: 'eleanor.hebert@example.com',
+    branchName: 'West Hollywood',
     appointmentId: 'APT-4402',
     serviceName: 'Deep Tissue Massage',
     amountDue: 180,
@@ -37,6 +38,7 @@ const paymentSeed = [
     id: 'PAY-9923',
     customerName: 'Sienna Miller',
     customerEmail: 'sienna.miller@example.com',
+    branchName: 'Downtown',
     appointmentId: 'APT-4408',
     serviceName: 'Full Body Scrub',
     amountDue: 150,
@@ -57,6 +59,7 @@ const paymentSeed = [
     id: 'PAY-9924',
     customerName: 'Robert Black',
     customerEmail: 'robert.black@example.com',
+    branchName: 'Beverly Hills',
     appointmentId: 'APT-4411',
     serviceName: 'Manicure Deluxe',
     amountDue: 95,
@@ -83,9 +86,9 @@ const shouldHidePayment = (payment) => {
 const visiblePaymentSeed = paymentSeed.filter((payment) => !shouldHidePayment(payment));
 
 const completedAppointmentsSeed = [
-  { id: 'CHK-7101', appointmentId: 'APT-4422', customerName: 'Maya Cortez', customerEmail: 'maya.cortez@example.com', serviceName: 'Aromatherapy Steam Escape', amountDue: 225, completedAt: '2026-04-15T12:35:00', status: 'Completed' },
-  { id: 'CHK-7102', appointmentId: 'APT-4423', customerName: 'Priya Singh', customerEmail: 'priya.singh@example.com', serviceName: 'Hydra Glow Infusion', amountDue: 185, completedAt: '2026-04-15T13:10:00', status: 'Completed' },
-  { id: 'CHK-7103', appointmentId: 'APT-4424', customerName: 'Carla Kim', customerEmail: 'carla.kim@example.com', serviceName: 'Wellness Intake Consultation', amountDue: 55, completedAt: '2026-04-15T13:45:00', status: 'Completed' },
+  { id: 'CHK-7101', appointmentId: 'APT-4422', customerName: 'Maya Cortez', customerEmail: 'maya.cortez@example.com', branchName: 'West Hollywood', serviceName: 'Aromatherapy Steam Escape', amountDue: 225, completedAt: '2026-04-15T12:35:00', status: 'Completed' },
+  { id: 'CHK-7102', appointmentId: 'APT-4423', customerName: 'Priya Singh', customerEmail: 'priya.singh@example.com', branchName: 'Beverly Hills', serviceName: 'Hydra Glow Infusion', amountDue: 185, completedAt: '2026-04-15T13:10:00', status: 'Completed' },
+  { id: 'CHK-7103', appointmentId: 'APT-4424', customerName: 'Carla Kim', customerEmail: 'carla.kim@example.com', branchName: 'Downtown', serviceName: 'Wellness Intake Consultation', amountDue: 55, completedAt: '2026-04-15T13:45:00', status: 'Completed' },
 ];
 
 const statusOptions = ['All Statuses', 'Paid', 'Partial', 'Unpaid', 'Overdue', 'Refunded', 'Cancelled'];
@@ -171,6 +174,7 @@ const normalizePayment = (payment, index = 0) => {
     customerName: payment.customerName || payment.customer || payment.name || 'Guest',
     customerEmail: payment.customerEmail || payment.email || '',
     customerId: payment.customerId || '',
+    branchName: payment.branchName || payment.branch || payment.locationName || '',
     appointmentId: payment.appointmentId || payment.bookingId || payment.linkedAppointmentId || '',
     serviceName: payment.serviceName || payment.service || payment.treatment || 'Service',
     amountDue,
@@ -202,6 +206,7 @@ const normalizeQueueItem = (appointment, index = 0) => ({
   appointmentId: appointment.appointmentId || appointment.id || '',
   customerName: appointment.customerName || appointment.customer || 'Guest',
   customerEmail: appointment.customerEmail || appointment.email || '',
+  branchName: appointment.branchName || appointment.branch || appointment.locationName || '',
   serviceName: appointment.serviceName || appointment.service || 'Service',
   amountDue: parseMoney(appointment.amountDue ?? appointment.totalDue ?? appointment.total ?? 0),
   completedAt: appointment.completedAt || appointment.dateTime || appointment.date || new Date().toISOString(),
@@ -226,6 +231,7 @@ const buildAwaitingQueue = (appointments, payments) => {
         appointmentId: appointment.appointmentId,
         customerName: linked?.customerName || appointment.customerName,
         customerEmail: linked?.customerEmail || appointment.customerEmail,
+        branchName: linked?.branchName || appointment.branchName || '',
         serviceName: linked?.serviceName || appointment.serviceName,
         amountDue,
         balanceRemaining,
@@ -245,6 +251,7 @@ const buildAwaitingQueue = (appointments, payments) => {
         appointmentId: payment.appointmentId,
         customerName: payment.customerName,
         customerEmail: payment.customerEmail,
+        branchName: payment.branchName || '',
         serviceName: payment.serviceName,
         amountDue: payment.amountDue,
         balanceRemaining: payment.balanceRemaining,
@@ -318,12 +325,17 @@ const CrmPayments = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [methodFilter, setMethodFilter] = useState('All Methods');
+  const [branchFilter, setBranchFilter] = useState('All Branches');
+  const [cashierFilter, setCashierFilter] = useState('All Cashiers');
+  const [receiptStatusFilter, setReceiptStatusFilter] = useState('All Receipt States');
+  const [agingFilter, setAgingFilter] = useState('All Aging');
   const [dateFilter, setDateFilter] = useState('Today');
   const [todayOnly, setTodayOnly] = useState(false);
   const [linkedOnly, setLinkedOnly] = useState(false);
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [availableBranches, setAvailableBranches] = useState([]);
   const [isRecordOpen, setIsRecordOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -337,6 +349,7 @@ const CrmPayments = () => {
     customerName: '',
     customerEmail: '',
     appointmentId: '',
+    branchName: '',
     serviceName: '',
     amountDue: '',
     amountPaid: '',
@@ -354,23 +367,42 @@ const CrmPayments = () => {
       setLoadError('');
 
       try {
-        const [paymentsData, appointmentsData, servicesData] = await Promise.all([
+        const [paymentsData, appointmentsData, servicesData, branchesData] = await Promise.all([
           crmList('payments').catch(() => []),
           crmList('appointments').catch(() => []),
           crmList('services').catch(() => []),
+          crmList('branches').catch(() => []),
         ]);
 
         if (!mounted) return;
 
+        const branchNames = new Set();
+        const branchList = Array.isArray(branchesData) ? branchesData : [];
+        branchList.forEach((branch) => {
+          const name = branch?.name || branch?.branchName || branch?.locationName || branch?.title;
+          if (name) branchNames.add(String(name).trim());
+        });
+        setAvailableBranches(Array.from(branchNames));
+
+        const branchLookup = new Map(
+          branchList
+            .map((branch) => {
+              const id = String(branch?.id || branch?._id || branch?.branchId || branch?.locationId || '').trim().toLowerCase();
+              const name = String(branch?.name || branch?.branchName || branch?.locationName || branch?.title || '').trim();
+              return id && name ? [id, name] : null;
+            })
+            .filter(Boolean),
+        );
+
         const normalizedPayments = Array.isArray(paymentsData) && paymentsData.length > 0
           ? paymentsData
             .filter((payment) => !shouldHidePayment(payment))
-            .map((payment, index) => normalizePayment(payment, index))
-          : visiblePaymentSeed.map((payment, index) => normalizePayment(payment, index));
+            .map((payment, index) => normalizePayment(payment, index, branchLookup))
+          : visiblePaymentSeed.map((payment, index) => normalizePayment(payment, index, branchLookup));
 
         const normalizedAppointments = Array.isArray(appointmentsData) && appointmentsData.length > 0
-          ? appointmentsData.map((appointment, index) => normalizeQueueItem(appointment, index))
-          : completedAppointmentsSeed.map((appointment, index) => normalizeQueueItem(appointment, index));
+          ? appointmentsData.map((appointment, index) => normalizeQueueItem(appointment, index, branchLookup))
+          : completedAppointmentsSeed.map((appointment, index) => normalizeQueueItem(appointment, index, branchLookup));
 
         const mergedCatalog = [...serviceCatalogSeed];
         if (Array.isArray(servicesData)) {
@@ -450,13 +482,86 @@ const CrmPayments = () => {
 
   const awaitingCheckoutQueue = useMemo(() => buildAwaitingQueue(appointmentsQueue, payments), [appointmentsQueue, payments]);
 
+  const branchOptions = useMemo(
+    () => ['All Branches', ...collectOptionValues([...payments, ...appointmentsQueue, ...availableBranches.map((branchName) => ({ branchName }))], ['branchName'])],
+    [appointmentsQueue, availableBranches, payments],
+  );
+
+  const cashierOptions = useMemo(
+    () => ['All Cashiers', ...collectOptionValues(payments, ['recordedBy', 'editedBy'])],
+    [payments],
+  );
+
+  const receiptStatusOptionsMemo = useMemo(
+    () => ['All Receipt States', ...collectOptionValues(payments, ['receiptStatus'])],
+    [payments],
+  );
+
+  const visiblePayments = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(now.getDate() - 6);
+
+    return payments
+      .filter((payment) => {
+        const searchTarget = `${payment.id} ${payment.customerName} ${payment.appointmentId} ${payment.serviceName} ${payment.receiptNumber} ${payment.branchName} ${payment.recordedBy}`.toLowerCase();
+        const matchesSearch = !searchTerm || searchTarget.includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'All Statuses' || payment.displayStatus === statusFilter || payment.status === statusFilter;
+        const matchesMethod = methodFilter === 'All Methods' || payment.method === methodFilter;
+        const matchesBranch = branchFilter === 'All Branches' || payment.branchName === branchFilter;
+        const matchesCashier = cashierFilter === 'All Cashiers' || payment.recordedBy === cashierFilter || payment.editedBy === cashierFilter;
+        const matchesReceiptStatus = receiptStatusFilter === 'All Receipt States' || payment.receiptStatus === receiptStatusFilter;
+        const matchesAging = agingFilter === 'All Aging' || payment.agingBucket === agingFilter;
+        const date = new Date(payment.paymentDate);
+        const matchesDate = todayOnly
+          ? toDateKey(date) === toDateKey(now)
+          : dateFilter === 'Today'
+            ? toDateKey(date) === toDateKey(now)
+            : dateFilter === 'Last 7 Days'
+              ? date >= weekAgo
+              : date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        const matchesLinked = !linkedOnly || Boolean(payment.appointmentId);
+        const matchesOverdue = !overdueOnly || payment.displayStatus === 'Overdue';
+        return matchesSearch && matchesStatus && matchesMethod && matchesBranch && matchesCashier && matchesReceiptStatus && matchesAging && matchesDate && matchesLinked && matchesOverdue;
+      })
+      .sort((left, right) => new Date(right.paymentDate) - new Date(left.paymentDate));
+  }, [
+    agingFilter,
+    branchFilter,
+    cashierFilter,
+    dateFilter,
+    linkedOnly,
+    methodFilter,
+    overdueOnly,
+    payments,
+    receiptStatusFilter,
+    searchTerm,
+    statusFilter,
+    todayOnly,
+  ]);
+
+  const filteredAwaitingCheckoutQueue = useMemo(
+    () => awaitingCheckoutQueue.filter((entry) => branchFilter === 'All Branches' || entry.branchName === branchFilter),
+    [awaitingCheckoutQueue, branchFilter],
+  );
+
+  useEffect(() => {
+    if (visiblePayments.length === 0) {
+      setSelectedPaymentId('');
+      return;
+    }
+    if (!visiblePayments.some((payment) => payment.id === selectedPaymentId)) {
+      setSelectedPaymentId(visiblePayments[0].id);
+    }
+  }, [selectedPaymentId, visiblePayments]);
+
   const summaryCards = useMemo(() => {
-    const todayPayments = payments.filter((payment) => toDateKey(payment.paymentDate) === toDateKey(new Date()));
+    const todayPayments = visiblePayments.filter((payment) => toDateKey(payment.paymentDate) === toDateKey(new Date()));
     const cashCollectedToday = todayPayments.filter((payment) => payment.method === 'Cash').reduce((sum, payment) => sum + payment.amountPaid, 0);
-    const unpaidTransactions = awaitingCheckoutQueue.filter((entry) => entry.balanceRemaining > 0).length;
-    const partialBalances = payments.filter((payment) => payment.status === 'Partial' && payment.balanceRemaining > 0).length;
-    const fullyPaidTransactions = payments.filter((payment) => payment.displayStatus === 'Paid').length;
-    const overdueOutstanding = payments.filter((payment) => payment.displayStatus === 'Overdue').reduce((sum, payment) => sum + payment.balanceRemaining, 0);
+    const unpaidTransactions = filteredAwaitingCheckoutQueue.filter((entry) => entry.balanceRemaining > 0).length;
+    const partialBalances = visiblePayments.filter((payment) => payment.status === 'Partial' && payment.balanceRemaining > 0).length;
+    const fullyPaidTransactions = visiblePayments.filter((payment) => payment.displayStatus === 'Paid').length;
+    const overdueOutstanding = visiblePayments.filter((payment) => payment.displayStatus === 'Overdue').reduce((sum, payment) => sum + payment.balanceRemaining, 0);
 
     return [
       { label: 'Payments Recorded Today', value: String(todayPayments.length).padStart(2, '0'), subtext: 'Payment entries created today' },
@@ -466,36 +571,12 @@ const CrmPayments = () => {
       { label: 'Fully Paid Transactions', value: String(fullyPaidTransactions).padStart(2, '0'), subtext: 'Settled payment records' },
       { label: 'Overdue Outstanding', value: formatMoney(overdueOutstanding), subtext: 'Unpaid balances past due', alert: true },
     ];
-  }, [awaitingCheckoutQueue, payments]);
+  }, [filteredAwaitingCheckoutQueue, visiblePayments]);
 
-  const filteredPayments = useMemo(() => {
-    const now = new Date();
-    const weekAgo = new Date(now);
-    weekAgo.setDate(now.getDate() - 6);
-
-    return payments.filter((payment) => {
-      const searchTarget = `${payment.id} ${payment.customerName} ${payment.appointmentId} ${payment.serviceName} ${payment.receiptNumber}`.toLowerCase();
-      const matchesSearch = !searchTerm || searchTarget.includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'All Statuses' || payment.displayStatus === statusFilter || payment.status === statusFilter;
-      const matchesMethod = methodFilter === 'All Methods' || payment.method === methodFilter;
-      const date = new Date(payment.paymentDate);
-      const matchesDate = todayOnly
-        ? toDateKey(date) === toDateKey(now)
-        : dateFilter === 'Today'
-          ? toDateKey(date) === toDateKey(now)
-          : dateFilter === 'Last 7 Days'
-            ? date >= weekAgo
-            : date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-      const matchesLinked = !linkedOnly || Boolean(payment.appointmentId);
-      const matchesOverdue = !overdueOnly || payment.displayStatus === 'Overdue';
-      return matchesSearch && matchesStatus && matchesMethod && matchesDate && matchesLinked && matchesOverdue;
-    });
-  }, [payments, searchTerm, statusFilter, methodFilter, dateFilter, todayOnly, linkedOnly, overdueOnly]);
-
-  const selectedPayment = useMemo(() => payments.find((payment) => payment.id === selectedPaymentId) || filteredPayments[0] || null, [payments, filteredPayments, selectedPaymentId]);
+  const selectedPayment = useMemo(() => visiblePayments.find((payment) => payment.id === selectedPaymentId) || visiblePayments[0] || null, [selectedPaymentId, visiblePayments]);
   const recentPayments = useMemo(
-    () => [...payments].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate)),
-    [payments],
+    () => [...visiblePayments].sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate)),
+    [visiblePayments],
   );
 
   const recentReceipts = useMemo(() => recentPayments.filter((payment) => payment.receiptGenerated).map((payment) => ({
@@ -511,25 +592,6 @@ const CrmPayments = () => {
     if (!selectedPayment) return null;
     return buildReceiptPreview(selectedPayment, receiptBranding);
   }, [isRecordOpen, recordDraft, receiptBranding, selectedPayment]);
-
-  const dailyCashSnapshot = useMemo(() => {
-    const todayPayments = payments.filter((payment) => toDateKey(payment.paymentDate) === toDateKey(new Date()));
-    const openingCash = 500;
-    const cashReceivedToday = todayPayments.filter((payment) => payment.method === 'Cash').reduce((sum, payment) => sum + payment.amountPaid, 0);
-    const partialBalances = payments.filter((payment) => payment.status === 'Partial' && payment.balanceRemaining > 0).reduce((sum, payment) => sum + payment.balanceRemaining, 0);
-    const outstandingBalance = payments.filter((payment) => payment.balanceRemaining > 0).reduce((sum, payment) => sum + payment.balanceRemaining, 0);
-    const discountsGiven = todayPayments.reduce((sum, payment) => sum + payment.discountAmount, 0);
-    const closingEstimate = openingCash + cashReceivedToday - discountsGiven;
-
-    return [
-      { label: 'Opening Cash', value: formatMoney(openingCash), note: 'Start-of-day float' },
-      { label: 'Cash Received Today', value: formatMoney(cashReceivedToday), note: 'Cash-on-hand collections' },
-      { label: 'Partial Balances', value: formatMoney(partialBalances), note: 'Open split payments' },
-      { label: 'Outstanding Balance', value: formatMoney(outstandingBalance), note: 'Total pending settlement' },
-      { label: 'Discounts Given', value: formatMoney(discountsGiven), note: 'Applied in current day' },
-      { label: 'Closing Estimate', value: formatMoney(closingEstimate), note: 'Expected drawer position' },
-    ];
-  }, [payments]);
 
   const draftAmountDueValue = parseMoney(recordDraft.amountDue);
   const draftAmountPaidValue = parseMoney(recordDraft.amountPaid);
@@ -567,6 +629,7 @@ const CrmPayments = () => {
         customerName: prefill.customerName || '',
         customerEmail: prefill.customerEmail || '',
         appointmentId: prefill.appointmentId || '',
+        branchName: prefill.branchName || (branchFilter !== 'All Branches' ? branchFilter : ''),
         serviceName: matchedService?.name || prefill.serviceName || '',
         amountDue: String(matchedService?.price || parseMoney(prefill.amountDue)),
         amountPaid: prefill.paymentId ? String(parseMoney(prefill.balanceRemaining || prefill.amountDue)) : '',
@@ -581,6 +644,7 @@ const CrmPayments = () => {
         customerName: '',
         customerEmail: '',
         appointmentId: '',
+        branchName: branchFilter !== 'All Branches' ? branchFilter : '',
         serviceName: '',
         amountDue: '',
         amountPaid: '',
@@ -721,12 +785,13 @@ const CrmPayments = () => {
 
     const balanceRemaining = Math.max(amountDue - amountPaid, 0);
     const status = balanceRemaining <= 0 ? 'Paid' : 'Partial';
-    const payload = {
-      customerName: recordDraft.customerName,
-      customerEmail: recordDraft.customerEmail,
-      appointmentId: recordDraft.appointmentId,
-      serviceName: service?.name || recordDraft.serviceName,
-      amountDue,
+      const payload = {
+        customerName: recordDraft.customerName,
+        customerEmail: recordDraft.customerEmail,
+        appointmentId: recordDraft.appointmentId,
+        branchName: recordDraft.branchName,
+        serviceName: service?.name || recordDraft.serviceName,
+        amountDue,
       amountPaid,
       balanceRemaining,
       method: recordDraft.method,
@@ -817,10 +882,11 @@ const CrmPayments = () => {
 
   const handleExportPayments = () => {
     const rows = [
-      ['Payment ID', 'Customer', 'Appointment', 'Service', 'Amount Due', 'Amount Paid', 'Balance', 'Method', 'Status', 'Aging', 'Date', 'Receipt', 'Recorded By'],
-      ...filteredPayments.map((payment) => [
+      ['Payment ID', 'Customer', 'Branch', 'Appointment', 'Service', 'Amount Due', 'Amount Paid', 'Balance', 'Method', 'Status', 'Receipt Status', 'Aging', 'Date', 'Receipt', 'Recorded By'],
+      ...visiblePayments.map((payment) => [
         payment.id,
         payment.customerName,
+        payment.branchName || 'Unassigned',
         payment.appointmentId || 'Unlinked',
         payment.serviceName,
         payment.amountDue,
@@ -828,6 +894,7 @@ const CrmPayments = () => {
         payment.balanceRemaining,
         payment.method,
         payment.displayStatus,
+        payment.receiptStatus,
         payment.agingBucket,
         formatDateTime(payment.paymentDate),
         payment.receiptGenerated ? payment.receiptNumber : 'Pending',
@@ -910,6 +977,21 @@ const CrmPayments = () => {
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
+          <select value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}>
+            {branchOptions.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+          <select value={cashierFilter} onChange={(event) => setCashierFilter(event.target.value)}>
+            {cashierOptions.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+          <select value={receiptStatusFilter} onChange={(event) => setReceiptStatusFilter(event.target.value)}>
+            {receiptStatusOptionsMemo.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
           <button type="button" className={`crm-payments-chip${linkedOnly ? ' crm-payments-chip-active' : ''}`} onClick={() => setLinkedOnly((value) => !value)}>
             Linked Only
           </button>
@@ -917,15 +999,26 @@ const CrmPayments = () => {
             Overdue Balances
           </button>
           <div className="crm-payments-aging-strip" aria-label="Aging overview">
-            <span>Due Today: {payments.filter((payment) => payment.agingBucket === 'Due Today').length}</span>
-            <span>1-3d: {payments.filter((payment) => payment.agingBucket === '1-3 Days Overdue').length}</span>
-            <span>4-7d: {payments.filter((payment) => payment.agingBucket === '4-7 Days Overdue').length}</span>
-            <span>8+d: {payments.filter((payment) => payment.agingBucket === '8+ Days Overdue').length}</span>
+            <button type="button" className={`crm-payments-chip${agingFilter === 'All Aging' ? ' crm-payments-chip-active' : ''}`} onClick={() => setAgingFilter('All Aging')}>
+              All Aging
+            </button>
+            <button type="button" className={`crm-payments-chip${agingFilter === 'Due Today' ? ' crm-payments-chip-active' : ''}`} onClick={() => setAgingFilter('Due Today')}>
+              Due Today ({visiblePayments.filter((payment) => payment.agingBucket === 'Due Today').length})
+            </button>
+            <button type="button" className={`crm-payments-chip${agingFilter === '1-3 Days Overdue' ? ' crm-payments-chip-active' : ''}`} onClick={() => setAgingFilter('1-3 Days Overdue')}>
+              1-3d ({visiblePayments.filter((payment) => payment.agingBucket === '1-3 Days Overdue').length})
+            </button>
+            <button type="button" className={`crm-payments-chip${agingFilter === '4-7 Days Overdue' ? ' crm-payments-chip-active' : ''}`} onClick={() => setAgingFilter('4-7 Days Overdue')}>
+              4-7d ({visiblePayments.filter((payment) => payment.agingBucket === '4-7 Days Overdue').length})
+            </button>
+            <button type="button" className={`crm-payments-chip${agingFilter === '8+ Days Overdue' ? ' crm-payments-chip-active' : ''}`} onClick={() => setAgingFilter('8+ Days Overdue')}>
+              8+d ({visiblePayments.filter((payment) => payment.agingBucket === '8+ Days Overdue').length})
+            </button>
           </div>
         </section>
 
         <AwaitingCheckoutQueue
-          items={awaitingCheckoutQueue}
+          items={filteredAwaitingCheckoutQueue}
           formatMoney={formatMoney}
           onRecordPayment={(item) => openCreateDrawer(item)}
           onOpenCheckout={() => navigate('/crm/appointments')}
@@ -964,7 +1057,7 @@ const CrmPayments = () => {
                   <h3>Loading payments</h3>
                   <p>Fetching live payment, balance, and receipt records from your CRM backend.</p>
                 </div>
-              ) : filteredPayments.length === 0 ? (
+              ) : visiblePayments.length === 0 ? (
                 <div className="crm-payments-empty crm-payments-empty-smart">
                   <h3>No records match current filters</h3>
                   <p>Use quick actions below to continue checkout operations without leaving this page.</p>
@@ -979,8 +1072,8 @@ const CrmPayments = () => {
                   <div className="crm-payments-empty-grid">
                     <article>
                       <p>Awaiting Checkout</p>
-                      <strong>{awaitingCheckoutQueue.length}</strong>
-                      <span>{awaitingCheckoutQueue[0]?.customerName || 'No waiting customers right now.'}</span>
+                      <strong>{filteredAwaitingCheckoutQueue.length}</strong>
+                      <span>{filteredAwaitingCheckoutQueue[0]?.customerName || 'No waiting customers right now.'}</span>
                     </article>
                     <article>
                       <p>Recent Payments</p>
@@ -991,7 +1084,7 @@ const CrmPayments = () => {
                 </div>
               ) : (
                 <div className="crm-payments-table-body">
-                  {filteredPayments.map((payment) => (
+                  {visiblePayments.map((payment) => (
                     <PaymentRow
                       key={payment.id}
                       payment={payment}
@@ -1092,9 +1185,6 @@ const CrmPayments = () => {
           )}
         </section>
 
-        <section className="crm-payments-lower-grid">
-        <CashSnapshotCards items={dailyCashSnapshot} />
-        </section>
       </main>
     </CrmShell>
   );

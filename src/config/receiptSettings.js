@@ -1,4 +1,4 @@
-import { crmGetSettings, crmSaveSettings } from './crmApi';
+import { crmGetSettings, crmSaveSettings } from './crmApi.js';
 
 const defaultOperatingHours = [
   { day: 'Monday', open: '09:00', close: '18:00', breakStart: '', breakEnd: '', enabled: true, guestBookingOpen: true, note: 'Guest bookings open all day.' },

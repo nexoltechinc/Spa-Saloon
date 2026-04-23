@@ -59,6 +59,10 @@ const ReceiptWorkspacePanel = ({
                 <strong>{selectedPayment.customerName}</strong>
               </div>
               <div>
+                <p>Branch</p>
+                <strong>{selectedPayment.branchName || 'Unassigned'}</strong>
+              </div>
+              <div>
                 <p>Appointment</p>
                 <strong>{selectedPayment.appointmentId || 'Unlinked'}</strong>
               </div>

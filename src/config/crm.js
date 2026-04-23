@@ -1,4 +1,6 @@
-export const CRM_AUTH_ENDPOINT = import.meta.env.VITE_CRM_AUTH_ENDPOINT || '';
+const runtimeEnv = import.meta.env ?? {};
+
+export const CRM_AUTH_ENDPOINT = runtimeEnv.VITE_CRM_AUTH_ENDPOINT || '';
 
 export const CRM_TOKEN_STORAGE_KEY = 'crm_token';
 

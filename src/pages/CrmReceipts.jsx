@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmList, crmUpdate } from '../config/crmApi';
@@ -7,7 +7,6 @@ import CrmShell from '../components/CrmShell';
 import AwaitingCheckoutQueue from '../components/payments/AwaitingCheckoutQueue';
 import ReceiptDeliveryPanel from '../components/receipts/ReceiptDeliveryPanel';
 import ReceiptDocumentPreview from '../components/receipts/ReceiptDocumentPreview';
-import ReceiptHistoryList from '../components/receipts/ReceiptHistoryList';
 import ReceiptTransactionSummary from '../components/receipts/ReceiptTransactionSummary';
 import {
   buildPrintableReceiptMarkup,
@@ -19,6 +18,7 @@ import {
   normalizeKey,
   toDateKey,
 } from '../components/receipts/receiptUtils';
+import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmPayments.css';
 import './CrmReceipts.css';
 
@@ -290,7 +290,6 @@ const openReceiptWindow = (receipt, autoPrint = true) => {
 const CrmReceipts = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const historyRef = useRef(null);
   const [payments, setPayments] = useState(receiptSeedPayments);
   const [appointments, setAppointments] = useState(completedAppointmentsSeed.map(normalizeQueueItem));
   const [customers, setCustomers] = useState([]);
@@ -303,8 +302,8 @@ const CrmReceipts = () => {
   const [dateFilter, setDateFilter] = useState('Today');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [deliveryFilter, setDeliveryFilter] = useState('All Delivery');
+  const [branchFilter, setBranchFilter] = useState('All Branches');
   const [todayOnly, setTodayOnly] = useState(false);
-  const [historyScope, setHistoryScope] = useState('customer');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -503,6 +502,7 @@ const CrmReceipts = () => {
 
       const matchesSearch = !searchTerm || searchTarget.includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'All Statuses' || receipt.receiptStatus === statusFilter || receipt.paymentStatus === statusFilter;
+      const matchesBranch = branchFilter === 'All Branches' || receipt.branchName === branchFilter;
       const matchesDelivery =
         deliveryFilter === 'All Delivery'
           || (deliveryFilter === 'Delivery Pending' && receipt.receiptStatus === 'Pending')
@@ -510,25 +510,22 @@ const CrmReceipts = () => {
           || (deliveryFilter === 'Emailed' && Boolean(receipt.emailedAt))
           || (deliveryFilter === 'Downloaded' && Boolean(receipt.downloadedAt));
 
-      return matchesSearch && matchesStatus && matchesDelivery;
+      return matchesSearch && matchesStatus && matchesBranch && matchesDelivery;
     });
-  }, [dateScopedReceipts, deliveryFilter, searchTerm, statusFilter]);
+  }, [branchFilter, dateScopedReceipts, deliveryFilter, searchTerm, statusFilter]);
 
-  const selectedCustomerReceipts = useMemo(() => {
-    if (historyScope !== 'customer' || !selectedReceipt?.customerName) return visibleReceipts;
-    return visibleReceipts.filter((receipt) => {
-      if (selectedReceipt.customerId && receipt.customerId === selectedReceipt.customerId) return true;
-      return normalizeKey(receipt.customerName) === normalizeKey(selectedReceipt.customerName);
-    });
-  }, [historyScope, selectedReceipt?.customerId, selectedReceipt?.customerName, visibleReceipts]);
+  const branchOptions = useMemo(
+    () => ['All Branches', ...collectOptionValues([...payments, ...appointments, ...customers], ['branchName'])],
+    [appointments, customers, payments],
+  );
 
   const summaryCards = useMemo(() => {
-    const generatedToday = dateScopedReceipts.filter((receipt) => toDateKey(receipt.issuedAt || receipt.paymentDate) === todayKey).length;
-    const printedToday = dateScopedReceipts.filter((receipt) => toDateKey(receipt.printedAt) === todayKey).length;
-    const emailedToday = dateScopedReceipts.filter((receipt) => toDateKey(receipt.emailedAt) === todayKey).length;
-    const pendingReceipts = dateScopedReceipts.filter((receipt) => receipt.receiptStatus === 'Pending').length;
-    const partialBalances = dateScopedReceipts.filter((receipt) => receipt.balanceRemaining > 0 && receipt.amountReceived > 0).length;
-    const overdueOutstanding = dateScopedReceipts
+    const generatedToday = visibleReceipts.filter((receipt) => toDateKey(receipt.issuedAt || receipt.paymentDate) === todayKey).length;
+    const printedToday = visibleReceipts.filter((receipt) => toDateKey(receipt.printedAt) === todayKey).length;
+    const emailedToday = visibleReceipts.filter((receipt) => toDateKey(receipt.emailedAt) === todayKey).length;
+    const pendingReceipts = visibleReceipts.filter((receipt) => receipt.receiptStatus === 'Pending').length;
+    const partialBalances = visibleReceipts.filter((receipt) => receipt.balanceRemaining > 0 && receipt.amountReceived > 0).length;
+    const overdueOutstanding = visibleReceipts
       .filter((receipt) => receipt.balanceRemaining > 0 && receipt.daysOverdue > 0)
       .reduce((sum, receipt) => sum + receipt.balanceRemaining, 0);
 
@@ -540,10 +537,10 @@ const CrmReceipts = () => {
       { label: 'Partial Balances', value: String(partialBalances).padStart(2, '0'), subtext: 'Receipt totals not fully settled' },
       { label: 'Overdue Outstanding', value: formatMoney(overdueOutstanding), subtext: 'Balances past due', alert: true },
     ];
-  }, [dateScopedReceipts, todayKey]);
+  }, [todayKey, visibleReceipts]);
 
   const awaitingCheckoutQueue = useMemo(() => buildAwaitingQueue(appointments, payments), [appointments, payments]);
-  const recentReceipts = useMemo(() => orderedReceipts.slice(0, 6), [orderedReceipts]);
+  const recentReceipts = useMemo(() => visibleReceipts.slice(0, 6), [visibleReceipts]);
 
   const recordReceiptPatch = async (paymentId, patch) => {
     let nextPayment = null;
@@ -688,10 +685,6 @@ const CrmReceipts = () => {
         navigate('/crm/customers', { state: { selectedCustomerId: receiptToUse.customerId || receiptToUse.customerName } });
         return;
       }
-
-      if (action === 'openHistory') {
-        historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
     } finally {
       setIsBusy(false);
     }
@@ -710,10 +703,6 @@ const CrmReceipts = () => {
     clearCrmToken();
     navigate('/crm-login');
   };
-
-  const receiptHistoryLabel = selectedReceipt?.customerName && historyScope === 'customer'
-    ? `${selectedReceipt.customerName} receipts`
-    : 'Receipt archive';
 
   const selectedReceiptDeliveryEmail = recipientEmail || selectedReceipt?.customerEmail || '';
   const receiptPreview = selectedReceipt;
@@ -756,9 +745,6 @@ const CrmReceipts = () => {
             <button type="button" className="crm-payments-ghost-btn" onClick={() => handleReceiptAction('openCustomer', receiptPreview)}>
               Open Customer
             </button>
-            <button type="button" className="crm-payments-ghost-btn" onClick={() => handleReceiptAction('openHistory', receiptPreview)}>
-              Receipt History
-            </button>
             <button type="button" className="crm-payments-logout-btn" onClick={handleLogout}>
               Logout
             </button>
@@ -782,6 +768,11 @@ const CrmReceipts = () => {
           </select>
           <select className="crm-receipts-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             {statusOptions.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+          <select className="crm-receipts-select" value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}>
+            {branchOptions.map((option) => (
               <option key={option}>{option}</option>
             ))}
           </select>
@@ -898,9 +889,6 @@ const CrmReceipts = () => {
               onOpenCustomer={(receipt) => {
                 void handleReceiptAction('openCustomer', receipt || receiptPreview);
               }}
-              onOpenHistory={() => {
-                historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
               isBusy={isBusy}
               formatDateTime={formatDateTime}
             />
@@ -911,9 +899,6 @@ const CrmReceipts = () => {
                   <p className="crm-receipts-kicker">Recent Receipts</p>
                   <h3>Latest delivery activity</h3>
                 </div>
-                <button type="button" className="crm-payments-ghost-btn" onClick={() => historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                  View History
-                </button>
               </header>
 
               <div className="crm-receipts-recent-list">
@@ -965,30 +950,6 @@ const CrmReceipts = () => {
               handleOpenLatest();
             }}
           />
-
-          <div ref={historyRef}>
-            <ReceiptHistoryList
-              receipts={selectedCustomerReceipts}
-              selectedReceiptId={selectedReceipt?.id}
-              onSelectReceipt={(receipt) => setSelectedReceiptId(receipt.id)}
-              onAction={(action, receipt) => {
-                if (action === 'openPayment') {
-                  navigate('/crm/payments', { state: { selectedPaymentId: receipt.paymentId } });
-                  return;
-                }
-                void handleReceiptAction(action, receipt);
-              }}
-              scopeLabel={receiptHistoryLabel}
-              onToggleScope={
-                selectedReceipt?.customerName
-                  ? () => setHistoryScope((current) => (current === 'customer' ? 'all' : 'customer'))
-                  : null
-              }
-              scopeActive={historyScope === 'customer' && Boolean(selectedReceipt?.customerName)}
-              formatDateTime={formatDateTime}
-              formatMoney={formatMoney}
-            />
-          </div>
         </section>
       </main>
     </CrmShell>

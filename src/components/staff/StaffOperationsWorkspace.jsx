@@ -1,9 +1,7 @@
 import CoverageWarningBadge from './CoverageWarningBadge';
-import ScheduleSnapshot from './ScheduleSnapshot';
 import WeeklyAvailabilityVisual from './WeeklyAvailabilityVisual';
 
 const operationTabs = [
-  { key: 'today', label: "Today's Schedule" },
   { key: 'roster', label: 'Weekly Roster' },
   { key: 'coverage', label: 'Service Coverage' },
   { key: 'activity', label: 'Notes / Activity' },
@@ -18,16 +16,6 @@ const StaffOperationsWorkspace = ({
   availableStaff,
   recentActivity,
 }) => {
-  const renderToday = () => (
-    <div className="crm-staff-ops-panel">
-      <ScheduleSnapshot
-        title={selectedStaff ? `${selectedStaff.name.split(' ')[0]}'s Schedule` : "Today's Schedule"}
-        schedule={selectedStaff?.todaySchedule || []}
-        emptyText="Select a staff member to review the day plan."
-      />
-    </div>
-  );
-
   const renderRoster = () => (
     <div className="crm-staff-ops-panel">
       {selectedStaff ? <WeeklyAvailabilityVisual weeklyAvailability={selectedStaff.weeklyAvailability} /> : null}
@@ -79,7 +67,7 @@ const StaffOperationsWorkspace = ({
     <article className="crm-staff-operations-card">
       <header>
         <h3>Staff Operations Workspace</h3>
-        <p>Use this area for real-time schedule, roster, and coverage decisions.</p>
+        <p>Use this area for real-time roster, coverage, and activity decisions.</p>
       </header>
 
       <div className="crm-staff-operations-tabs" role="tablist" aria-label="Staff operations tabs">
@@ -97,7 +85,6 @@ const StaffOperationsWorkspace = ({
         ))}
       </div>
 
-      {operationTab === 'today' ? renderToday() : null}
       {operationTab === 'roster' ? renderRoster() : null}
       {operationTab === 'coverage' ? renderCoverage() : null}
       {operationTab === 'activity' ? renderActivity() : null}

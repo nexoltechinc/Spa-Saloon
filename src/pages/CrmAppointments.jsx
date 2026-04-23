@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -651,16 +651,16 @@ const CrmAppointments = () => {
                             <div className="crm-workspace-row-primary">
                               <p className="crm-workspace-row-title">{appointment.customerName}</p>
                               <p className="crm-workspace-row-subtitle">
-                                {appointment.customerEmail || 'No email'} <span>•</span> {appointment.phone || 'No phone'}
+                                {appointment.customerEmail || 'No email'} <span>|</span> {appointment.phone || 'No phone'}
                               </p>
                             </div>
                             <div className="crm-workspace-row-meta">
                               <strong>{appointment.serviceName}</strong>
-                              <span>{appointment.source} · {formatMoney(appointment.amountDue)}</span>
+                              <span>{appointment.source} | {formatMoney(appointment.amountDue)}</span>
                             </div>
                             <div className="crm-workspace-row-meta">
                               <strong>{formatDateTime(appointment.appointmentAt)}</strong>
-                              <span>{appointment.durationMinutes} min · {getDayLabel(appointment.appointmentAt)}</span>
+                              <span>{appointment.durationMinutes} min | {getDayLabel(appointment.appointmentAt)}</span>
                             </div>
                             <div className="crm-workspace-row-meta">
                               <strong>{appointment.staffName}</strong>
@@ -1004,3 +1004,4 @@ const CrmAppointments = () => {
 };
 
 export default CrmAppointments;
+

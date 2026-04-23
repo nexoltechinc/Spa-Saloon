@@ -41,6 +41,14 @@ const baseServiceRows = [
   { label: 'Retail Add-ons', bookings: 18, revenue: 3100 },
 ];
 
+const reportServiceAssignments = [
+  { staffName: 'Julianne M.', branchName: 'West Hollywood' },
+  { staffName: 'Marcus K.', branchName: 'Beverly Hills' },
+  { staffName: 'Sarah L.', branchName: 'Downtown' },
+  { staffName: 'Marcus K.', branchName: 'West Hollywood' },
+  { staffName: 'Julianne M.', branchName: 'Beverly Hills' },
+];
+
 const baseCustomerRows = [
   { label: 'New Customers', value: 32, tone: 'good' },
   { label: 'Repeat Customers', value: 68, tone: 'gold' },
@@ -106,6 +114,12 @@ const extractLiveValue = (rows, needles) => {
 };
 
 const scaleSeries = (series, factor) => series.map((value) => Math.max(0, Math.round(value * factor)));
+
+const decorateServiceRows = (rows) =>
+  rows.map((row, index) => ({
+    ...row,
+    ...reportServiceAssignments[index % reportServiceAssignments.length],
+  }));
 
 const buildPreset = (factor, overrides = {}) => ({
   totalSales: Math.round(5250 * factor),
@@ -268,6 +282,7 @@ const CrmReports = () => {
   const hasLiveData = liveRows.length > 0;
   const noDataState = !isLoading && !hasLiveData;
   const dataSourceLabel = hasLiveData ? 'Live CRM data synced' : 'Sample analytics view';
+  const filterIsActive = staffFilter !== 'All Staff' || serviceFilter !== 'All Services' || branchFilter !== 'All Locations';
 
   const liveSales = extractLiveValue(liveRows, ['sales', 'revenue', 'gross revenue', 'total sales']);
   const liveAppointments = extractLiveValue(liveRows, ['appointments', 'bookings', 'sessions']);
@@ -276,26 +291,63 @@ const CrmReports = () => {
   const liveTopService = extractLiveValue(liveRows, ['top service', 'service']);
   const liveRepeat = extractLiveValue(liveRows, ['repeat', 'returning customers']);
 
+  const decoratedServiceRows = useMemo(() => decorateServiceRows(preset.serviceRows), [preset.serviceRows]);
+  const filteredServiceRows = useMemo(() => {
+    return decoratedServiceRows.filter((row) => {
+      const matchesStaff = staffFilter === 'All Staff' || row.staffName === staffFilter;
+      const matchesService = serviceFilter === 'All Services' || row.label === serviceFilter;
+      const matchesBranch = branchFilter === 'All Locations' || row.branchName === branchFilter;
+      return matchesStaff && matchesService && matchesBranch;
+    });
+  }, [branchFilter, decoratedServiceRows, serviceFilter, staffFilter]);
+
+  const visibleServiceRows = filteredServiceRows;
+  const baseServiceRevenue = decoratedServiceRows.reduce((sum, row) => sum + row.revenue, 0) || 1;
+  const visibleServiceRevenue = visibleServiceRows.reduce((sum, row) => sum + row.revenue, 0);
+  const visibleServiceBookings = visibleServiceRows.reduce((sum, row) => sum + row.bookings, 0);
+  const visibilityRatio = filterIsActive ? visibleServiceRevenue / baseServiceRevenue : 1;
+  const filteredTopStaff = visibleServiceRows.reduce((top, row) => {
+    if (!row.staffName) return top;
+    if (!top || row.revenue > top.revenue) {
+      return row;
+    }
+    return top;
+  }, null);
+
   const metrics = {
-    totalSales: typeof liveSales === 'number' ? liveSales : preset.totalSales,
-    appointments: typeof liveAppointments === 'number' ? liveAppointments : preset.appointments,
-    completed: typeof liveCompleted === 'number' ? liveCompleted : preset.completed,
-    pendingPayments: typeof livePending === 'number' ? livePending : preset.pendingPayments,
-    topService: typeof liveTopService === 'string' ? liveTopService : preset.topService,
-    repeatCustomers: typeof liveRepeat === 'number' ? liveRepeat : preset.repeatCustomers,
-    cashCollected: preset.cashCollected,
-    avgBillValue: preset.avgBillValue,
-    cancelled: preset.cancelled,
-    newCustomers: preset.newCustomers,
-    inactiveCustomers: preset.inactiveCustomers,
-    overduePayments: preset.overduePayments,
-    partialPayments: preset.partialPayments,
-    receipts: preset.receipts,
-    completionRate: preset.completionRate,
-    serviceCount: preset.serviceCount,
-    highestSalesDay: preset.highestSalesDay,
-    highestSalesTotal: preset.highestSalesTotal,
-    topStaffMember: preset.topStaffMember,
+    totalSales: filterIsActive
+      ? Math.round(preset.totalSales * visibilityRatio)
+      : (typeof liveSales === 'number' ? liveSales : preset.totalSales),
+    appointments: filterIsActive
+      ? Math.round(preset.appointments * visibilityRatio)
+      : (typeof liveAppointments === 'number' ? liveAppointments : preset.appointments),
+    completed: filterIsActive
+      ? Math.round(preset.completed * visibilityRatio)
+      : (typeof liveCompleted === 'number' ? liveCompleted : preset.completed),
+    pendingPayments: filterIsActive
+      ? Math.round(preset.pendingPayments * visibilityRatio)
+      : (typeof livePending === 'number' ? livePending : preset.pendingPayments),
+    topService: visibleServiceRows[0]?.label || (typeof liveTopService === 'string' ? liveTopService : preset.topService),
+    repeatCustomers: filterIsActive
+      ? Math.max(0, Math.round(preset.repeatCustomers * (0.7 + visibilityRatio * 0.3)))
+      : (typeof liveRepeat === 'number' ? liveRepeat : preset.repeatCustomers),
+    cashCollected: filterIsActive ? Math.round(preset.cashCollected * visibilityRatio) : preset.cashCollected,
+    avgBillValue: visibleServiceBookings > 0 ? Math.round(visibleServiceRevenue / visibleServiceBookings) : preset.avgBillValue,
+    cancelled: filterIsActive ? Math.max(1, Math.round(preset.cancelled * visibilityRatio)) : preset.cancelled,
+    newCustomers: filterIsActive ? Math.max(1, Math.round(preset.newCustomers * (0.6 + visibilityRatio * 0.4))) : preset.newCustomers,
+    inactiveCustomers: filterIsActive ? Math.max(1, Math.round(preset.inactiveCustomers * (0.7 + visibilityRatio * 0.3))) : preset.inactiveCustomers,
+    overduePayments: filterIsActive ? Math.round(preset.overduePayments * visibilityRatio) : preset.overduePayments,
+    partialPayments: filterIsActive ? Math.max(1, Math.round(preset.partialPayments * visibilityRatio)) : preset.partialPayments,
+    receipts: filterIsActive ? Math.max(1, Math.round(preset.receipts * visibilityRatio)) : preset.receipts,
+    completionRate: visibleServiceRows.length > 0
+      ? Math.min(99, Math.max(45, Math.round(preset.completionRate * (0.85 + visibilityRatio * 0.15))))
+      : preset.completionRate,
+    serviceCount: visibleServiceRows.length || preset.serviceCount,
+    highestSalesDay: filterIsActive ? 'Filtered selection' : preset.highestSalesDay,
+    highestSalesTotal: filterIsActive ? Math.max(0, Math.round(preset.highestSalesTotal * visibilityRatio)) : preset.highestSalesTotal,
+    topStaffMember: filterIsActive
+      ? (staffFilter !== 'All Staff' ? staffFilter : filteredTopStaff?.staffName || preset.topStaffMember)
+      : preset.topStaffMember,
   };
 
   const summaryCards = [
@@ -307,17 +359,10 @@ const CrmReports = () => {
     { label: 'Repeat Customers', value: formatPercent(metrics.repeatCustomers), trend: '+2% from last quarter', icon: Users, tone: 'good' },
   ];
 
-  const filteredServiceRows = useMemo(() => {
-    if (serviceFilter === 'All Services') return preset.serviceRows;
-    return preset.serviceRows.filter((row) => row.label === serviceFilter);
-  }, [preset.serviceRows, serviceFilter]);
-
-  const activeServiceRows = filteredServiceRows.length ? filteredServiceRows : preset.serviceRows;
-
   const serviceMixSegments = useMemo(() => {
-    const totalRevenue = activeServiceRows.reduce((sum, row) => sum + row.revenue, 0) || 1;
+    const totalRevenue = visibleServiceRows.reduce((sum, row) => sum + row.revenue, 0) || 1;
     const colors = ['#a88230', '#c5a66a', '#dcc89e', '#eee2cb'];
-    const draft = activeServiceRows.map((row, index) => ({
+    const draft = visibleServiceRows.map((row, index) => ({
       label: row.label,
       value: Math.max(1, Math.round((row.revenue / totalRevenue) * 100)),
       color: colors[index % colors.length],
@@ -327,19 +372,19 @@ const CrmReports = () => {
       draft[draft.length - 1].value = Math.max(1, draft[draft.length - 1].value + (100 - totalPercent));
     }
     return draft;
-  }, [activeServiceRows]);
+  }, [visibleServiceRows]);
 
   const totalServiceRevenue = useMemo(
-    () => activeServiceRows.reduce((sum, row) => sum + row.revenue, 0),
-    [activeServiceRows]
+    () => visibleServiceRows.reduce((sum, row) => sum + row.revenue, 0),
+    [visibleServiceRows]
   );
 
   const totalServiceBookings = useMemo(
-    () => activeServiceRows.reduce((sum, row) => sum + row.bookings, 0),
-    [activeServiceRows]
+    () => visibleServiceRows.reduce((sum, row) => sum + row.bookings, 0),
+    [visibleServiceRows]
   );
 
-  const topServiceRow = activeServiceRows[0] || preset.serviceRows[0];
+  const topServiceRow = visibleServiceRows[0] || null;
 
   const handleExportCsv = () => {
     const rows = [
@@ -528,39 +573,49 @@ const CrmReports = () => {
                   </div>
                 </div>
 
-                <div className="crm-reports-service-layout crm-reports-service-layout-modern">
-                  <div className="crm-reports-service-chart-zone">
-                    <DonutChart
-                      segments={serviceMixSegments}
-                      totalLabel="Service category mix"
-                      centerLabel="Total Revenue"
-                      centerValue={formatMoney(totalServiceRevenue)}
-                    />
-                    <div className="crm-reports-chart-legend crm-reports-chart-legend-modern">
-                      {serviceMixSegments.map((segment) => (
-                        <span key={segment.label}>
-                          <i className="crm-reports-dot" style={{ background: segment.color }} />
-                          {segment.label}
-                        </span>
+                {visibleServiceRows.length === 0 ? (
+                  <div className="crm-reports-empty-card">
+                    <CircleAlert size={18} />
+                    <h3>No matching report rows</h3>
+                    <p>Try clearing the staff, branch, or service filters to restore the analytics view.</p>
+                  </div>
+                ) : (
+                  <div className="crm-reports-service-layout crm-reports-service-layout-modern">
+                    <div className="crm-reports-service-chart-zone">
+                      <DonutChart
+                        segments={serviceMixSegments}
+                        totalLabel="Service category mix"
+                        centerLabel="Total Revenue"
+                        centerValue={formatMoney(totalServiceRevenue)}
+                      />
+                      <div className="crm-reports-chart-legend crm-reports-chart-legend-modern">
+                        {serviceMixSegments.map((segment) => (
+                          <span key={segment.label}>
+                            <i className="crm-reports-dot" style={{ background: segment.color }} />
+                            {segment.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="crm-reports-service-breakdown">
+                      {visibleServiceRows.map((row, index) => (
+                        <div key={`${row.label}-${row.staffName}-${row.branchName}`} className="crm-reports-service-row">
+                          <div>
+                            <strong>{row.label}</strong>
+                            <span>
+                              {formatCount(row.bookings)} bookings | {row.staffName} | {row.branchName}
+                            </span>
+                          </div>
+                          <div className="crm-reports-service-row-metrics">
+                            <p>{formatMoney(row.revenue)}</p>
+                            <small>{formatPercent(serviceMixSegments[index]?.value || 0)} share</small>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
-
-                  <div className="crm-reports-service-breakdown">
-                    {activeServiceRows.map((row, index) => (
-                      <div key={row.label} className="crm-reports-service-row">
-                        <div>
-                          <strong>{row.label}</strong>
-                          <span>{formatCount(row.bookings)} bookings</span>
-                        </div>
-                        <div className="crm-reports-service-row-metrics">
-                          <p>{formatMoney(row.revenue)}</p>
-                          <small>{formatPercent(serviceMixSegments[index]?.value || 0)} share</small>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                )}
               </article>
             )}
           </div>

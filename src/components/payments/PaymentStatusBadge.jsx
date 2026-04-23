@@ -7,6 +7,14 @@ const toneByStatus = {
   Cancelled: 'muted',
   'Receipt Generated': 'good',
   'Receipt Pending': 'warning',
+  Generated: 'good',
+  Issued: 'good',
+  Printed: 'good',
+  Downloaded: 'good',
+  Emailed: 'good',
+  Pending: 'warning',
+  'Not Issued': 'warning',
+  Void: 'muted',
 };
 
 const PaymentStatusBadge = ({ status }) => {

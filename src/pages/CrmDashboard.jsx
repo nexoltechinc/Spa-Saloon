@@ -28,8 +28,6 @@ const ACTIVE_DASHBOARD_ROLE = 'receptionist';
 const WIDGET_ACCESS = {
   appointments: ['receptionist', 'manager', 'owner'],
   conciergeActions: ['receptionist', 'manager'],
-  staffActivity: ['receptionist', 'manager', 'owner'],
-  weeklySnapshot: ['receptionist', 'manager', 'owner'],
   financialOverview: ['manager', 'owner', 'receptionist'],
   alerts: ['receptionist', 'manager', 'owner'],
 };
@@ -859,79 +857,6 @@ const CrmDashboard = () => {
     yesterdayAppointmentsCount,
   ]);
 
-  const staffActivityRows = useMemo(() => {
-    return staff
-      .filter((member) => member.status === 'Active')
-      .map((member) => {
-        const assigned = todayAppointments.filter((appointment) =>
-          appointment.staffName.toLowerCase() === member.name.toLowerCase(),
-        );
-
-        const remaining = assigned.filter((appointment) =>
-          !['Completed', 'Cancelled', 'No Show'].includes(appointment.status),
-        ).length;
-
-        const nextAppointment = assigned
-          .filter((appointment) => new Date(appointment.appointmentAt).getTime() >= nowMs)
-          .sort((a, b) => new Date(a.appointmentAt).getTime() - new Date(b.appointmentAt).getTime())[0];
-
-        const inProgress = assigned.some((appointment) => appointment.status === 'In Progress');
-        const utilization = member.capacityToday > 0
-          ? Math.min(100, Math.round((assigned.length / member.capacityToday) * 100))
-          : 0;
-
-        let liveState = member.availability;
-        if (member.availability === 'On Leave') liveState = 'On Leave';
-        else if (member.availability === 'Off Duty') liveState = 'Off Duty';
-        else if (inProgress || member.availability === 'Busy') liveState = 'Busy';
-        else if (member.availability === 'On Break') liveState = 'On Break';
-        else liveState = 'Available';
-
-        return {
-          ...member,
-          assignedCount: assigned.length,
-          remaining,
-          nextAppointmentLabel: nextAppointment ? formatTime(nextAppointment.appointmentAt) : 'No more today',
-          utilization,
-          liveState,
-        };
-      })
-      .sort((left, right) => {
-        const leftBusy = left.liveState === 'Busy' ? 0 : 1;
-        const rightBusy = right.liveState === 'Busy' ? 0 : 1;
-        return leftBusy - rightBusy;
-      });
-  }, [nowMs, staff, todayAppointments]);
-
-  const weeklySnapshot = useMemo(() => {
-    const reference = new Date();
-    const dayOfWeek = reference.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(reference);
-    monday.setDate(reference.getDate() + mondayOffset);
-    monday.setHours(0, 0, 0, 0);
-
-    const days = Array.from({ length: 7 }).map((_, index) => {
-      const dayDate = new Date(monday);
-      dayDate.setDate(monday.getDate() + index);
-      const dayKey = toLocalDateKey(dayDate);
-      const count = appointments.filter((appointment) => toLocalDateKey(appointment.appointmentAt) === dayKey).length;
-      return {
-        key: dayKey,
-        label: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
-        count,
-      };
-    });
-
-    const max = days.reduce((highest, day) => Math.max(highest, day.count), 0) || 1;
-
-    return days.map((day) => ({
-      ...day,
-      density: Math.max(day.count > 0 ? 10 : 6, Math.round((day.count / max) * 100)),
-      note: day.count >= Math.ceil(max * 0.75) ? 'Busy' : day.count <= 1 ? 'Available' : 'Steady',
-    }));
-  }, [appointments]);
-
   const alertsList = useMemo(() => {
     const list = [];
 
@@ -1223,63 +1148,12 @@ const CrmDashboard = () => {
                 </div>
               </article>
             ) : null}
-
-            {roleAllows('staffActivity') ? (
-              <article className="crm-staff-card">
-                <h3>Staff Activity</h3>
-                {staffActivityRows.length === 0 ? (
-                  <div className="crm-empty-mini">
-                    <p>No staff activity available.</p>
-                  </div>
-                ) : (
-                  <div className="crm-staff-list">
-                    {staffActivityRows.map((member) => (
-                      <article key={member.id} className="crm-staff-row">
-                        <div className="crm-avatar">{member.name.slice(0, 1)}</div>
-                        <div>
-                          <p className="crm-staff-name">{member.name}</p>
-                          <p className={`crm-staff-state crm-staff-state-${member.liveState.replace(/\s+/g, '-').toLowerCase()}`}>
-                            {member.liveState}
-                          </p>
-                          <p className="crm-appointment-subline">
-                            Next: {member.nextAppointmentLabel} - {member.remaining} remaining
-                          </p>
-                        </div>
-                        <div className="crm-staff-workload">
-                          <span>{member.assignedCount}/{member.capacityToday || 0}</span>
-                          <em style={{ width: `${Math.max(8, member.utilization)}%` }} />
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ) : null}
-
           </div>
         </section>
 
         <section className="crm-lower-grid">
-          {roleAllows('weeklySnapshot') ? (
-            <article className="crm-insight-card">
-              <h3>Weekly Snapshot</h3>
-              <div className="crm-weekly-list">
-                {weeklySnapshot.map((day) => (
-                  <article key={day.key} className="crm-weekly-row">
-                    <div>
-                      <p>{day.label}</p>
-                      <span>{day.note}</span>
-                    </div>
-                    <strong>{day.count}</strong>
-                    <em style={{ width: `${day.density}%` }} />
-                  </article>
-                ))}
-              </div>
-            </article>
-          ) : null}
-
           {roleAllows('financialOverview') ? (
-            <article className="crm-insight-card crm-insight-span-2">
+            <article className="crm-insight-card">
               <h3>Cash Flow Snapshot</h3>
               <div className="crm-finance-grid">
                 <div className="crm-finance-metric">

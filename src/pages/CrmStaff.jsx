@@ -6,6 +6,7 @@ import StaffOperationsWorkspace from '../components/staff/StaffOperationsWorkspa
 import StaffRow from '../components/staff/StaffRow';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
+import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmStaff.css';
 
 const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -46,6 +47,7 @@ const rawStaffSeed = [
     id: 'STF-202',
     name: 'Marcus Chen',
     role: 'Senior Aesthetician',
+    branchName: 'West Hollywood',
     phone: '+1 (555) 010-1002',
     email: 'marcus.chen@sanctuary.com',
     services: ['Facials', 'Peels', 'Hydra Glow'],
@@ -77,6 +79,7 @@ const rawStaffSeed = [
     id: 'STF-203',
     name: 'Sophia Rossi',
     role: 'Skin Consultant',
+    branchName: 'Beverly Hills',
     phone: '+1 (555) 010-1003',
     email: 'sophia.rossi@sanctuary.com',
     services: ['Consultation', 'Facials'],
@@ -106,6 +109,7 @@ const rawStaffSeed = [
     id: 'STF-204',
     name: 'Noor Hale',
     role: 'Therapist',
+    branchName: 'Downtown',
     phone: '+1 (555) 010-1005',
     email: 'noor.hale@sanctuary.com',
     services: ['Hydra Glow', 'Aromatherapy', 'Consultation'],
@@ -130,6 +134,7 @@ const rawStaffSeed = [
     id: 'STF-205',
     name: 'Elena Vance',
     role: 'Therapist',
+    branchName: 'West Hollywood',
     phone: '+1 (555) 010-1004',
     email: 'elena.vance@sanctuary.com',
     services: ['Deep Tissue', 'Aromatherapy'],
@@ -296,6 +301,7 @@ const normalizeStaff = (staff, index = 0) => {
     role: staff.role || staff.title || staff.position || 'Staff Member',
     phone: staff.phone || staff.contactNumber || '',
     email: staff.email || staff.contactEmail || '',
+    branchName: staff.branchName || staff.branch || staff.locationName || '',
     services: Array.isArray(staff.services)
       ? staff.services
       : Array.isArray(staff.assignedServices)
@@ -501,11 +507,12 @@ const CrmStaff = () => {
   const [employmentFilter, setEmploymentFilter] = useState('All Employment');
   const [shiftFilter, setShiftFilter] = useState('All Shift Status');
   const [serviceFilter, setServiceFilter] = useState('All Services');
+  const [branchFilter, setBranchFilter] = useState('All Branches');
   const [onDutyOnly, setOnDutyOnly] = useState(false);
   const [fullyBookedOnly, setFullyBookedOnly] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState(staffSeed[0].id);
   const [detailTab, setDetailTab] = useState('overview');
-  const [operationTab, setOperationTab] = useState('today');
+  const [operationTab, setOperationTab] = useState('roster');
   const [activeRole] = useState(defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -563,6 +570,7 @@ const CrmStaff = () => {
 
   const roleOptions = useMemo(() => ['All Roles', ...new Set(enrichedStaff.map((member) => member.role))], [enrichedStaff]);
   const serviceOptions = useMemo(() => ['All Services', ...new Set(enrichedStaff.flatMap((member) => member.services))], [enrichedStaff]);
+  const branchOptions = useMemo(() => ['All Branches', ...collectOptionValues(enrichedStaff, ['branchName'])], [enrichedStaff]);
 
   const summaryCards = useMemo(() => {
     const total = enrichedStaff.length;
@@ -590,12 +598,13 @@ const CrmStaff = () => {
       const matchesEmployment = employmentFilter === 'All Employment' || staff.employmentStatus === employmentFilter;
       const matchesShift = shiftFilter === 'All Shift Status' || staff.shiftStatus === shiftFilter;
       const matchesService = serviceFilter === 'All Services' || staff.services.includes(serviceFilter);
+      const matchesBranch = branchFilter === 'All Branches' || staff.branchName === branchFilter;
       const matchesOnDuty = !onDutyOnly || staff.onDuty;
       const matchesFullyBooked = !fullyBookedOnly || staff.load.isFullyBooked;
 
-      return matchesSearch && matchesRole && matchesEmployment && matchesShift && matchesService && matchesOnDuty && matchesFullyBooked;
+      return matchesSearch && matchesRole && matchesEmployment && matchesShift && matchesService && matchesBranch && matchesOnDuty && matchesFullyBooked;
     });
-  }, [employmentFilter, enrichedStaff, fullyBookedOnly, onDutyOnly, roleFilter, searchTerm, serviceFilter, shiftFilter]);
+  }, [branchFilter, employmentFilter, enrichedStaff, fullyBookedOnly, onDutyOnly, roleFilter, searchTerm, serviceFilter, shiftFilter]);
 
   useEffect(() => {
     if (filteredStaff.length === 0) {
@@ -615,6 +624,7 @@ const CrmStaff = () => {
     employmentFilter !== 'All Employment' ||
     shiftFilter !== 'All Shift Status' ||
     serviceFilter !== 'All Services' ||
+    branchFilter !== 'All Branches' ||
     onDutyOnly ||
     fullyBookedOnly;
 
@@ -800,6 +810,7 @@ const CrmStaff = () => {
     setEmploymentFilter('All Employment');
     setShiftFilter('All Shift Status');
     setServiceFilter('All Services');
+    setBranchFilter('All Branches');
     setOnDutyOnly(false);
     setFullyBookedOnly(false);
   };
@@ -881,6 +892,9 @@ const CrmStaff = () => {
           </select>
           <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}>
             {serviceOptions.map((option) => <option key={option}>{option}</option>)}
+          </select>
+          <select value={branchFilter} onChange={(event) => setBranchFilter(event.target.value)}>
+            {branchOptions.map((option) => <option key={option}>{option}</option>)}
           </select>
           <button type="button" className={`crm-staff-chip${fullyBookedOnly ? ' crm-staff-chip-active' : ''}`} onClick={() => setFullyBookedOnly((value) => !value)}>
             Fully Booked
