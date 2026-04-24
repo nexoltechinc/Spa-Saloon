@@ -98,6 +98,18 @@ const SettingsFieldTextarea = ({ label, hint, value, onChange, full, rows = 4, p
   </FieldShell>
 );
 
+const SettingsGroupCard = ({ title, description, full = false, children }) => (
+  <section className={`crm-settings-group-card${full ? ' crm-settings-group-card-full' : ''}`}>
+    <div className="crm-settings-group-head">
+      <div>
+        <h5>{title}</h5>
+        {description ? <p>{description}</p> : null}
+      </div>
+    </div>
+    {children}
+  </section>
+);
+
 export const SettingsSectionChip = ({ label, icon: Icon, active, status = 'saved', onClick }) => (
   <button
     type="button"
@@ -262,99 +274,118 @@ export const BusinessProfileForm = ({
       </div>
     </div>
 
-    <div className="crm-settings-form-group-label">Guest-facing identity</div>
-    <div className="crm-settings-form-grid">
-      <SettingsFieldInput
-        label="Business Name"
-        value={profile.businessName}
-        onChange={(value) => onChange('businessName', value)}
-      />
-      <SettingsFieldInput
-        label="Branch Name"
-        value={profile.branchName}
-        onChange={(value) => onChange('branchName', value)}
-      />
-      <SettingsFieldInput
-        label="Receipt Display Name"
-        hint="Name used on customer-facing receipts."
-        value={profile.receiptDisplayName}
-        onChange={(value) => onChange('receiptDisplayName', value)}
-      />
-      <SettingsFieldInput
-        label="Public Booking Email"
-        icon={Mail}
-        value={profile.publicBookingEmail}
-        onChange={(value) => onChange('publicBookingEmail', value)}
-      />
-      <SettingsFieldInput
-        label="Public Booking Phone"
-        icon={Phone}
-        value={profile.publicBookingPhone}
-        onChange={(value) => onChange('publicBookingPhone', value)}
-      />
-      <SettingsFieldInput
-        label="Primary Location Address"
-        icon={MapPinned}
-        full
-        value={profile.address}
-        onChange={(value) => onChange('address', value)}
-      />
-      <SettingsFieldInput
-        label="Map Link"
-        icon={Globe2}
-        full
-        value={profile.mapLink}
-        onChange={(value) => onChange('mapLink', value)}
-      />
-      <SettingsFieldInput
-        label="Website"
-        icon={Globe2}
-        value={profile.website}
-        onChange={(value) => onChange('website', value)}
-      />
-      <SettingsFieldInput
-        label="Booking Page URL"
-        value={profile.bookingPageUrl}
-        onChange={(value) => onChange('bookingPageUrl', value)}
-      />
-    </div>
+    <div className="crm-settings-group-grid crm-settings-profile-groups">
+      <SettingsGroupCard
+        title="Guest identity"
+        description="The name and receipt identity guests see across booking, payment, and confirmations."
+      >
+        <div className="crm-settings-form-grid crm-settings-form-grid-compact">
+          <SettingsFieldInput
+            label="Business Name"
+            value={profile.businessName}
+            onChange={(value) => onChange('businessName', value)}
+          />
+          <SettingsFieldInput
+            label="Branch Name"
+            value={profile.branchName}
+            onChange={(value) => onChange('branchName', value)}
+          />
+          <SettingsFieldInput
+            label="Receipt Display Name"
+            hint="Name used on customer-facing receipts."
+            value={profile.receiptDisplayName}
+            onChange={(value) => onChange('receiptDisplayName', value)}
+          />
+        </div>
+      </SettingsGroupCard>
 
-    <div className="crm-settings-form-group-label">Internal and legal details</div>
-    <div className="crm-settings-form-grid crm-settings-form-grid-compact">
-      <SettingsFieldInput
-        label="Legal Entity Name"
-        value={profile.legalName}
-        onChange={(value) => onChange('legalName', value)}
-      />
-      <SettingsFieldInput
-        label="Internal Contact Name"
-        icon={UserRound}
-        value={profile.internalContactName}
-        onChange={(value) => onChange('internalContactName', value)}
-      />
-      <SettingsFieldInput
-        label="Internal Contact Email"
-        icon={Mail}
-        value={profile.internalContactEmail}
-        onChange={(value) => onChange('internalContactEmail', value)}
-      />
-      <SettingsFieldInput
-        label="Main Contact Email"
-        icon={Mail}
-        value={profile.contactEmail}
-        onChange={(value) => onChange('contactEmail', value)}
-      />
-      <SettingsFieldInput
-        label="Main Contact Phone"
-        icon={Phone}
-        value={profile.contactPhone}
-        onChange={(value) => onChange('contactPhone', value)}
-      />
-      <SettingsFieldInput
-        label="Tax / Legal ID"
-        value={profile.taxId}
-        onChange={(value) => onChange('taxId', value)}
-      />
+      <SettingsGroupCard
+        title="Guest contact"
+        description="Public booking channels guests can use to connect with the spa."
+      >
+        <div className="crm-settings-form-grid crm-settings-form-grid-compact">
+          <SettingsFieldInput
+            label="Public Booking Email"
+            icon={Mail}
+            value={profile.publicBookingEmail}
+            onChange={(value) => onChange('publicBookingEmail', value)}
+          />
+          <SettingsFieldInput
+            label="Public Booking Phone"
+            icon={Phone}
+            value={profile.publicBookingPhone}
+            onChange={(value) => onChange('publicBookingPhone', value)}
+          />
+          <SettingsFieldInput
+            label="Website"
+            icon={Globe2}
+            value={profile.website}
+            onChange={(value) => onChange('website', value)}
+          />
+          <SettingsFieldInput
+            label="Booking Page URL"
+            value={profile.bookingPageUrl}
+            onChange={(value) => onChange('bookingPageUrl', value)}
+          />
+        </div>
+      </SettingsGroupCard>
+
+      <SettingsGroupCard
+        title="Location and legal"
+        description="Operational and legal contact details used by receipts, admin, and staff workflows."
+        full
+      >
+        <div className="crm-settings-form-grid crm-settings-form-grid-compact">
+          <SettingsFieldInput
+            label="Primary Location Address"
+            icon={MapPinned}
+            full
+            value={profile.address}
+            onChange={(value) => onChange('address', value)}
+          />
+          <SettingsFieldInput
+            label="Map Link"
+            icon={Globe2}
+            full
+            value={profile.mapLink}
+            onChange={(value) => onChange('mapLink', value)}
+          />
+          <SettingsFieldInput
+            label="Legal Entity Name"
+            value={profile.legalName}
+            onChange={(value) => onChange('legalName', value)}
+          />
+          <SettingsFieldInput
+            label="Main Contact Email"
+            icon={Mail}
+            value={profile.contactEmail}
+            onChange={(value) => onChange('contactEmail', value)}
+          />
+          <SettingsFieldInput
+            label="Main Contact Phone"
+            icon={Phone}
+            value={profile.contactPhone}
+            onChange={(value) => onChange('contactPhone', value)}
+          />
+          <SettingsFieldInput
+            label="Internal Contact Name"
+            icon={UserRound}
+            value={profile.internalContactName}
+            onChange={(value) => onChange('internalContactName', value)}
+          />
+          <SettingsFieldInput
+            label="Internal Contact Email"
+            icon={Mail}
+            value={profile.internalContactEmail}
+            onChange={(value) => onChange('internalContactEmail', value)}
+          />
+          <SettingsFieldInput
+            label="Tax / Legal ID"
+            value={profile.taxId}
+            onChange={(value) => onChange('taxId', value)}
+          />
+        </div>
+      </SettingsGroupCard>
     </div>
   </div>
 );
@@ -514,113 +545,119 @@ export const SpecialHoursManager = ({ specialHours, onAdd, onRemove }) => (
 
 export const BookingRulesBlock = ({ bookingRules, onChange, onToggle }) => (
   <div className="crm-settings-rule-stack">
-    <div className="crm-settings-rule-grid">
-      <SettingsFieldInput
-        label="Buffer Time"
-        hint="Minutes required between treatments."
-        value={bookingRules.bufferTime}
-        onChange={(value) => onChange('bufferTime', value)}
-      />
-      <SettingsFieldInput
-        label="Slot Interval"
-        hint="Booking engine slot length."
-        value={bookingRules.slotInterval}
-        onChange={(value) => onChange('slotInterval', value)}
-      />
-      <SettingsFieldInput
-        label="Cancellation Window"
-        hint="Minimum notice for penalty-free cancellation."
-        value={bookingRules.cancellationWindow}
-        onChange={(value) => onChange('cancellationWindow', value)}
-      />
-      <SettingsFieldInput
-        label="Reminder Timing"
-        hint="Default reminder cadence before each appointment."
-        value={bookingRules.reminderTiming}
-        onChange={(value) => onChange('reminderTiming', value)}
-      />
-      <SettingsFieldInput
-        label="Max Advance Booking"
-        hint="How far ahead guests may book."
-        value={bookingRules.maxAdvanceBooking}
-        onChange={(value) => onChange('maxAdvanceBooking', value)}
-      />
-      <SettingsFieldInput
-        label="Minimum Lead Time"
-        hint="Minimum time before a booking can be made."
-        value={bookingRules.minimumLeadTime}
-        onChange={(value) => onChange('minimumLeadTime', value)}
-      />
-      <SettingsFieldInput
-        label="Reschedule Policy"
-        hint="Minimum notice for reschedules."
-        value={bookingRules.reschedulePolicy}
-        onChange={(value) => onChange('reschedulePolicy', value)}
-      />
-      <SettingsFieldInput
-        label="No-show Policy"
-        hint="Policy for missed visits."
-        value={bookingRules.noShowPolicy}
-        onChange={(value) => onChange('noShowPolicy', value)}
-      />
-    </div>
-
-    <div className="crm-settings-rule-grid crm-settings-rule-grid-wide">
-      <SettingsFieldSelect
-        label="Default Appointment Status"
-        value={bookingRules.defaultAppointmentStatus}
-        onChange={(value) => onChange('defaultAppointmentStatus', value)}
-        options={[
-          { value: 'Pending', label: 'Pending' },
-          { value: 'Confirmed', label: 'Confirmed' },
-          { value: 'Auto-confirmed', label: 'Auto-confirmed' },
-        ]}
-      />
-      <SettingsFieldSelect
-        label="Approval Mode"
-        value={bookingRules.approvalMode}
-        onChange={(value) => onChange('approvalMode', value)}
-        options={[
-          { value: 'Auto-confirm', label: 'Auto-confirm' },
-          { value: 'Manual approval', label: 'Manual approval' },
-        ]}
-      />
-      <SettingsFieldSelect
-        label="Guest Visibility"
-        value={bookingRules.guestBookingVisibility}
-        onChange={(value) => onChange('guestBookingVisibility', value)}
-        options={[
-          { value: 'Live', label: 'Live' },
-          { value: 'Request only', label: 'Request only' },
-          { value: 'Hidden', label: 'Hidden' },
-        ]}
-      />
-      <SettingsFieldSelect
-        label="Staff Selection"
-        value={bookingRules.staffSelectionVisibility}
-        onChange={(value) => onChange('staffSelectionVisibility', value)}
-        options={[
-          { value: 'Visible to guests', label: 'Visible to guests' },
-          { value: 'Hidden from guests', label: 'Hidden from guests' },
-        ]}
-      />
-    </div>
-
-    <div className="crm-settings-switch-stack">
-      {[
-        ['sameDayBooking', 'Same-day booking allowed', 'Allow same-day booking requests from guests.'],
-        ['walkInsAllowed', 'Walk-ins allowed', 'Keep a lane open for walk-in visits.'],
-        ['depositRequired', 'Deposit required for online bookings', 'Protect premium time slots with a booking deposit.'],
-        ['hidePrices', 'Hide prices from guest portal', 'Show pricing only after the guest chooses a service path.'],
-      ].map(([key, label, hint]) => (
-        <div className="crm-settings-switch-row" key={key}>
-          <div>
-            <span>{label}</span>
-            <p>{hint}</p>
-          </div>
-          <ToggleButton active={bookingRules[key]} onClick={() => onToggle(key)} label={label} />
+    <div className="crm-settings-group-grid crm-settings-rule-groups">
+      <SettingsGroupCard
+        title="Booking windows"
+        description="How the calendar spaces treatment times and manages lead times."
+      >
+        <div className="crm-settings-rule-grid">
+          <SettingsFieldInput
+            label="Buffer Time"
+            hint="Minutes required between treatments."
+            value={bookingRules.bufferTime}
+            onChange={(value) => onChange('bufferTime', value)}
+          />
+          <SettingsFieldInput
+            label="Slot Interval"
+            hint="Booking engine slot length."
+            value={bookingRules.slotInterval}
+            onChange={(value) => onChange('slotInterval', value)}
+          />
+          <SettingsFieldInput
+            label="Cancellation Window"
+            hint="Minimum notice for penalty-free cancellation."
+            value={bookingRules.cancellationWindow}
+            onChange={(value) => onChange('cancellationWindow', value)}
+          />
+          <SettingsFieldInput
+            label="Reminder Timing"
+            hint="Default reminder cadence before each appointment."
+            value={bookingRules.reminderTiming}
+            onChange={(value) => onChange('reminderTiming', value)}
+          />
+          <SettingsFieldInput
+            label="Max Advance Booking"
+            hint="How far ahead guests may book."
+            value={bookingRules.maxAdvanceBooking}
+            onChange={(value) => onChange('maxAdvanceBooking', value)}
+          />
+          <SettingsFieldInput
+            label="Minimum Lead Time"
+            hint="Minimum time before a booking can be made."
+            value={bookingRules.minimumLeadTime}
+            onChange={(value) => onChange('minimumLeadTime', value)}
+          />
         </div>
-      ))}
+      </SettingsGroupCard>
+
+      <SettingsGroupCard
+        title="Visibility and approvals"
+        description="How guests discover the service menu and how bookings enter the schedule."
+      >
+        <div className="crm-settings-rule-grid">
+          <SettingsFieldSelect
+            label="Default Appointment Status"
+            value={bookingRules.defaultAppointmentStatus}
+            onChange={(value) => onChange('defaultAppointmentStatus', value)}
+            options={[
+              { value: 'Pending', label: 'Pending' },
+              { value: 'Confirmed', label: 'Confirmed' },
+              { value: 'Auto-confirmed', label: 'Auto-confirmed' },
+            ]}
+          />
+          <SettingsFieldSelect
+            label="Approval Mode"
+            value={bookingRules.approvalMode}
+            onChange={(value) => onChange('approvalMode', value)}
+            options={[
+              { value: 'Auto-confirm', label: 'Auto-confirm' },
+              { value: 'Manual approval', label: 'Manual approval' },
+            ]}
+          />
+          <SettingsFieldSelect
+            label="Guest Visibility"
+            value={bookingRules.guestBookingVisibility}
+            onChange={(value) => onChange('guestBookingVisibility', value)}
+            options={[
+              { value: 'Live', label: 'Live' },
+              { value: 'Request only', label: 'Request only' },
+              { value: 'Hidden', label: 'Hidden' },
+            ]}
+          />
+          <SettingsFieldSelect
+            label="Staff Selection"
+            value={bookingRules.staffSelectionVisibility}
+            onChange={(value) => onChange('staffSelectionVisibility', value)}
+            options={[
+              { value: 'Visible to guests', label: 'Visible to guests' },
+              { value: 'Hidden from guests', label: 'Hidden from guests' },
+            ]}
+          />
+        </div>
+      </SettingsGroupCard>
+
+      <SettingsGroupCard
+        title="Guest policies"
+        description="Operating rules that shape same-day access, deposits, and guest pricing visibility."
+        full
+      >
+        <div className="crm-settings-switch-stack">
+          {[
+            ['sameDayBooking', 'Same-day booking allowed', 'Allow same-day booking requests from guests.'],
+            ['walkInsAllowed', 'Walk-ins allowed', 'Keep a lane open for walk-in visits.'],
+            ['depositRequired', 'Deposit required for online bookings', 'Protect premium time slots with a booking deposit.'],
+            ['hidePrices', 'Hide prices from guest portal', 'Show pricing only after the guest chooses a service path.'],
+          ].map(([key, label, hint]) => (
+            <div className="crm-settings-switch-row" key={key}>
+              <div>
+                <span>{label}</span>
+                <p>{hint}</p>
+              </div>
+              <ToggleButton active={bookingRules[key]} onClick={() => onToggle(key)} label={label} />
+            </div>
+          ))}
+        </div>
+      </SettingsGroupCard>
     </div>
   </div>
 );

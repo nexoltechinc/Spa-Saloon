@@ -9,6 +9,13 @@ import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
 import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmStaff.css';
 
+const isRecoverableSyncError = (error) => {
+  const status = Number(error?.status);
+  const message = String(error?.message || '');
+
+  return [502, 503, 504].includes(status) || /(?:502|503|504)/.test(message);
+};
+
 const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const SHIFT_OPTIONS = ['Available', 'Busy', 'On Break', 'Off Duty', 'On Leave'];
 const EMPLOYMENT_OPTIONS = ['Active', 'Inactive'];
@@ -532,8 +539,10 @@ const CrmStaff = () => {
     } catch (error) {
       if (!isMountedRef.current) return;
       setStaffList(staffSeed);
-      setLoadError(error.message || 'Unable to load staff from the CRM API.');
       setSelectedStaffId(staffSeed[0]?.id || '');
+      if (!isRecoverableSyncError(error)) {
+        setLoadError(error.message || 'Unable to load staff from the CRM API.');
+      }
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }

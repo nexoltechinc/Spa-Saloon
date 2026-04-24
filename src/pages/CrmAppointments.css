@@ -177,6 +177,10 @@
   border-color: var(--appointments-border-soft);
 }
 
+.crm-appointments-shell .crm-appointments-table-card-empty {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(249, 245, 236, 0.94) 100%);
+}
+
 .crm-appointments-shell .crm-appointments-table-head {
   grid-template-columns: var(--appointments-table-template);
   padding: 0.88rem 0.96rem;
@@ -394,7 +398,7 @@
   text-align: center;
   min-height: 370px;
   padding: 2.2rem 1.2rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(250, 246, 238, 0.94) 100%);
+  background: transparent;
 }
 
 .crm-appointments-shell .crm-workspace-empty h3 {

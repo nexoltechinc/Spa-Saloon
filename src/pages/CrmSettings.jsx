@@ -26,7 +26,6 @@ import {
 
   SpecialHoursManager,
 } from '../components/settings/SettingsBlocks';
-import './CrmSettings.css';
 
 const sectionGroups = [
   {
@@ -191,7 +190,6 @@ const CrmSettings = () => {
   const [brandMarkPreview, setBrandMarkPreview] = useState(bootSettings.profile.brandMarkImage || '');
   const [lastSavedAt, setLastSavedAt] = useState(bootSettings.updatedAt || new Date().toISOString());
   const [isBooting, setIsBooting] = useState(true);
-  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -206,10 +204,13 @@ const CrmSettings = () => {
         setBrandMarkLabel(snapshot.profile.brandMarkName || 'Update brand mark');
         setBrandMarkPreview(snapshot.profile.brandMarkImage || '');
         setLastSavedAt(snapshot.updatedAt || new Date().toISOString());
-        setLoadError('');
-      } catch (error) {
+      } catch {
         if (!mounted) return;
-        setLoadError(error.message || 'Unable to load CRM settings.');
+        setSavedSettings(bootSettings);
+        setDraft(cloneSettings(bootSettings));
+        setBrandMarkLabel(bootSettings.profile.brandMarkName || 'Update brand mark');
+        setBrandMarkPreview(bootSettings.profile.brandMarkImage || '');
+        setLastSavedAt(bootSettings.updatedAt || new Date().toISOString());
       } finally {
         if (mounted) setIsBooting(false);
       }
@@ -220,7 +221,7 @@ const CrmSettings = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [bootSettings]);
 
   const validationErrors = useMemo(() => validateSettings(draft), [draft]);
   const validationCount = useMemo(
@@ -418,9 +419,7 @@ const CrmSettings = () => {
       setBrandMarkPreview(snapshot.profile.brandMarkImage || '');
       setLastSavedAt(snapshot.updatedAt || new Date().toISOString());
       setSaveState('saved');
-      setLoadError('');
-    } catch (error) {
-      setLoadError(error.message || 'Unable to save CRM settings.');
+    } catch {
       setSaveState('error');
     }
   };
@@ -472,7 +471,6 @@ const CrmSettings = () => {
               Configure the business profile, operating rhythm, booking rules, guest communication,
               and branded receipt presentation that shape the premium spa experience.
             </p>
-            {loadError ? <p className="crm-settings-inline-error">{loadError}</p> : null}
           </div>
 
           <div className="crm-settings-topbar-stack">

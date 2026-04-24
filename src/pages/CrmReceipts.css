@@ -161,6 +161,14 @@
   font-size: 0.76rem;
 }
 
+.crm-receipts-summary-grid-shell {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
 .crm-receipts-inline-error,
 .crm-receipts-notice,
 .crm-receipts-error {
@@ -752,6 +760,10 @@
     max-width: 100%;
   }
 
+  .crm-receipts-summary-grid-shell {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
   .crm-receipts-bottom-grid {
     grid-template-columns: 1fr;
   }
@@ -786,6 +798,7 @@
   }
 
   .crm-receipts-preview-contact,
+  .crm-receipts-summary-grid-shell,
   .crm-receipts-preview-meta,
   .crm-receipts-preview-totals-grid,
   .crm-receipts-preview-delivery,

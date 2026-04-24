@@ -197,13 +197,32 @@ const REPORT_PRESETS = {
   }),
 };
 
-const DonutChart = ({ segments, totalLabel, centerLabel, centerValue }) => {
-  const size = 140;
-  const strokeWidth = 18;
+const DonutChart = ({
+  segments,
+  totalLabel,
+  centerLabel,
+  centerValue,
+  activeSegmentLabel,
+  onSegmentMove,
+  onSegmentLeave,
+  onSegmentClick,
+}) => {
+  const size = 162;
+  const strokeWidth = 24;
+  const segmentGap = 3.6;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+  const resolvePointer = (event) => {
+    const svgBounds = event.currentTarget?.ownerSVGElement?.getBoundingClientRect?.();
+    const bounds = svgBounds || event.currentTarget.getBoundingClientRect();
+    return {
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    };
+  };
   const segmentMeta = segments.map((segment, index) => {
-    const dash = (segment.value / 100) * circumference;
+    const fullShare = (segment.value / 100) * circumference;
+    const dash = Math.max(0, fullShare - segmentGap);
     const offset = segments
       .slice(0, index)
       .reduce((sum, previous) => sum + (previous.value / 100) * circumference, 0);
@@ -217,7 +236,7 @@ const DonutChart = ({ segments, totalLabel, centerLabel, centerValue }) => {
         {segmentMeta.map(({ segment, dash, offset }) => (
           <circle
             key={segment.label}
-            className="crm-reports-donut-segment"
+            className={`crm-reports-donut-segment${activeSegmentLabel === segment.label ? ' is-active' : ''}`}
             cx={size / 2}
             cy={size / 2}
             r={radius}
@@ -225,6 +244,14 @@ const DonutChart = ({ segments, totalLabel, centerLabel, centerValue }) => {
             strokeWidth={strokeWidth}
             strokeDasharray={`${dash} ${circumference - dash}`}
             strokeDashoffset={-offset}
+            strokeLinecap="round"
+            onMouseMove={(event) => onSegmentMove?.(segment.label, resolvePointer(event))}
+            onMouseEnter={(event) => onSegmentMove?.(segment.label, resolvePointer(event))}
+            onMouseLeave={() => onSegmentLeave?.()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSegmentClick?.(segment.label, resolvePointer(event));
+            }}
           />
         ))}
       </svg>
@@ -250,6 +277,9 @@ const CrmReports = () => {
   const [liveRows, setLiveRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [activeSegmentLabel, setActiveSegmentLabel] = useState('');
+  const [hoveredSegmentLabel, setHoveredSegmentLabel] = useState('');
+  const [chartTooltip, setChartTooltip] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -301,7 +331,10 @@ const CrmReports = () => {
     });
   }, [branchFilter, decoratedServiceRows, serviceFilter, staffFilter]);
 
-  const visibleServiceRows = filteredServiceRows;
+  const visibleServiceRows = useMemo(
+    () => [...filteredServiceRows].sort((left, right) => right.revenue - left.revenue),
+    [filteredServiceRows]
+  );
   const baseServiceRevenue = decoratedServiceRows.reduce((sum, row) => sum + row.revenue, 0) || 1;
   const visibleServiceRevenue = visibleServiceRows.reduce((sum, row) => sum + row.revenue, 0);
   const visibleServiceBookings = visibleServiceRows.reduce((sum, row) => sum + row.bookings, 0);
@@ -368,7 +401,7 @@ const CrmReports = () => {
 
   const serviceMixSegments = useMemo(() => {
     const totalRevenue = visibleServiceRows.reduce((sum, row) => sum + row.revenue, 0) || 1;
-    const colors = ['#a88230', '#c5a66a', '#dcc89e', '#eee2cb'];
+    const colors = ['#b08a34', '#59b4dc', '#35b878', '#e18455', '#3e3a37', '#7a64d4'];
     const draft = visibleServiceRows.map((row, index) => ({
       label: row.label,
       value: Math.max(1, Math.round((row.revenue / totalRevenue) * 100)),
@@ -392,6 +425,59 @@ const CrmReports = () => {
   );
 
   const topServiceRow = visibleServiceRows[0] || null;
+  const dominantServiceSegment = serviceMixSegments.reduce(
+    (best, current) => (current.value > (best?.value ?? -1) ? current : best),
+    null
+  );
+  const segmentInsights = useMemo(() => {
+    const map = new Map(visibleServiceRows.map((row) => [row.label, row]));
+    return serviceMixSegments.map((segment) => {
+      const row = map.get(segment.label);
+      return {
+        ...segment,
+        revenue: row?.revenue || 0,
+        bookings: row?.bookings || 0,
+        staffName: row?.staffName || 'Unassigned',
+      };
+    });
+  }, [serviceMixSegments, visibleServiceRows]);
+  const selectedSegmentInsight = segmentInsights.find((segment) => segment.label === activeSegmentLabel)
+    || segmentInsights.find((segment) => segment.label === hoveredSegmentLabel)
+    || segmentInsights[0]
+    || null;
+  const tooltipSegmentInsight = segmentInsights.find((segment) => segment.label === chartTooltip?.label) || null;
+
+  useEffect(() => {
+    if (!segmentInsights.some((segment) => segment.label === activeSegmentLabel)) {
+      setActiveSegmentLabel('');
+      if (!hoveredSegmentLabel) {
+        setChartTooltip(null);
+      }
+    }
+  }, [activeSegmentLabel, hoveredSegmentLabel, segmentInsights]);
+
+  const handleSegmentMove = (label, pointer) => {
+    setHoveredSegmentLabel(label);
+    if (chartTooltip?.pinned) return;
+    setChartTooltip({ label, pointer, pinned: false });
+  };
+
+  const handleSegmentLeave = () => {
+    setHoveredSegmentLabel('');
+    if (!chartTooltip?.pinned) {
+      setChartTooltip(null);
+    }
+  };
+
+  const handleSegmentClick = (label, pointer) => {
+    if (activeSegmentLabel === label) {
+      setActiveSegmentLabel('');
+      setChartTooltip(null);
+      return;
+    }
+    setActiveSegmentLabel(label);
+    setChartTooltip({ label, pointer, pinned: true });
+  };
 
   const handleExportCsv = () => {
     const rows = [
@@ -592,31 +678,69 @@ const CrmReports = () => {
                 ) : (
                   <div className="crm-reports-service-layout crm-reports-service-layout-modern">
                     <div className="crm-reports-service-chart-zone">
-                      <DonutChart
-                        segments={serviceMixSegments}
-                        totalLabel="Service category mix"
-                        centerLabel="Total Revenue"
-                        centerValue={formatMoney(totalServiceRevenue)}
-                      />
-                      <div className="crm-reports-chart-legend crm-reports-chart-legend-modern">
-                        {serviceMixSegments.map((segment) => (
-                          <span key={segment.label}>
-                            <i className="crm-reports-dot" style={{ background: segment.color }} />
-                            {segment.label}
-                          </span>
-                        ))}
+                      <div className="crm-reports-donut-frame">
+                        <DonutChart
+                          segments={serviceMixSegments}
+                          totalLabel="Service category mix"
+                          centerLabel={selectedSegmentInsight?.label || dominantServiceSegment?.label || 'Service Mix'}
+                          centerValue={formatPercent(selectedSegmentInsight?.value || dominantServiceSegment?.value || 0)}
+                          activeSegmentLabel={activeSegmentLabel || hoveredSegmentLabel}
+                          onSegmentMove={handleSegmentMove}
+                          onSegmentLeave={handleSegmentLeave}
+                          onSegmentClick={handleSegmentClick}
+                        />
+                        {chartTooltip?.label ? (
+                          <div
+                            className={`crm-reports-chart-tooltip${chartTooltip.pinned ? ' is-pinned' : ''}`}
+                            style={{
+                              left: `${Math.min(150, Math.max(16, chartTooltip.pointer?.x || 0))}px`,
+                              top: `${Math.min(148, Math.max(20, chartTooltip.pointer?.y || 0))}px`,
+                            }}
+                          >
+                            <strong>{chartTooltip.label}</strong>
+                            <span>
+                              {tooltipSegmentInsight
+                                ? `${formatPercent(tooltipSegmentInsight.value)} share | ${formatMoney(tooltipSegmentInsight.revenue)} | ${formatCount(tooltipSegmentInsight.bookings)} bookings`
+                                : 'Segment detail'}
+                            </span>
+                            <small>{chartTooltip.pinned ? 'Pinned. Click same slice to clear.' : 'Click to pin details.'}</small>
+                          </div>
+                        ) : null}
+                        <ul className="crm-reports-chart-legend crm-reports-chart-legend-modern">
+                          {serviceMixSegments.map((segment) => (
+                            <li
+                              key={segment.label}
+                              className={selectedSegmentInsight?.label === segment.label ? 'is-active' : ''}
+                            >
+                              <i className="crm-reports-dot" style={{ background: segment.color }} />
+                              <span>{segment.label}</span>
+                              <small>{segment.value}%</small>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="crm-reports-donut-meta">
+                        <span>{selectedSegmentInsight ? 'Selected Segment' : 'Total Revenue'}</span>
+                        <strong>
+                          {selectedSegmentInsight ? selectedSegmentInsight.label : formatMoney(totalServiceRevenue)}
+                        </strong>
+                        <small>
+                          {selectedSegmentInsight
+                            ? `${formatMoney(selectedSegmentInsight.revenue)} | ${formatCount(selectedSegmentInsight.bookings)} bookings | ${formatPercent(selectedSegmentInsight.value)} share`
+                            : `${formatCount(totalServiceBookings)} bookings`}
+                        </small>
                       </div>
                     </div>
 
                     <div className="crm-reports-service-breakdown">
                       {visibleServiceRows.map((row, index) => (
                         <div key={`${row.label}-${row.staffName}-${row.branchName}`} className="crm-reports-service-row">
-                        <div className="crm-reports-service-row-copy">
-                          <strong>{row.label}</strong>
-                          <span>
-                            {formatCount(row.bookings)} bookings | {row.staffName} | {row.branchName}
-                          </span>
-                        </div>
+                          <div className="crm-reports-service-row-copy">
+                            <strong>{row.label}</strong>
+                            <span>
+                              {formatCount(row.bookings)} bookings | {row.staffName}
+                            </span>
+                          </div>
                           <div className="crm-reports-service-row-metrics">
                             <p>{formatMoney(row.revenue)}</p>
                             <small>{formatPercent(serviceMixSegments[index]?.value || 0)} share</small>

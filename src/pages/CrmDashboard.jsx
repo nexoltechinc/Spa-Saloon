@@ -600,7 +600,6 @@ const CrmDashboard = () => {
   const navigate = useNavigate();
   const [selectedBranch, setSelectedBranch] = useState(TOP_BRANCHES[0]);
   const [globalSearch, setGlobalSearch] = useState('');
-  const [syncNotice, setSyncNotice] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   const [appointments, setAppointments] = useState(dashboardSeed.appointments);
@@ -615,7 +614,6 @@ const CrmDashboard = () => {
 
     const loadDashboardData = async () => {
       setIsLoading(true);
-      setSyncNotice('');
 
       const [customersResult, servicesResult, staffResult, appointmentsResult, leadsResult, paymentsResult] = await Promise.allSettled([
         crmList('customers'),
@@ -627,14 +625,6 @@ const CrmDashboard = () => {
       ]);
 
       if (!mounted) return;
-
-      const failedModules = [];
-      if (customersResult.status === 'rejected') failedModules.push('customers');
-      if (servicesResult.status === 'rejected') failedModules.push('services');
-      if (staffResult.status === 'rejected') failedModules.push('staff');
-      if (appointmentsResult.status === 'rejected') failedModules.push('appointments');
-      if (leadsResult.status === 'rejected') failedModules.push('leads');
-      if (paymentsResult.status === 'rejected') failedModules.push('payments');
 
       const customersRaw = customersResult.status === 'fulfilled' ? customersResult.value : [];
       const servicesRaw = servicesResult.status === 'fulfilled' ? servicesResult.value : [];
@@ -668,10 +658,6 @@ const CrmDashboard = () => {
       setAppointments(normalizedAppointments);
       setLeads(normalizedLeads);
       setPayments(normalizedPayments);
-
-      if (failedModules.length > 0) {
-        setSyncNotice(`Live sync is partial for: ${failedModules.join(', ')}. Fallback data is active for those modules.`);
-      }
 
       setIsLoading(false);
     };
@@ -936,7 +922,7 @@ const CrmDashboard = () => {
     );
 
     void crmUpdate('appointments', appointmentId, patch).catch(() => {
-      setSyncNotice('Live update delayed. Appointment changes were applied locally and will sync when API is available.');
+      // Keep the local appointment update silent if the API is temporarily unavailable.
     });
   };
 
@@ -1007,8 +993,6 @@ const CrmDashboard = () => {
             <span className="crm-date-pill">{todayLabel}</span>
           </div>
         </section>
-
-        {syncNotice ? <p className="crm-sync-note">{syncNotice}</p> : null}
 
         <section className="crm-kpi-grid" aria-label="Dashboard KPIs">
           {kpiCards.map((card) => (
