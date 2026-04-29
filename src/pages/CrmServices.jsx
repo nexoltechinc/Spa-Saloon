@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CrmShell from '../components/CrmShell';
 import ServiceDetailPanel from '../components/services/ServiceDetailPanel';
 import ServiceRow from '../components/services/ServiceRow';
-import { clearCrmToken } from '../config/crm';
+import { clearCrmToken, getCrmSession } from '../config/crm';
 import { crmCreate, crmDelete, crmList, crmUpdate } from '../config/crmApi';
 import { collectOptionValues, normalizeNumber, normalizeText, toIsoFromLocalInput, toLocalInput } from './crmWorkspaceUtils';
 import './CrmServices.css';
@@ -44,7 +44,7 @@ const withDefaults = (service) => ({
   },
 });
 
-const serviceSeed = [
+const SERVICE_SEED = [
   withDefaults({
     id: 'SRV-101',
     name: 'Signature Facial',
@@ -324,8 +324,8 @@ const enrichService = (service) => {
 
 const CrmServices = () => {
   const navigate = useNavigate();
-  const [services, setServices] = useState(serviceSeed);
-  const [selectedServiceId, setSelectedServiceId] = useState(serviceSeed[0].id);
+  const [services, setServices] = useState([]);
+  const [selectedServiceId, setSelectedServiceId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
@@ -336,7 +336,7 @@ const CrmServices = () => {
   const [reviewOnly, setReviewOnly] = useState(false);
   const [extraCategories, setExtraCategories] = useState([]);
   const [detailTab, setDetailTab] = useState('overview');
-  const [activeRole] = useState(defaultRole);
+  const [activeRole] = useState(() => getCrmSession()?.role || defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [syncState, setSyncState] = useState('loading');
   const [syncMessage, setSyncMessage] = useState('');
@@ -355,21 +355,21 @@ const CrmServices = () => {
       const data = await crmList('services');
       if (!mountedRef.current) return;
 
-      const normalized = data.length > 0 ? data.map(normalizeService) : serviceSeed;
+      const normalized = Array.isArray(data) ? data.map(normalizeService) : [];
       setServices(normalized);
       setSelectedServiceId((current) => (normalized.some((service) => service.id === current) ? current : normalized[0]?.id || ''));
       setSyncState('ready');
       setSyncMessage('');
     } catch (error) {
       if (!mountedRef.current) return;
-      setServices(serviceSeed);
+      setServices([]);
       setSyncState('degraded');
       setSyncMessage(
         error.status === 502 || String(error.message || '').includes('502')
-          ? 'The live CRM API is temporarily unavailable. The seeded catalog is still visible while the connection recovers.'
-          : 'The live CRM API is unavailable right now. The seeded catalog is still visible while sync is restored.',
+          ? 'The live CRM API is temporarily unavailable. The services catalog will appear again when the connection recovers.'
+          : 'The live CRM API is unavailable right now. The services catalog will appear again when sync is restored.',
       );
-      setSelectedServiceId(serviceSeed[0]?.id || '');
+      setSelectedServiceId('');
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
@@ -723,7 +723,7 @@ const CrmServices = () => {
               <p className="crm-services-banner-kicker">CRM Sync Status</p>
               <h2>Live sync paused</h2>
               <p>
-                {syncMessage || 'The services workspace is showing the seeded catalog while the live CRM API reconnects. Try again once the connection stabilizes.'}
+                {syncMessage || 'The services workspace is waiting on the live CRM API. Try again once the connection stabilizes.'}
               </p>
             </div>
             <div className="crm-services-banner-actions">

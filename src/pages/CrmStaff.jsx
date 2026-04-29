@@ -4,12 +4,12 @@ import CrmShell from '../components/CrmShell';
 import StaffDetailPanel from '../components/staff/StaffDetailPanel';
 import StaffOperationsWorkspace from '../components/staff/StaffOperationsWorkspace';
 import StaffRow from '../components/staff/StaffRow';
-import { clearCrmToken } from '../config/crm';
+import { clearCrmToken, getCrmSession } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
 import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmStaff.css';
 
-const isRecoverableSyncError = (error) => {
+const IS_RECOVERABLE_SYNC_ERROR = (error) => {
   const status = Number(error?.status);
   const message = String(error?.message || '');
 
@@ -165,7 +165,7 @@ const rawStaffSeed = [
   },
 ];
 
-const staffSeed = rawStaffSeed.map((staff) => ({
+const STAFF_SEED = rawStaffSeed.map((staff) => ({
   ...staff,
   weeklyAvailability: fillWeeklyAvailability(staff.weeklyAvailability),
 }));
@@ -508,7 +508,7 @@ const defaultRole = 'manager';
 const CrmStaff = () => {
   const navigate = useNavigate();
 
-  const [staffList, setStaffList] = useState(staffSeed);
+  const [staffList, setStaffList] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [employmentFilter, setEmploymentFilter] = useState('All Employment');
@@ -517,10 +517,10 @@ const CrmStaff = () => {
   const [branchFilter, setBranchFilter] = useState('All Branches');
   const [onDutyOnly, setOnDutyOnly] = useState(false);
   const [fullyBookedOnly, setFullyBookedOnly] = useState(false);
-  const [selectedStaffId, setSelectedStaffId] = useState(staffSeed[0].id);
+  const [selectedStaffId, setSelectedStaffId] = useState('');
   const [detailTab, setDetailTab] = useState('overview');
   const [operationTab, setOperationTab] = useState('coverage');
-  const [activeRole] = useState(defaultRole);
+  const [activeRole] = useState(() => getCrmSession()?.role || defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const isMountedRef = useRef(true);
@@ -533,16 +533,14 @@ const CrmStaff = () => {
       const data = await crmList('staff');
       if (!isMountedRef.current) return;
       const visibleStaff = Array.isArray(data) ? data.filter((staff) => !shouldHideStaff(staff)) : [];
-      const normalized = visibleStaff.length > 0 ? visibleStaff.map(normalizeStaff) : staffSeed;
+      const normalized = visibleStaff.map(normalizeStaff);
       setStaffList(normalized);
       setSelectedStaffId((current) => (normalized.some((staff) => staff.id === current) ? current : normalized[0]?.id || ''));
     } catch (error) {
       if (!isMountedRef.current) return;
-      setStaffList(staffSeed);
-      setSelectedStaffId(staffSeed[0]?.id || '');
-      if (!isRecoverableSyncError(error)) {
-        setLoadError(error.message || 'Unable to load staff from the CRM API.');
-      }
+      setStaffList([]);
+      setSelectedStaffId('');
+      setLoadError(error.message || 'Unable to load staff from the CRM API.');
     } finally {
       if (isMountedRef.current) setIsLoading(false);
     }
@@ -667,10 +665,14 @@ const CrmStaff = () => {
   };
 
   const updateStaff = (staffId, updates) => {
+    const previousStaff = staffList.find((item) => item.id === staffId);
     const stamped = syncCompatibleFields(updates);
     setStaffList((current) => current.map((item) => (item.id === staffId ? { ...item, ...stamped } : item)));
 
     void crmUpdate('staff', staffId, stamped).catch((error) => {
+      if (previousStaff) {
+        setStaffList((current) => current.map((item) => (item.id === staffId ? previousStaff : item)));
+      }
       setLoadError(error.message || 'Staff update failed.');
     });
   };
@@ -878,8 +880,8 @@ const CrmStaff = () => {
           <section className="crm-staff-error" role="status" aria-live="polite">
             <div>
               <p>CRM sync issue</p>
-              <h2>Staff data loaded with a fallback</h2>
-              <span>{loadError}. The curated staff seed is still available so the workspace stays usable while the backend recovers.</span>
+              <h2>Live staff data unavailable</h2>
+              <span>{loadError}. Retry sync once the CRM backend is reachable again.</span>
             </div>
             <button type="button" className="crm-staff-secondary-btn" onClick={handleRetryLoad}>
               Retry Sync

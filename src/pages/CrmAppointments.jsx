@@ -178,25 +178,6 @@ const isPastDue = (appointment) =>
   daysBetween(appointment.appointmentAt, new Date()) > 0 &&
   !['Completed', 'Cancelled', 'No Show'].includes(appointment.status);
 
-const readAppointmentsSnapshot = () => {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return null;
-    const raw = window.localStorage.getItem(APPOINTMENTS_CACHE_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return null;
-
-    return {
-      appointments: Array.isArray(parsed.appointments) ? parsed.appointments.map((appointment, index) => normalizeAppointment(appointment, index)) : [],
-      branches: Array.isArray(parsed.branches) ? parsed.branches.map((branch) => normalizeText(branch)).filter(Boolean) : [],
-      staff: Array.isArray(parsed.staff) ? parsed.staff.map((staff) => normalizeText(staff)).filter(Boolean) : [],
-    };
-  } catch {
-    return null;
-  }
-};
-
 const writeAppointmentsSnapshot = (snapshot) => {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return;
@@ -223,6 +204,7 @@ const CrmAppointments = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -231,6 +213,7 @@ const CrmAppointments = () => {
 
     const loadAppointments = async () => {
       setIsLoading(true);
+      setLoadError('');
 
       try {
         const [appointmentsResult, branchesResult, staffResult] = await Promise.allSettled([
@@ -239,18 +222,24 @@ const CrmAppointments = () => {
           crmList('staff'),
         ]);
         if (!mounted) return;
-        const snapshot = readAppointmentsSnapshot();
         const normalized = appointmentsResult.status === 'fulfilled' && Array.isArray(appointmentsResult.value)
           ? appointmentsResult.value.map(normalizeAppointment)
-          : snapshot?.appointments || [];
-        const branchNames = new Set(snapshot?.branches || []);
-        const staffNames = new Set(snapshot?.staff || []);
+          : [];
+        const branchNames = new Set();
+        const staffNames = new Set();
+        const syncIssues = [];
+
+        if (appointmentsResult.status === 'rejected') {
+          syncIssues.push(`appointments: ${appointmentsResult.reason?.message || 'unavailable'}`);
+        }
 
         if (branchesResult.status === 'fulfilled' && Array.isArray(branchesResult.value)) {
           branchesResult.value.forEach((branch) => {
             const name = normalizeText(branch?.name || branch?.branchName || branch?.locationName || branch?.title);
             if (name) branchNames.add(name);
           });
+        } else if (branchesResult.status === 'rejected') {
+          syncIssues.push(`branches: ${branchesResult.reason?.message || 'unavailable'}`);
         }
 
         if (staffResult.status === 'fulfilled' && Array.isArray(staffResult.value)) {
@@ -258,6 +247,8 @@ const CrmAppointments = () => {
             const name = normalizeText(staff?.name || staff?.fullName || staff?.staffName || staff?.title);
             if (name) staffNames.add(name);
           });
+        } else if (staffResult.status === 'rejected') {
+          syncIssues.push(`staff: ${staffResult.reason?.message || 'unavailable'}`);
         }
 
         setAppointments(normalized);
@@ -267,31 +258,22 @@ const CrmAppointments = () => {
         setSelectedAppointmentId((current) => (normalized.some((item) => item.id === current) ? current : firstId));
         setMode(normalized.length ? 'edit' : 'create');
         setDraft(normalized.length ? emptyDraft(normalized[0]) : emptyDraft());
+        setLoadError(syncIssues.length > 0 ? `CRM sync is partial. ${syncIssues.join(' | ')}` : '');
 
         writeAppointmentsSnapshot({
           appointments: normalized,
           branches: Array.from(branchNames),
           staff: Array.from(staffNames),
         });
-      } catch {
+      } catch (error) {
         if (!mounted) return;
-        const cached = readAppointmentsSnapshot();
-        if (cached) {
-          setAppointments(cached.appointments);
-          setAvailableBranches(cached.branches);
-          setAvailableStaff(cached.staff);
-          const firstId = cached.appointments[0]?.id || '';
-          setSelectedAppointmentId(firstId);
-          setMode(cached.appointments.length ? 'edit' : 'create');
-          setDraft(cached.appointments.length ? emptyDraft(cached.appointments[0]) : emptyDraft());
-        } else {
-          setAppointments([]);
-          setAvailableBranches([]);
-          setAvailableStaff([]);
-          setSelectedAppointmentId('');
-          setMode('create');
-          setDraft(emptyDraft());
-        }
+        setAppointments([]);
+        setAvailableBranches([]);
+        setAvailableStaff([]);
+        setSelectedAppointmentId('');
+        setMode('create');
+        setDraft(emptyDraft());
+        setLoadError(error.message || 'Unable to load appointments from the CRM API.');
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -637,6 +619,7 @@ const CrmAppointments = () => {
         </section>
 
         <section className="crm-workspace-grid crm-appointments-grid">
+          {loadError ? <p className="crm-workspace-inline-error">{loadError}</p> : null}
           <article className={`crm-workspace-table-card crm-appointments-table-card${!isLoading && groupedAppointments.length === 0 ? ' crm-appointments-table-card-empty' : ''}`}>
             <header className="crm-workspace-table-head crm-appointments-table-head">
               <span>Guest</span>

@@ -1,5 +1,4 @@
 import {
-  BadgeDollarSign,
   Bell,
   CalendarDays,
   Check,
@@ -36,6 +35,187 @@ const statusTone = (value) => {
   if (normalized.includes('dirty') || normalized.includes('unsaved') || normalized.includes('review')) return 'warning';
   if (normalized.includes('saving')) return 'neutral';
   return 'good';
+};
+
+const buildPreviewVariant = ({
+  activeSectionId,
+  profile,
+  branding,
+  regionalDefaults,
+  operatingHours = [],
+  specialHours = [],
+  bookingRules = {},
+  communication = {},
+}) => {
+  const businessName = profile.businessName || 'Aura Spa & Wellness';
+  const receiptName = profile.receiptDisplayName || businessName;
+  const branchName = profile.branchName || 'West Hollywood';
+  const address = profile.address || 'West Hollywood, CA';
+  const timezone = regionalDefaults.timezone || 'America/Los_Angeles';
+  const currency = regionalDefaults.currency || 'USD';
+  const locale = regionalDefaults.locale || 'en-US';
+  const openDays = operatingHours.filter((entry) => entry.enabled).length;
+  const guestBookingDays = operatingHours.filter((entry) => entry.guestBookingOpen).length;
+  const specialWindows = specialHours.length;
+  const receiptPrefix = branding.receiptNumberPrefix || 'RCT-';
+
+  const common = {
+    focusTitle: 'Workspace preview',
+    focusDescription: 'A live readout of how the active settings area will present itself to guests and staff.',
+    previewTitle: receiptName,
+    previewSubtitle: `${branchName} - ${address}`,
+    previewMark: branding.logoPlacement === 'left' ? <Sparkles size={20} /> : <span>{receiptName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase().slice(0, 2) || 'AS'}</span>,
+    meta: [
+      { label: 'Timezone', value: timezone },
+      { label: 'Locale', value: locale },
+      { label: 'Currency', value: currency },
+    ],
+    documentKicker: 'Guest-facing workspace',
+    documentTitle: businessName,
+    documentBadge: 'Live',
+    lines: [
+      { label: 'Primary contact', value: profile.contactEmail || profile.publicBookingEmail || 'Not set' },
+      { label: 'Branch phone', value: profile.contactPhone || profile.publicBookingPhone || 'Not set' },
+      { label: 'Website', value: profile.website || 'Not set' },
+    ],
+    footerTitle: `Configuration stays branded for ${businessName}.`,
+    footerBody: 'The current section is mirrored in the preview so QA can see the live effect without guessing the downstream output.',
+    noteTitle: 'Preview updates with the active section',
+    noteDescription: 'The contextual summary changes with each settings area so the right rail feels connected to the work in focus.',
+  };
+
+  switch (activeSectionId) {
+    case 'business-profile':
+      return {
+        ...common,
+        focusTitle: 'Guest identity',
+        focusDescription: 'The public name and branch identity that appear across booking, payment, and confirmation touchpoints.',
+        previewTitle: receiptName,
+        previewSubtitle: `${branchName} - ${address}`,
+        meta: [
+          { label: 'Business name', value: businessName },
+          { label: 'Branch', value: branchName },
+          { label: 'Visibility', value: 'Live' },
+        ],
+        documentKicker: 'Identity summary',
+        documentTitle: 'Guest-facing profile',
+        documentBadge: 'Profile',
+        lines: [
+          { label: 'Contact email', value: profile.contactEmail || 'Not set' },
+          { label: 'Public phone', value: profile.publicBookingPhone || profile.contactPhone || 'Not set' },
+          { label: 'Website', value: profile.website || 'Not set' },
+        ],
+        footerTitle: 'Identity stays consistent everywhere.',
+        footerBody: 'Business name, branch label, and public contact details flow through the CRM and guest touchpoints.',
+      };
+    case 'regional-defaults':
+      return {
+        ...common,
+        focusTitle: 'Regional defaults',
+        focusDescription: 'Locale rules that keep dates, money, and time readable throughout the CRM.',
+        meta: [
+          { label: 'Timezone', value: timezone },
+          { label: 'Currency', value: currency },
+          { label: 'Locale', value: locale },
+        ],
+        documentKicker: 'Locale summary',
+        documentTitle: 'Regional settings',
+        documentBadge: 'Locale',
+        lines: [
+          { label: 'Date format', value: regionalDefaults.dateFormat || 'MM/DD/YYYY' },
+          { label: 'Time format', value: regionalDefaults.timeFormat || '12-hour' },
+          { label: 'Currency symbol', value: currency },
+        ],
+        footerTitle: 'Regional defaults stay aligned.',
+        footerBody: 'Timezone, currency, date format, and locale remain consistent across the CRM and guest-facing documents.',
+      };
+    case 'operating-hours':
+      return {
+        ...common,
+        focusTitle: 'Operating rhythm',
+        focusDescription: 'The weekly booking rhythm guests can depend on before they reserve a visit.',
+        meta: [
+          { label: 'Open days', value: String(openDays) },
+          { label: 'Guest-booking days', value: String(guestBookingDays) },
+          { label: 'Special windows', value: String(specialWindows) },
+        ],
+        documentKicker: 'Schedule summary',
+        documentTitle: 'Availability',
+        documentBadge: 'Hours',
+        lines: [
+          { label: 'Default slot interval', value: bookingRules.slotInterval || '30 min' },
+          { label: 'Buffer time', value: `${bookingRules.bufferTime || '0'} min` },
+          { label: 'Advance window', value: bookingRules.maxAdvanceBooking || 'Not set' },
+        ],
+        footerTitle: 'Hours stay predictable.',
+        footerBody: 'Open days, seasonal windows, and guest-booking availability stay synchronized with the working rhythm.',
+      };
+    case 'booking-rules':
+      return {
+        ...common,
+        focusTitle: 'Booking rules',
+        focusDescription: 'The calendar guardrails that shape how far ahead guests can book and how the schedule behaves.',
+        meta: [
+          { label: 'Buffer', value: `${bookingRules.bufferTime || '0'} min` },
+          { label: 'Advance window', value: bookingRules.maxAdvanceBooking || 'Not set' },
+          { label: 'Approval mode', value: bookingRules.approvalMode || 'Pending' },
+        ],
+        documentKicker: 'Booking summary',
+        documentTitle: 'Calendar policy',
+        documentBadge: 'Booking',
+        lines: [
+          { label: 'Guest visibility', value: bookingRules.guestBookingVisibility || 'Open' },
+          { label: 'Staff selection', value: bookingRules.staffSelectionVisibility || 'Open' },
+          { label: 'Cancellation window', value: bookingRules.cancellationWindow || 'Not set' },
+        ],
+        footerTitle: 'Calendar guardrails stay clear.',
+        footerBody: 'Buffer time, approval mode, and availability rules stay aligned with the booking engine.',
+      };
+    case 'communications':
+      return {
+        ...common,
+        focusTitle: 'Guest communication',
+        focusDescription: 'Sender identity, reminders, and confirmation language that keep the front-desk voice consistent.',
+        meta: [
+          { label: 'Sender', value: communication.senderEmail || 'Not set' },
+          { label: 'Reply-to', value: communication.replyToEmail || 'Not set' },
+          { label: 'Reminder cadence', value: communication.reminderCadence || 'Not set' },
+        ],
+        documentKicker: 'Messaging summary',
+        documentTitle: 'Communication settings',
+        documentBadge: 'Messages',
+        lines: [
+          { label: 'Sender name', value: communication.senderName || businessName },
+          { label: 'Confirmation copy', value: communication.confirmationMessage ? 'Enabled' : 'Not set' },
+          { label: 'Cancellation copy', value: communication.cancellationMessage ? 'Enabled' : 'Not set' },
+        ],
+        footerTitle: 'Communication copy stays branded.',
+        footerBody: 'Sender identity, reminder cadence, and confirmation language stay aligned with the guest experience.',
+      };
+    case 'branding-receipts':
+      return {
+        ...common,
+        focusTitle: 'Branding and receipts',
+        focusDescription: 'The final guest-facing presentation, including receipt identity, legal details, and footer treatment.',
+        meta: [
+          { label: 'Receipt prefix', value: receiptPrefix },
+          { label: 'Tax display', value: branding.taxDisplayMode || 'Included' },
+          { label: 'Logo placement', value: branding.logoPlacement || 'Centered' },
+        ],
+        documentKicker: 'Receipt summary',
+        documentTitle: receiptName,
+        documentBadge: branding.taxDisplayMode || 'Included',
+        lines: [
+          { label: 'Signature Facial', value: '$120.00' },
+          { label: 'Aromatherapy Add-on', value: '$30.00' },
+          { label: 'Cash received', value: '$150.00' },
+        ],
+        footerTitle: `Thank you for visiting ${businessName}.`,
+        footerBody: branding.receiptFooterText || 'We appreciate your trust and look forward to welcoming you again soon.',
+      };
+    default:
+      return common;
+  }
 };
 
 const FieldShell = ({ label, hint, full, icon: Icon, children, className = '' }) => (
@@ -787,83 +967,104 @@ export const CommunicationSettingsBlock = ({ communication, onChange, onToggle }
   </div>
 );
 
-export const ReceiptBrandingPreview = ({ profile, branding, regionalDefaults }) => (
-  <div className="crm-settings-preview-card">
-    <SettingsSectionHeader
-      kicker="Brand Experience"
-      title="Receipt Preview"
-      description="A customer-facing preview of how your branding will present on receipts and confirmations."
-      status="Customer facing"
-      statusTone="good"
-    />
+export const ReceiptBrandingPreview = ({
+  profile,
+  branding,
+  regionalDefaults,
+  operatingHours,
+  specialHours,
+  bookingRules,
+  communication,
+  activeSectionId,
+  activeSectionLabel,
+  activeSectionMeta,
+}) => {
+  const preview = buildPreviewVariant({
+    activeSectionId,
+    profile,
+    branding,
+    regionalDefaults,
+    operatingHours,
+    specialHours,
+    bookingRules,
+    communication,
+  });
 
-    <div className="crm-settings-preview-shell">
-      <div className="crm-settings-preview-brand">
-        <div className="crm-settings-preview-mark">
-          {branding.logoPlacement === 'left' ? <Sparkles size={20} /> : <span>{(profile.businessName || 'RS').split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase().slice(0, 2)}</span>}
+  return (
+    <div className="crm-settings-preview-card">
+      <SettingsSectionHeader
+        kicker="Workspace Preview"
+        title="Live configuration preview"
+        description="A customer-facing preview of how the active settings area reads across the CRM."
+        status="Live"
+        statusTone="good"
+      />
+
+      <div className="crm-settings-preview-focus">
+        <div>
+          <span>Current focus</span>
+          <strong>{activeSectionMeta?.sectionLabel || preview.focusTitle}</strong>
         </div>
         <div>
-          <strong>{profile.receiptDisplayName || profile.businessName}</strong>
-          <p>{profile.branchName} - {profile.address}</p>
+          <span>Group</span>
+          <strong>{activeSectionMeta?.groupTitle || 'Core Business'}</strong>
         </div>
+        <p>{activeSectionLabel || preview.focusDescription}</p>
       </div>
 
-      <div className="crm-settings-preview-meta">
-        <div>
-          <span>Timezone</span>
-          <strong>{regionalDefaults.timezone}</strong>
+      <div className="crm-settings-preview-shell">
+        <div className="crm-settings-preview-brand">
+          <div className="crm-settings-preview-mark">
+            {preview.previewMark}
+          </div>
+          <div>
+            <strong>{preview.previewTitle}</strong>
+            <p>{preview.previewSubtitle}</p>
+          </div>
         </div>
-        <div>
-          <span>Receipt No.</span>
-          <strong>{branding.receiptNumberPrefix || 'RCT-'}000128</strong>
-        </div>
-        <div>
-          <span>Delivery</span>
-          <strong>Email + print</strong>
-        </div>
-      </div>
 
-      <div className="crm-settings-preview-receipt">
-        <div className="crm-settings-preview-receipt-head">
-          <div>
-            <p>{profile.businessName}</p>
-            <strong>{profile.branchName}</strong>
-          </div>
-          <span>{branding.taxDisplayMode}</span>
+        <div className="crm-settings-preview-meta">
+          {preview.meta.map((item) => (
+            <div key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
         </div>
-        <div className="crm-settings-preview-receipt-lines">
-          <div>
-            <span>Signature Facial</span>
-            <strong>$120.00</strong>
-          </div>
-          <div>
-            <span>Aromatherapy Add-on</span>
-            <strong>$30.00</strong>
-          </div>
-          <div>
-            <span>Cash received</span>
-            <strong>$150.00</strong>
-          </div>
-        </div>
-        <footer>
-          <strong>Thank you for visiting {profile.businessName}.</strong>
-          <p>{branding.receiptFooterText || 'Thank you for visiting Aura Spa & Wellness.'}</p>
-        </footer>
-      </div>
 
-      <div className="crm-settings-preview-note">
-        <BadgeDollarSign size={16} />
-        <div>
-          <strong>Receipt header and footer stay branded</strong>
-          <p>
-            Logo placement, contact visibility, tax display, and footer text are all tenant-specific
-            and ready for future branch-level overrides.
-          </p>
+        <div className="crm-settings-preview-receipt">
+          <div className="crm-settings-preview-receipt-head">
+            <div>
+              <p>{preview.documentKicker}</p>
+              <strong>{preview.documentTitle}</strong>
+            </div>
+            <span>{preview.documentBadge}</span>
+          </div>
+          <div className="crm-settings-preview-receipt-lines">
+            {preview.lines.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+          <footer>
+            <strong>{preview.footerTitle}</strong>
+            <p>{preview.footerBody}</p>
+          </footer>
+        </div>
+
+        <div className="crm-settings-preview-note">
+          <Sparkles size={16} />
+          <div>
+            <strong>{preview.noteTitle}</strong>
+            <p>{preview.noteDescription}</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const SettingsTrustPanel = ({
   saveState,

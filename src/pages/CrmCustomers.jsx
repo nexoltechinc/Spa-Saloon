@@ -198,7 +198,7 @@ const shouldHideCustomer = (customer) => {
   return values.some((value) => hiddenCustomerIdentifiers.has(value));
 };
 
-const customerSeed = [
+const CUSTOMER_SEED = [
   {
     id: 'C-1144',
     name: 'Julian Marc',
@@ -392,7 +392,7 @@ const normalizeCustomer = (customer, index = 0) => {
 
 const CrmCustomers = () => {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState(customerSeed.map(normalizeCustomer));
+  const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('All Segments');
   const [sourceFilter, setSourceFilter] = useState('All Sources');
@@ -400,7 +400,7 @@ const CrmCustomers = () => {
   const [activityFilter, setActivityFilter] = useState('All Activity');
   const [vipOnly, setVipOnly] = useState(false);
   const [inactiveRiskOnly, setInactiveRiskOnly] = useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = useState(customerSeed[0]?.id || '');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [workspaceTab, setWorkspaceTab] = useState('activity');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -414,16 +414,16 @@ const CrmCustomers = () => {
       try {
         const data = await crmList('customers');
         if (!mounted) return;
-        const normalized = (data.length > 0 ? data : customerSeed)
+        const normalized = (Array.isArray(data) ? data : [])
           .map(normalizeCustomer)
           .filter((entry) => !shouldHideCustomer(entry));
         setCustomers(normalized);
         setSelectedCustomerId((current) => (normalized.some((entry) => entry.id === current) ? current : normalized[0]?.id || ''));
       } catch (error) {
         if (!mounted) return;
-        setCustomers(customerSeed.map(normalizeCustomer).filter((entry) => !shouldHideCustomer(entry)));
-        setLoadError(error.message || 'Live customer sync unavailable. Showing fallback CRM records.');
-        setSelectedCustomerId(customerSeed.map(normalizeCustomer).filter((entry) => !shouldHideCustomer(entry))[0]?.id || '');
+        setCustomers([]);
+        setLoadError(error.message || 'Unable to load customers from the CRM API.');
+        setSelectedCustomerId('');
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -543,6 +543,8 @@ const CrmCustomers = () => {
   };
 
   const handleSegmentUpdate = (customerId, segment) => {
+    const previousCustomer = customers.find((customer) => customer.id === customerId);
+
     updateCustomerInState(customerId, (customer) => ({
       ...customer,
       segment,
@@ -555,6 +557,9 @@ const CrmCustomers = () => {
       customerType: segment,
       status: segment === 'Inactive' ? 'Dormant' : 'Active',
     }).catch((error) => {
+      if (previousCustomer) {
+        updateCustomerInState(customerId, () => previousCustomer);
+      }
       setLoadError(error.message || 'Customer segment update failed.');
     });
   };
@@ -622,10 +627,7 @@ const CrmCustomers = () => {
       setCustomers((current) => [normalized, ...current]);
       setSelectedCustomerId(normalized.id);
     } catch (error) {
-      const fallback = normalizeCustomer(draftCustomer, customers.length);
-      setCustomers((current) => [fallback, ...current]);
-      setSelectedCustomerId(fallback.id);
-      setLoadError(`${error.message || 'Customer sync failed.'} Added locally for now.`);
+      setLoadError(error.message || 'Customer save failed.');
     }
   };
 
@@ -652,6 +654,7 @@ const CrmCustomers = () => {
   const handleBookAppointment = () => {
     if (!selectedCustomer) return;
 
+    const previousCustomer = selectedCustomer;
     const service = window.prompt('Service name', selectedCustomer.favoriteService || selectedCustomer.preferences[0] || 'Signature Facial') || 'Signature Facial';
     const staff = window.prompt('Staff member', selectedCustomer.favoriteStaff || 'Unassigned') || 'Unassigned';
     const defaultDateTime = toLocalInput(addDaysToIso(new Date().toISOString(), 1, 10, 0));
@@ -730,6 +733,10 @@ const CrmCustomers = () => {
         if (createdAppointment?.id) {
           await crmDelete('appointments', createdAppointment.id).catch(() => {});
         }
+        if (previousCustomer) {
+          updateCustomerInState(previousCustomer.id, () => previousCustomer);
+          setSelectedCustomerId(previousCustomer.id);
+        }
         setLoadError(error.message || 'Customer booking failed.');
       }
     })();
@@ -738,6 +745,7 @@ const CrmCustomers = () => {
   const handleRecordPayment = () => {
     if (!selectedCustomer) return;
 
+    const previousCustomer = selectedCustomer;
     const amountRaw = window.prompt('Payment amount', '120');
     if (!amountRaw) return;
     const amount = Number(amountRaw);
@@ -829,6 +837,10 @@ const CrmCustomers = () => {
       } catch (error) {
         if (createdPayment?.id) {
           await crmDelete('payments', createdPayment.id).catch(() => {});
+        }
+        if (previousCustomer) {
+          updateCustomerInState(previousCustomer.id, () => previousCustomer);
+          setSelectedCustomerId(previousCustomer.id);
         }
         setLoadError(error.message || 'Customer payment failed.');
       }

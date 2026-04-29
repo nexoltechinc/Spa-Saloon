@@ -52,6 +52,16 @@ const sectionGroups = [
   },
 ];
 
+const sectionMetaById = sectionGroups.reduce((acc, group) => {
+  group.sections.forEach((section) => {
+    acc[section.id] = {
+      groupTitle: group.title,
+      sectionLabel: section.label,
+    };
+  });
+  return acc;
+}, {});
+
 const notificationItems = [
   { title: '2 confirmations sent', detail: 'Guests for today\'s bookings were notified 24 hours ahead.' },
   { title: '1 seasonal window pending', detail: 'Holiday hours can be published from Operating Hours.' },
@@ -859,6 +869,12 @@ const CrmSettings = () => {
               branding={draft.branding}
               communication={draft.communication}
               regionalDefaults={draft.regionalDefaults}
+              operatingHours={draft.operatingHours}
+              specialHours={draft.specialHours}
+              bookingRules={draft.bookingRules}
+              activeSectionId={activeSection}
+              activeSectionLabel={sectionStateById[activeSection]?.label || 'Business Profile'}
+              activeSectionMeta={sectionMetaById[activeSection] || sectionMetaById['business-profile']}
             />
 
             <SettingsTrustPanel

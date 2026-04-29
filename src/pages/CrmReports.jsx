@@ -289,7 +289,7 @@ const CrmReports = () => {
       setLoadError('');
 
       try {
-        const data = await crmList('reports').catch(() => []);
+        const data = await crmList('reports');
         if (!mounted) return;
         setLiveRows(Array.isArray(data) ? data : []);
       } catch (error) {
@@ -311,7 +311,7 @@ const CrmReports = () => {
   const preset = REPORT_PRESETS[selectedRange] || REPORT_PRESETS['This Month'];
   const hasLiveData = liveRows.length > 0;
   const noDataState = !isLoading && !hasLiveData;
-  const dataSourceLabel = hasLiveData ? 'Live CRM Data Synced' : 'Sample Analytics View';
+  const dataSourceLabel = hasLiveData ? 'Live CRM Data Synced' : loadError ? 'Live CRM Data Unavailable' : 'Sample Analytics View';
   const filterIsActive = staffFilter !== 'All Staff' || serviceFilter !== 'All Services' || branchFilter !== 'All Locations';
 
   const liveSales = extractLiveValue(liveRows, ['sales', 'revenue', 'gross revenue', 'total sales']);

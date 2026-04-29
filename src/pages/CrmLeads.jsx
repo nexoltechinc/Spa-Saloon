@@ -51,6 +51,7 @@ const getStatusTone = (status) => {
   if (normalized === 'booked' || normalized === 'qualified') return 'good';
   if (normalized === 'proposal' || normalized === 'contacted') return 'warning';
   if (normalized === 'lost' || normalized === 'disqualified') return 'alert';
+  if (normalized === 'awaiting response') return 'warning';
   if (normalized === 'new') return 'info';
   return 'neutral';
 };
@@ -114,7 +115,7 @@ const getLeadActivity = (lead) => {
 
 const normalizeLead = (lead = {}, index = 0) => {
   const budget = normalizeNumber(lead.budget ?? lead.estimatedValue ?? lead.pipelineValue, 0);
-  const status = normalizeText(lead.status ?? lead.leadStatus, 'New');
+  const status = normalizeLeadStatus(lead.status ?? lead.leadStatus);
   const nextFollowUpAt = lead.nextFollowUpAt || lead.next_follow_up_at || '';
   const lastContactAt = lead.lastContactAt || lead.last_contact_at || '';
   const isDueToday = Boolean(nextFollowUpAt) && toDateKey(nextFollowUpAt) === toDateKey(new Date());
@@ -125,9 +126,9 @@ const normalizeLead = (lead = {}, index = 0) => {
     fullName: normalizeText(lead.fullName ?? lead.name, 'Untitled Lead'),
     email: normalizeText(lead.email),
     phone: normalizeText(lead.phone ?? lead.contactNumber),
-    source: normalizeText(lead.source ?? lead.inquirySource, 'Website Form'),
+    source: normalizeLeadSource(lead.source ?? lead.inquirySource),
     status,
-    priority: normalizeText(lead.priority ?? lead.followUpState, 'Normal'),
+    priority: normalizeLeadPriority(lead.priority ?? lead.followUpState),
     ownerName: normalizeText(lead.ownerName ?? lead.owner ?? lead.assignedTo, 'Unassigned'),
     branchName: normalizeText(lead.branchName ?? lead.branch),
     serviceInterest: normalizeText(lead.serviceInterest ?? lead.service ?? lead.requestedService),
@@ -171,10 +172,10 @@ const buildPayload = (draft) => {
     name: normalizeText(draft.fullName, 'Untitled Lead'),
     email: normalizeText(draft.email),
     phone: normalizeText(draft.phone),
-    source: normalizeText(draft.source, 'Website Form'),
-    status: normalizeText(draft.status, 'New'),
-    leadStatus: normalizeText(draft.status, 'New'),
-    priority: normalizeText(draft.priority, 'Normal'),
+    source: normalizeLeadSource(draft.source),
+    status: normalizeLeadStatus(draft.status),
+    leadStatus: normalizeLeadStatus(draft.status),
+    priority: normalizeLeadPriority(draft.priority),
     ownerName: normalizeText(draft.ownerName, 'Unassigned'),
     owner: normalizeText(draft.ownerName, 'Unassigned'),
     assignedTo: normalizeText(draft.ownerName, 'Unassigned'),
@@ -190,7 +191,7 @@ const buildPayload = (draft) => {
   };
 };
 
-const isOpenPipeline = (lead) => !['Booked', 'Lost', 'Disqualified'].includes(lead.status);
+const isOpenPipeline = (lead) => !['Booked', 'Lost', 'Disqualified'].includes(normalizeLeadStatus(lead.status));
 
 const CrmLeads = () => {
   const navigate = useNavigate();

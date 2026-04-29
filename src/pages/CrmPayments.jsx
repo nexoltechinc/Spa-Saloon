@@ -83,9 +83,9 @@ const shouldHidePayment = (payment) => {
   const paymentId = String(payment?.id || payment?.paymentId || '').trim().toUpperCase();
   return hiddenPaymentIds.has(paymentId);
 };
-const visiblePaymentSeed = paymentSeed.filter((payment) => !shouldHidePayment(payment));
+const VISIBLE_PAYMENT_SEED = paymentSeed.filter((payment) => !shouldHidePayment(payment));
 
-const completedAppointmentsSeed = [
+const COMPLETED_APPOINTMENTS_SEED = [
   { id: 'CHK-7101', appointmentId: 'APT-4422', customerName: 'Maya Cortez', customerEmail: 'maya.cortez@example.com', branchName: 'West Hollywood', serviceName: 'Aromatherapy Steam Escape', amountDue: 225, completedAt: '2026-04-15T12:35:00', status: 'Completed' },
   { id: 'CHK-7102', appointmentId: 'APT-4423', customerName: 'Priya Singh', customerEmail: 'priya.singh@example.com', branchName: 'Beverly Hills', serviceName: 'Hydra Glow Infusion', amountDue: 185, completedAt: '2026-04-15T13:10:00', status: 'Completed' },
   { id: 'CHK-7103', appointmentId: 'APT-4424', customerName: 'Carla Kim', customerEmail: 'carla.kim@example.com', branchName: 'Downtown', serviceName: 'Wellness Intake Consultation', amountDue: 55, completedAt: '2026-04-15T13:45:00', status: 'Completed' },
@@ -100,7 +100,7 @@ const methodOptions = [
   { label: 'Bank Transfer (Future-ready)', value: 'Bank Transfer' },
 ];
 const dateOptions = ['Today', 'Last 7 Days', 'This Month'];
-const serviceCatalogSeed = [
+const SERVICE_CATALOG_SEED = [
   { id: 'SRV-101', name: 'Signature Facial', price: 120 },
   { id: 'SRV-102', name: 'Deep Tissue Massage', price: 150 },
   { id: 'SRV-103', name: 'Aromatherapy Session', price: 135 },
@@ -110,6 +110,35 @@ const serviceCatalogSeed = [
   { id: 'SRV-107', name: 'Aromatherapy Steam Escape', price: 225 },
   { id: 'SRV-108', name: 'Wellness Intake Consultation', price: 55 },
 ];
+
+const describeLoadFailure = (reason) => {
+  if (reason instanceof Error) return reason.message;
+  if (reason && typeof reason === 'object' && typeof reason.message === 'string') return reason.message;
+  return String(reason || 'unavailable');
+};
+
+const buildServiceCatalog = (servicesData = [], paymentsData = [], appointmentsData = []) => {
+  const catalog = [];
+  const addEntry = (entry, index, prefix) => {
+    const name = String(entry?.name || entry?.serviceName || entry?.service || entry?.treatment || '').trim();
+    if (!name) return;
+    if (catalog.some((item) => item.name.toLowerCase() === name.toLowerCase())) return;
+    catalog.push({
+      id: entry?.id || entry?._id || `${prefix}-${index + 1}`,
+      name,
+      price: parseMoney(entry?.price ?? entry?.amount ?? entry?.amountDue ?? entry?.total ?? 0),
+    });
+  };
+
+  if (Array.isArray(servicesData)) {
+    servicesData.forEach((service, index) => addEntry(service, index, 'SRV'));
+  }
+
+  [...(Array.isArray(paymentsData) ? paymentsData : []), ...(Array.isArray(appointmentsData) ? appointmentsData : [])]
+    .forEach((entry, index) => addEntry(entry, index, 'SRV-LIVE'));
+
+  return catalog;
+};
 
 const parseMoney = (value) => {
   if (typeof value === 'number') return value;
@@ -319,9 +348,9 @@ const buildDraftReceiptPreview = (draft, branding) => {
 const CrmPayments = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [payments, setPayments] = useState(visiblePaymentSeed.map((payment, index) => normalizePayment(payment, index)));
-  const [appointmentsQueue, setAppointmentsQueue] = useState(completedAppointmentsSeed.map(normalizeQueueItem));
-  const [selectedPaymentId, setSelectedPaymentId] = useState(visiblePaymentSeed[0]?.id || '');
+  const [payments, setPayments] = useState([]);
+  const [appointmentsQueue, setAppointmentsQueue] = useState([]);
+  const [selectedPaymentId, setSelectedPaymentId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [methodFilter, setMethodFilter] = useState('All Methods');
@@ -342,7 +371,7 @@ const CrmPayments = () => {
   const [receiptNotice, setReceiptNotice] = useState('');
   const [receiptError, setReceiptError] = useState('');
   const [isReceiptBusy, setIsReceiptBusy] = useState(false);
-  const [serviceCatalog, setServiceCatalog] = useState(serviceCatalogSeed);
+  const [serviceCatalog, setServiceCatalog] = useState([]);
   const [receiptBranding, setReceiptBranding] = useState(() => buildReceiptBranding());
   const [recordDraft, setRecordDraft] = useState({
     sourcePaymentId: '',
@@ -367,17 +396,28 @@ const CrmPayments = () => {
       setLoadError('');
 
       try {
-        const [paymentsData, appointmentsData, servicesData, branchesData] = await Promise.all([
-          crmList('payments').catch(() => []),
-          crmList('appointments').catch(() => []),
-          crmList('services').catch(() => []),
-          crmList('branches').catch(() => []),
+        const [paymentsResult, appointmentsResult, servicesResult, branchesResult] = await Promise.allSettled([
+          crmList('payments'),
+          crmList('appointments'),
+          crmList('services'),
+          crmList('branches'),
         ]);
 
         if (!mounted) return;
 
+        const paymentsData = paymentsResult.status === 'fulfilled' && Array.isArray(paymentsResult.value) ? paymentsResult.value : [];
+        const appointmentsData = appointmentsResult.status === 'fulfilled' && Array.isArray(appointmentsResult.value) ? appointmentsResult.value : [];
+        const servicesData = servicesResult.status === 'fulfilled' && Array.isArray(servicesResult.value) ? servicesResult.value : [];
+        const branchesData = branchesResult.status === 'fulfilled' && Array.isArray(branchesResult.value) ? branchesResult.value : [];
+        const syncIssues = [];
+
+        if (paymentsResult.status === 'rejected') syncIssues.push(`payments: ${describeLoadFailure(paymentsResult.reason)}`);
+        if (appointmentsResult.status === 'rejected') syncIssues.push(`appointments: ${describeLoadFailure(appointmentsResult.reason)}`);
+        if (servicesResult.status === 'rejected') syncIssues.push(`services: ${describeLoadFailure(servicesResult.reason)}`);
+        if (branchesResult.status === 'rejected') syncIssues.push(`branches: ${describeLoadFailure(branchesResult.reason)}`);
+
         const branchNames = new Set();
-        const branchList = Array.isArray(branchesData) ? branchesData : [];
+        const branchList = branchesData;
         branchList.forEach((branch) => {
           const name = branch?.name || branch?.branchName || branch?.locationName || branch?.title;
           if (name) branchNames.add(String(name).trim());
@@ -394,35 +434,24 @@ const CrmPayments = () => {
             .filter(Boolean),
         );
 
-        const normalizedPayments = Array.isArray(paymentsData) && paymentsData.length > 0
-          ? paymentsData
-            .filter((payment) => !shouldHidePayment(payment))
-            .map((payment, index) => normalizePayment(payment, index, branchLookup))
-          : visiblePaymentSeed.map((payment, index) => normalizePayment(payment, index, branchLookup));
+        const normalizedPayments = paymentsData
+          .filter((payment) => !shouldHidePayment(payment))
+          .map((payment, index) => normalizePayment(payment, index, branchLookup));
 
-        const normalizedAppointments = Array.isArray(appointmentsData) && appointmentsData.length > 0
-          ? appointmentsData.map((appointment, index) => normalizeQueueItem(appointment, index, branchLookup))
-          : completedAppointmentsSeed.map((appointment, index) => normalizeQueueItem(appointment, index, branchLookup));
+        const normalizedAppointments = appointmentsData.map((appointment, index) => normalizeQueueItem(appointment, index, branchLookup));
 
-        const mergedCatalog = [...serviceCatalogSeed];
-        if (Array.isArray(servicesData)) {
-          servicesData.forEach((service, index) => {
-            const normalized = { id: service.id || service._id || `SRV-${index + 1}`, name: service.name || service.serviceName || '', price: parseMoney(service.price ?? service.amount ?? 0) };
-            if (!normalized.name) return;
-            if (!mergedCatalog.some((item) => item.name.toLowerCase() === normalized.name.toLowerCase())) {
-              mergedCatalog.push(normalized);
-            }
-          });
-        }
+        const mergedCatalog = buildServiceCatalog(servicesData, paymentsData, appointmentsData);
 
         setPayments(normalizedPayments);
         setAppointmentsQueue(normalizedAppointments);
         setServiceCatalog(mergedCatalog);
         setSelectedPaymentId((current) => normalizedPayments.some((payment) => payment.id === current) ? current : normalizedPayments[0]?.id || '');
+        setLoadError(syncIssues.length > 0 ? `CRM sync is partial. ${syncIssues.join(' | ')}` : '');
       } catch (error) {
         if (!mounted) return;
-        setPayments(visiblePaymentSeed.map((payment, index) => normalizePayment(payment, index)));
-        setAppointmentsQueue(completedAppointmentsSeed.map((appointment, index) => normalizeQueueItem(appointment, index)));
+        setPayments([]);
+        setAppointmentsQueue([]);
+        setServiceCatalog([]);
         setLoadError(error.message || 'Unable to load payments from the CRM API.');
       } finally {
         if (mounted) setIsLoading(false);
@@ -598,6 +627,7 @@ const CrmPayments = () => {
   const draftRemainingBalanceValue = Math.max(draftAmountDueValue - draftAmountPaidValue, 0);
 
   const applyPaymentPatch = async (paymentId, patch) => {
+    const previousPayment = payments.find((entry) => entry.id === paymentId);
     let nextPayment = null;
     setPayments((current) => current.map((entry, index) => {
       if (entry.id !== paymentId) return entry;
@@ -609,8 +639,13 @@ const CrmPayments = () => {
       setSelectedPaymentId(nextPayment.id);
       try {
         await crmUpdate('payments', paymentId, patch);
-      } catch {
-        // Keep UI optimistic for front desk speed.
+      } catch (error) {
+        if (previousPayment) {
+          setPayments((current) => current.map((entry) => (entry.id === paymentId ? previousPayment : entry)));
+        }
+        setLoadError(error.message || 'Payment update failed.');
+        setReceiptError(error.message || 'Payment update failed.');
+        return null;
       }
     }
 
@@ -675,7 +710,12 @@ const CrmPayments = () => {
         receiptNumber: payment.receiptNumber || deriveReceiptNumber(payment.id),
         linkedReceiptId: payment.linkedReceiptId || `receipt-${payment.id.toLowerCase()}`,
       });
+      if (!updated) {
+        setReceiptError('Receipt generation failed.');
+        return null;
+      }
       setReceiptNotice('Receipt generated and ready for print, download, or email.');
+      setReceiptError('');
       return updated || payment;
     } finally {
       setIsReceiptBusy(false);
@@ -688,6 +728,7 @@ const CrmPayments = () => {
 
     try {
       const updatedPayment = payment.receiptGenerated ? payment : await handleGenerateReceipt(payment);
+      if (!updatedPayment) return;
       const next = updatedPayment || payment;
       const preview = buildReceiptPreview(next, receiptBranding);
 
@@ -702,7 +743,8 @@ const CrmPayments = () => {
           popup.print();
           popup.close();
         }
-        await applyPaymentPatch(next.id, { receiptPrintedAt: new Date().toISOString(), editedBy: 'Front Desk' });
+        const patched = await applyPaymentPatch(next.id, { receiptPrintedAt: new Date().toISOString(), editedBy: 'Front Desk' });
+        if (!patched) return;
         setReceiptNotice('Receipt print action completed.');
         return;
       }
@@ -727,7 +769,8 @@ const CrmPayments = () => {
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=${recipient}&su=${subject}&body=${body}`;
         const popup = window.open(gmailUrl, '_blank', 'noopener,noreferrer');
         if (!popup) window.location.href = gmailUrl;
-        await applyPaymentPatch(next.id, { receiptEmailedAt: new Date().toISOString(), editedBy: 'Front Desk' });
+        const patched = await applyPaymentPatch(next.id, { receiptEmailedAt: new Date().toISOString(), editedBy: 'Front Desk' });
+        if (!patched) return;
         setReceiptNotice('Gmail compose opened with receipt details.');
       }
     } finally {
@@ -767,9 +810,13 @@ const CrmPayments = () => {
         notes: recordDraft.notes || source.notes,
       });
 
-      if (updated) {
-        await handleReceiptAction('download', updated);
+      if (!updated) {
+        setSaveError('Payment update failed.');
+        setIsSaving(false);
+        return;
       }
+
+      await handleReceiptAction('download', updated);
       setIsRecordOpen(false);
       setIsSaving(false);
       return;
@@ -810,12 +857,8 @@ const CrmPayments = () => {
       setPayments((current) => [normalized, ...current]);
       setSelectedPaymentId(normalized.id);
       setIsRecordOpen(false);
-    } catch {
-      const localPayment = normalizePayment({ id: `PAY-LOCAL-${Date.now()}`, ...payload }, payments.length);
-      setPayments((current) => [localPayment, ...current]);
-      setSelectedPaymentId(localPayment.id);
-      setIsRecordOpen(false);
-      setReceiptNotice('Payment endpoint unavailable, saved in local fallback mode.');
+    } catch (error) {
+      setSaveError(error.message || 'Payment save failed.');
     } finally {
       setIsSaving(false);
     }

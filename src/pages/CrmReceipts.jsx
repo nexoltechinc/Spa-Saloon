@@ -21,7 +21,7 @@ import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmPayments.css';
 import './CrmReceipts.css';
 
-const serviceCatalogSeed = [
+const SERVICE_CATALOG_SEED = [
   { id: 'SRV-101', name: 'Signature Facial', price: 120 },
   { id: 'SRV-102', name: 'Deep Tissue Massage', price: 150 },
   { id: 'SRV-103', name: 'Aromatherapy Session', price: 135 },
@@ -34,7 +34,7 @@ const serviceCatalogSeed = [
   { id: 'SRV-110', name: 'Package Purchase', price: 320 },
 ];
 
-const receiptSeedPayments = [
+const RECEIPT_SEED_PAYMENTS = [
   {
     id: 'PAY-9921',
     customerName: 'Eleanor Hebert',
@@ -156,7 +156,7 @@ const receiptSeedPayments = [
   },
 ];
 
-const completedAppointmentsSeed = [
+const COMPLETED_APPOINTMENTS_SEED = [
   { id: 'CHK-7101', appointmentId: 'APT-4422', customerName: 'Maya Cortez', customerEmail: 'maya.cortez@example.com', serviceName: 'Aromatherapy Steam Escape', amountDue: 225, completedAt: '2026-04-15T12:35:00', status: 'Completed', branchName: 'West Hollywood' },
   { id: 'CHK-7102', appointmentId: 'APT-4423', customerName: 'Priya Singh', customerEmail: 'priya.singh@example.com', serviceName: 'Hydra Glow Infusion', amountDue: 185, completedAt: '2026-04-15T13:10:00', status: 'Completed', branchName: 'West Hollywood' },
   { id: 'CHK-7103', appointmentId: 'APT-4424', customerName: 'Carla Kim', customerEmail: 'carla.kim@example.com', serviceName: 'Wellness Intake Consultation', amountDue: 55, completedAt: '2026-04-15T13:45:00', status: 'Completed', branchName: 'West Hollywood' },
@@ -205,7 +205,7 @@ const normalizeService = (service = {}, index = 0) => ({
   price: Number(service.price ?? service.amount ?? 0),
 });
 
-const normalizeQueueItem = (appointment = {}, index = 0) => ({
+const NORMALIZE_QUEUE_ITEM = (appointment = {}, index = 0) => ({
   id: appointment.id || appointment.appointmentId || `CHK-${index + 1}`,
   appointmentId: appointment.appointmentId || appointment.id || '',
   customerName: appointment.customerName || appointment.customer || 'Guest',
@@ -289,13 +289,13 @@ const openReceiptWindow = (receipt, autoPrint = true) => {
 const CrmReceipts = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [payments, setPayments] = useState(receiptSeedPayments);
-  const [appointments, setAppointments] = useState(completedAppointmentsSeed.map(normalizeQueueItem));
+  const [payments, setPayments] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [serviceCatalog, setServiceCatalog] = useState(serviceCatalogSeed);
+  const [serviceCatalog, setServiceCatalog] = useState([]);
   const [receiptBranding, setReceiptBranding] = useState(() => buildReceiptBranding(loadReceiptSettings()));
   const [selectedReceiptId, setSelectedReceiptId] = useState(
-    location.state?.receiptId || location.state?.selectedPaymentId || receiptSeedPayments[0]?.id || '',
+    location.state?.receiptId || location.state?.selectedPaymentId || '',
   );
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('Today');
@@ -318,45 +318,43 @@ const CrmReceipts = () => {
       setLoadError('');
 
       try {
-        const [paymentsData, appointmentsData, customersData, servicesData] = await Promise.all([
-          crmList('payments').catch(() => []),
-          crmList('appointments').catch(() => []),
-          crmList('customers').catch(() => []),
-          crmList('services').catch(() => []),
+        const [paymentsResult, appointmentsResult, customersResult, servicesResult] = await Promise.allSettled([
+          crmList('payments'),
+          crmList('appointments'),
+          crmList('customers'),
+          crmList('services'),
         ]);
 
         if (!mounted) return;
 
-        const mergedPayments = Array.isArray(paymentsData) && paymentsData.length > 0 ? paymentsData : receiptSeedPayments;
-        const mergedAppointments = Array.isArray(appointmentsData) && appointmentsData.length > 0
-          ? appointmentsData.map(normalizeAppointment)
-          : completedAppointmentsSeed.map(normalizeQueueItem);
-        const mergedCustomers = Array.isArray(customersData) && customersData.length > 0
-          ? customersData.map(normalizeCustomer)
-          : [];
-        const mergedServices = [...serviceCatalogSeed];
+        const paymentsData = paymentsResult.status === 'fulfilled' && Array.isArray(paymentsResult.value) ? paymentsResult.value : [];
+        const appointmentsData = appointmentsResult.status === 'fulfilled' && Array.isArray(appointmentsResult.value) ? appointmentsResult.value : [];
+        const customersData = customersResult.status === 'fulfilled' && Array.isArray(customersResult.value) ? customersResult.value : [];
+        const servicesData = servicesResult.status === 'fulfilled' && Array.isArray(servicesResult.value) ? servicesResult.value : [];
+        const syncIssues = [];
 
-        if (Array.isArray(servicesData)) {
-          servicesData.forEach((service, index) => {
-            const normalized = normalizeService(service, index);
-            if (!normalized.name) return;
-            if (!mergedServices.some((item) => normalizeKey(item.name) === normalizeKey(normalized.name))) {
-              mergedServices.push(normalized);
-            }
-          });
-        }
+        if (paymentsResult.status === 'rejected') syncIssues.push(`payments: ${paymentsResult.reason?.message || 'unavailable'}`);
+        if (appointmentsResult.status === 'rejected') syncIssues.push(`appointments: ${appointmentsResult.reason?.message || 'unavailable'}`);
+        if (customersResult.status === 'rejected') syncIssues.push(`customers: ${customersResult.reason?.message || 'unavailable'}`);
+        if (servicesResult.status === 'rejected') syncIssues.push(`services: ${servicesResult.reason?.message || 'unavailable'}`);
+
+        const mergedPayments = paymentsData.map((payment) => payment);
+        const mergedAppointments = appointmentsData.map((appointment, index) => normalizeAppointment(appointment, index));
+        const mergedCustomers = customersData.map((customer, index) => normalizeCustomer(customer, index));
+        const mergedServices = servicesData.map((service, index) => normalizeService(service, index));
 
         setPayments(mergedPayments);
         setAppointments(mergedAppointments);
         setCustomers(mergedCustomers);
         setServiceCatalog(mergedServices);
         setSelectedReceiptId((current) => current || mergedPayments[0]?.id || '');
+        setLoadError(syncIssues.length > 0 ? `CRM sync is partial. ${syncIssues.join(' | ')}` : '');
       } catch (fetchError) {
         if (!mounted) return;
-        setPayments(receiptSeedPayments);
-        setAppointments(completedAppointmentsSeed.map(normalizeQueueItem));
+        setPayments([]);
+        setAppointments([]);
         setCustomers([]);
-        setServiceCatalog(serviceCatalogSeed);
+        setServiceCatalog([]);
         setLoadError(fetchError.message || 'Unable to load receipt data from the CRM API.');
       } finally {
         if (mounted) setIsLoading(false);
@@ -541,6 +539,7 @@ const CrmReceipts = () => {
   const awaitingCheckoutQueue = useMemo(() => buildAwaitingQueue(appointments, payments), [appointments, payments]);
 
   const recordReceiptPatch = async (paymentId, patch) => {
+    const previousPayment = payments.find((payment) => payment.id === paymentId);
     let nextPayment = null;
 
     setPayments((current) =>
@@ -557,8 +556,13 @@ const CrmReceipts = () => {
     if (nextPayment) {
       try {
         await crmUpdate('payments', paymentId, patch);
-      } catch {
-        // Keep the UI optimistic for front desk speed.
+      } catch (error) {
+        if (previousPayment) {
+          setPayments((current) => current.map((payment) => (payment.id === paymentId ? previousPayment : payment)));
+        }
+        setError(error.message || 'Unable to update receipt.');
+        setLoadError(error.message || 'Unable to update receipt.');
+        return null;
       }
     }
 
@@ -578,6 +582,7 @@ const CrmReceipts = () => {
         receiptNumber: receipt.receiptNumber || deriveReceiptNumber(receipt.paymentId),
         linkedReceiptId: receipt.receiptId || `receipt-${String(receipt.paymentId || Date.now()).toLowerCase()}`,
       });
+      if (!payment) return null;
       setNotice('Receipt generated and ready for preview, print, download, or email.');
       return payment;
     } finally {
@@ -595,6 +600,7 @@ const CrmReceipts = () => {
       const generatedPayment = receipt.receiptStatus === 'Pending' || !receipt.receiptNumber
         ? await handleGenerateReceipt(receipt)
         : sourcePayment;
+      if (!generatedPayment) return;
       const receiptToUse = buildReceiptPreview(generatedPayment || sourcePayment, lookups, receiptBranding);
 
       if (action === 'print') {
@@ -604,10 +610,11 @@ const CrmReceipts = () => {
           return;
         }
 
-        await recordReceiptPatch(receiptToUse.paymentId, {
+        const patched = await recordReceiptPatch(receiptToUse.paymentId, {
           receiptStatus: 'Printed',
           receiptPrintedAt: new Date().toISOString(),
         });
+        if (!patched) return;
         setNotice('Receipt sent to the printer.');
         return;
       }
@@ -619,10 +626,11 @@ const CrmReceipts = () => {
           return;
         }
 
-        await recordReceiptPatch(receiptToUse.paymentId, {
+        const patched = await recordReceiptPatch(receiptToUse.paymentId, {
           receiptStatus: 'Downloaded',
           receiptDownloadedAt: new Date().toISOString(),
         });
+        if (!patched) return;
         setNotice('Receipt opened in the browser print flow for PDF download.');
         return;
       }
@@ -650,21 +658,23 @@ const CrmReceipts = () => {
         const popup = window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
         if (!popup) window.location.href = mailtoUrl;
 
-        await recordReceiptPatch(receiptToUse.paymentId, {
+        const patched = await recordReceiptPatch(receiptToUse.paymentId, {
           receiptStatus: 'Emailed',
           receiptEmailedAt: new Date().toISOString(),
         });
+        if (!patched) return;
         setNotice('Receipt email draft opened with the selected recipient.');
         return;
       }
 
       if (action === 'regenerate') {
-        await recordReceiptPatch(receiptToUse.paymentId, {
+        const patched = await recordReceiptPatch(receiptToUse.paymentId, {
           receiptGenerated: true,
           receiptStatus: 'Generated',
           receiptGeneratedAt: new Date().toISOString(),
           receiptNumber: receiptToUse.receiptNumber,
         });
+        if (!patched) return;
         setNotice('Receipt re-synced from the payment record.');
         return;
       }
