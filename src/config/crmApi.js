@@ -1,4 +1,4 @@
-import { getCrmToken } from './crm.js';
+import { CRM_AUTH_ENDPOINT, getCrmToken } from './crm.js';
 
 const runtimeEnv = import.meta.env ?? {};
 
@@ -25,7 +25,8 @@ const joinPath = (left, right) => {
 
 const buildUrl = (path, query) => {
   const base = joinPath(CRM_API_BASE_URL, joinPath(CRM_API_PREFIX, path));
-  const url = new URL(base, window.location.origin);
+  const origin = globalThis?.window?.location?.origin || 'http://127.0.0.1';
+  const url = new URL(base, origin);
 
   if (query) {
     Object.entries(query).forEach(([key, value]) => {
@@ -64,17 +65,30 @@ const unwrapCollection = (payload, resourceName) => {
   return Array.isArray(match) ? match : [];
 };
 
-export const crmApiRequest = async (path, { method = 'GET', body, query, headers = {}, token = getCrmToken() } = {}) => {
-  const response = await fetch(buildUrl(path, query), {
-    method,
-    headers: {
-      Accept: 'application/json',
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+const buildAuthUrl = () => {
+  const endpoint = String(CRM_AUTH_ENDPOINT || '').trim() || '/api/crm/auth/login';
+
+  if (/^https?:\/\//i.test(endpoint)) {
+    return endpoint;
+  }
+
+  const origin = globalThis?.window?.location?.origin || 'http://127.0.0.1';
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return new URL(normalizedEndpoint, origin).toString();
+};
+
+const fetchJson = async (url, requestInit) => {
+  let response;
+
+  try {
+    response = await fetch(url, requestInit);
+  } catch (fetchError) {
+    const error = new Error('The CRM service could not be reached.');
+    error.status = 0;
+    error.code = 'CRM_NETWORK_UNAVAILABLE';
+    error.cause = fetchError;
+    throw error;
+  }
 
   const payload = await readPayload(response);
 
@@ -85,11 +99,70 @@ export const crmApiRequest = async (path, { method = 'GET', body, query, headers
       `CRM request failed (${response.status})`;
     const error = new Error(message);
     error.status = response.status;
+    error.code =
+      payload && typeof payload === 'object'
+        ? payload.code || null
+        : null;
+    if (!error.code && response.status >= 500) {
+      error.code = 'CRM_SERVICE_UNAVAILABLE';
+    }
     error.payload = payload;
     throw error;
   }
 
   return payload;
+};
+
+export const crmApiRequest = async (path, { method = 'GET', body, query, headers = {}, token = getCrmToken() } = {}) => {
+  const requestInit = {
+    method,
+    headers: {
+      Accept: 'application/json',
+      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  };
+
+  return fetchJson(buildUrl(path, query), requestInit);
+};
+
+export const crmHealthCheck = async () => {
+  try {
+    const response = await fetch(buildUrl('/health'), {
+      headers: { Accept: 'application/json' },
+    });
+
+    const payload = await readPayload(response);
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      payload,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      error,
+    };
+  }
+};
+
+export const crmLogin = async (credentials, options = {}) => {
+  const { headers = {}, ...requestOptions } = options;
+
+  return fetchJson(buildAuthUrl(), {
+    ...requestOptions,
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+    body: JSON.stringify(credentials),
+  });
 };
 
 export const crmList = async (resourceName, options = {}) => {

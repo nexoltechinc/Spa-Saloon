@@ -26,11 +26,22 @@ import {
 import './CrmWorkspace.css';
 import './CrmLeads.css';
 
-const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Proposal', 'Booked', 'Lost', 'Disqualified'];
+const STATUS_OPTIONS = ['New', 'Awaiting Response', 'Contacted', 'Qualified', 'Proposal', 'Booked', 'Lost', 'Disqualified'];
 const STATUS_FILTERS = ['All Statuses', ...STATUS_OPTIONS];
 const PRIORITY_OPTIONS = ['High', 'Normal', 'Low'];
 const PRIORITY_FILTERS = ['All Priorities', ...PRIORITY_OPTIONS];
-const SOURCE_OPTIONS = ['CRM', 'Website Form', 'Walk-In', 'Phone', 'Instagram', 'Google', 'Referral', 'Partner'];
+const SOURCE_OPTIONS = [
+  'CRM',
+  'Website Form',
+  'Inquiry Chatbot',
+  'Walk-In',
+  'Phone Inquiry',
+  'Phone',
+  'Instagram',
+  'Google',
+  'Referral',
+  'Partner',
+];
 const SOURCE_FILTERS = ['All Sources', ...SOURCE_OPTIONS];
 const FOLLOW_UP_FILTERS = ['All Leads', 'Needs Follow-Up', 'Due Today', 'Overdue', 'Booked', 'Open Pipeline'];
 const LEAD_GRID_COLUMNS = 'minmax(248px, 1.34fr) minmax(124px, 0.92fr) minmax(108px, 0.78fr) minmax(96px, 0.72fr) minmax(132px, 0.94fr) minmax(154px, 1fr) minmax(98px, 0.74fr) minmax(120px, 0.84fr) minmax(84px, 0.64fr)';
@@ -50,6 +61,39 @@ const getPriorityTone = (priority) => {
   if (normalized === 'normal') return 'warning';
   if (normalized === 'low') return 'good';
   return 'neutral';
+};
+
+const normalizeLeadStatus = (status) => {
+  const value = String(status || '').trim().toLowerCase();
+  if (value === 'awaiting response' || value === 'pending') return 'Awaiting Response';
+  if (value === 'contacted') return 'Contacted';
+  if (value === 'qualified') return 'Qualified';
+  if (value === 'proposal' || value === 'proposed') return 'Proposal';
+  if (value === 'booked' || value === 'converted') return 'Booked';
+  if (value === 'lost' || value === 'closed lost' || value === 'disqualified') return 'Lost';
+  return 'New';
+};
+
+const normalizeLeadSource = (source) => {
+  const value = String(source || '').trim().toLowerCase();
+  if (value === 'crm') return 'CRM';
+  if (value === 'website form' || value === 'website') return 'Website Form';
+  if (value === 'inquiry chatbot' || value === 'chatbot') return 'Inquiry Chatbot';
+  if (value === 'walk-in' || value === 'walk in') return 'Walk-In';
+  if (value === 'phone inquiry') return 'Phone Inquiry';
+  if (value === 'phone') return 'Phone';
+  if (value === 'instagram') return 'Instagram';
+  if (value === 'google') return 'Google';
+  if (value === 'referral') return 'Referral';
+  if (value === 'partner') return 'Partner';
+  return normalizeText(source, 'Website Form');
+};
+
+const normalizeLeadPriority = (priority) => {
+  const value = String(priority || '').trim().toLowerCase();
+  if (value === 'high') return 'High';
+  if (value === 'low') return 'Low';
+  return 'Normal';
 };
 
 const getFollowUpTone = (lead) => {

@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
+import http from 'node:http';
 import { createServer } from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -53,6 +54,7 @@ const createStorage = () => {
     clear: () => {
       entries.clear();
     },
+    entries,
   };
 };
 
@@ -92,6 +94,38 @@ const quoteIdentifier = (value) => `"${String(value).replaceAll('"', '""')}"`;
 
 const createPgClient = (connectionString) => new Client({ connectionString });
 
+const MOCK_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+
+const createMockSessionToken = ({ email, role = 'admin' }) => {
+  const payload = {
+    sub: email,
+    email,
+    role,
+    issuedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + MOCK_SESSION_TTL_MS).toISOString(),
+  };
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  return `${encodedPayload}.mock-signature`;
+};
+
+const readJsonBody = async (request) => {
+  const chunks = [];
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.from(chunk));
+  }
+
+  if (!chunks.length) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    return {};
+  }
+};
+
 const runSql = async (connectionString, sql, values = []) => {
   const client = createPgClient(connectionString);
   await client.connect();
@@ -121,7 +155,7 @@ const waitForDatabaseReady = async (connectionString) => {
   );
 };
 
-const waitForApiHealth = async (baseUrl, apiState) => {
+const waitForApiHealth = async (baseUrl, apiState, { allowDegraded = false } = {}) => {
   await waitForPredicate(
     async () => {
       if (apiState.exitInfo) {
@@ -134,15 +168,15 @@ const waitForApiHealth = async (baseUrl, apiState) => {
         headers: { Accept: 'application/json' },
       });
 
-      return response.ok;
+      return allowDegraded ? response.ok || response.status === 503 : response.ok;
     },
     { attempts: 60, intervalMs: 500, label: 'CRM API health' },
   );
 };
 
-const installBrowserShim = (origin) => {
-  const localStorage = createStorage();
-  const sessionStorage = createStorage();
+const installBrowserShim = (origin, storage = null) => {
+  const localStorage = storage?.localStorage || createStorage();
+  const sessionStorage = storage?.sessionStorage || createStorage();
 
   globalThis.window = {
     location: { origin },
@@ -151,6 +185,11 @@ const installBrowserShim = (origin) => {
   };
   globalThis.localStorage = localStorage;
   globalThis.sessionStorage = sessionStorage;
+
+  return {
+    localStorage,
+    sessionStorage,
+  };
 };
 
 export class CrmRuntimeHarness {
@@ -160,14 +199,18 @@ export class CrmRuntimeHarness {
     this.databaseDir = '';
     this.databasePort = dockerDbPort;
     this.databaseMode = null;
+    this.verificationMode = 'full';
     this.port = null;
     this.baseUrl = null;
     this.apiProcess = null;
     this.apiState = { logs: [], exitInfo: null };
+    this.mockServer = null;
     this.client = null;
+    this.browserStorage = null;
     this.startedDb = false;
     this.embedded = null;
     this.dockerStartupError = null;
+    this.databaseStartupError = null;
   }
 
   getMaintenanceConnectionString(databaseName = 'postgres') {
@@ -179,16 +222,39 @@ export class CrmRuntimeHarness {
   }
 
   async prepare() {
-    await this.startDatabase();
-    this.startedDb = true;
-    await this.createDatabase(this.databaseName);
+    try {
+      await this.startDatabase();
+      this.startedDb = true;
+      await this.createDatabase(this.databaseName);
 
+      this.port = await findFreePort();
+      this.baseUrl = `http://127.0.0.1:${this.port}`;
+      this.browserStorage = installBrowserShim(this.baseUrl);
+
+      await this.startApi({
+        port: this.port,
+        databaseUrl: this.getDatabaseUrl(),
+      });
+      await waitForApiHealth(this.baseUrl, this.apiState);
+      this.verificationMode = 'full';
+      await this.loadFrontendClient();
+      return this;
+    } catch (error) {
+      this.databaseStartupError = error instanceof Error ? error : new Error(String(error || 'CRM database startup failed.'));
+    }
+
+    this.verificationMode = 'auth-only';
+    this.databaseMode = 'unavailable';
     this.port = await findFreePort();
     this.baseUrl = `http://127.0.0.1:${this.port}`;
+    this.browserStorage = installBrowserShim(this.baseUrl);
+    this.databasePort = await findFreePort();
 
-    installBrowserShim(this.baseUrl);
-    await this.startApi();
-    await waitForApiHealth(this.baseUrl, this.apiState);
+    await this.startApi({
+      port: this.port,
+      databaseUrl: this.getDatabaseUrl(),
+    });
+    await waitForApiHealth(this.baseUrl, this.apiState, { allowDegraded: true });
     await this.loadFrontendClient();
 
     return this;
@@ -272,15 +338,15 @@ export class CrmRuntimeHarness {
     return this.client;
   }
 
-  async startApi() {
+  async startApi({ port = this.port, databaseUrl = this.getDatabaseUrl() } = {}) {
     if (this.apiProcess) {
       throw new Error('API is already running.');
     }
 
     const env = {
       ...process.env,
-      PORT: String(this.port),
-      DATABASE_URL: this.getDatabaseUrl(),
+      PORT: String(port),
+      DATABASE_URL: databaseUrl,
       CRM_ADMIN_EMAIL: adminEmail,
       CRM_ADMIN_PASSWORD: adminPassword,
       CRM_AUTH_SECRET: 'spa-saloon-smoke-secret',
@@ -324,6 +390,86 @@ export class CrmRuntimeHarness {
     }
   }
 
+  async startMockAuthServer() {
+    if (this.mockServer) {
+      throw new Error('Mock auth server is already running.');
+    }
+
+    await this.stopApi();
+
+    const server = http.createServer(async (request, response) => {
+      const requestUrl = new URL(request.url || '/', `http://${request.headers.host || '127.0.0.1'}`);
+
+      const sendJson = (statusCode, payload) => {
+        response.writeHead(statusCode, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': 'no-store',
+        });
+        response.end(JSON.stringify(payload));
+      };
+
+      if (request.method === 'GET' && requestUrl.pathname === '/api/crm/health') {
+        sendJson(200, {
+          ok: true,
+          ready: true,
+          database: {
+            state: 'mock',
+            message: 'Auth-only verification mode',
+          },
+          resources: ['auth'],
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (request.method === 'POST' && requestUrl.pathname === '/api/crm/auth/login') {
+        const body = await readJsonBody(request);
+        const email = String(body.email || '').trim().toLowerCase();
+        const password = String(body.password || '');
+
+        if (email !== adminEmail || password !== adminPassword) {
+          sendJson(401, {
+            code: 'CRM_INVALID_CREDENTIALS',
+            message: 'Invalid CRM credentials.',
+          });
+          return;
+        }
+
+        sendJson(200, {
+          token: createMockSessionToken({ email: adminEmail, role: 'admin' }),
+          user: {
+            email: adminEmail,
+            role: 'admin',
+          },
+        });
+        return;
+      }
+
+      sendJson(404, {
+        message: 'Route not found.',
+      });
+    });
+
+    await new Promise((resolve) => {
+      server.listen(this.port, '127.0.0.1', resolve);
+    });
+
+    this.mockServer = server;
+  }
+
+  async stopMockAuthServer() {
+    if (!this.mockServer) {
+      return;
+    }
+
+    const server = this.mockServer;
+    this.mockServer = null;
+
+    await new Promise((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+
   async restartDatabaseAndApi() {
     await this.stopApi();
 
@@ -342,13 +488,42 @@ export class CrmRuntimeHarness {
 
   async shutdown() {
     await this.stopApi().catch(() => {});
+    await this.stopMockAuthServer().catch(() => {});
     await this.stopDatabase().catch(() => {});
 
-    if (this.databaseMode === 'embedded' && this.databaseDir) {
+    if (this.embedded) {
+      await this.embedded.stop().catch(() => {});
+    }
+
+    if (this.databaseDir) {
       await rm(this.databaseDir, { recursive: true, force: true }).catch(() => {});
     }
 
     this.client = null;
+  }
+
+  async health() {
+    const { crmHealthCheck } = await this.loadFrontendClient();
+    return crmHealthCheck();
+  }
+
+  async getToken() {
+    const { getCrmToken } = await this.loadFrontendClient();
+    return getCrmToken();
+  }
+
+  async setToken(token, persist = true) {
+    const { setCrmToken } = await this.loadFrontendClient();
+    setCrmToken(token, persist);
+  }
+
+  async clearToken() {
+    const { clearCrmToken } = await this.loadFrontendClient();
+    clearCrmToken();
+  }
+
+  async simulateRefresh() {
+    this.browserStorage = installBrowserShim(this.baseUrl, this.browserStorage || undefined);
   }
 
   async queryDatabase(databaseName, sql, values = []) {
@@ -384,11 +559,6 @@ export class CrmRuntimeHarness {
     const { setCrmToken } = await this.loadFrontendClient();
     setCrmToken(session.token);
     return session;
-  }
-
-  async clearToken() {
-    const { clearCrmToken } = await this.loadFrontendClient();
-    clearCrmToken();
   }
 
   async list(resource, options = {}) {

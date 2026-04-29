@@ -407,6 +407,10 @@ const normalizeAppointmentInput = (payload, existing = {}) => {
     : Math.max(amountDue - amountPaid, 0);
   const status = normalizeText(source.status ?? source.appointmentStatus, existing.status || 'Confirmed');
   const paymentStatus = normalizeText(source.paymentStatus, existing.paymentStatus || (balanceRemaining > 0 ? (amountPaid > 0 ? 'Partial' : 'Unpaid') : 'Paid'));
+  const checkedIn = ['arrived', 'checked in', 'check in', 'in progress', 'inprogress'].includes(asLower(status));
+  const checkInAt = checkedIn
+    ? normalizeDateString(source.checkInAt ?? existing.checkInAt, new Date().toISOString())
+    : normalizeDateString(source.checkInAt, existing.checkInAt || '');
   const completedAt = status === 'Completed'
     ? normalizeDateString(source.completedAt ?? existing.completedAt, new Date().toISOString())
     : normalizeDateString(source.completedAt, existing.completedAt || '');
@@ -433,7 +437,7 @@ const normalizeAppointmentInput = (payload, existing = {}) => {
     balanceRemaining,
     source: normalizeText(source.source, existing.source || 'CRM'),
     notes: normalizeText(source.notes, existing.notes || ''),
-    checkInAt: normalizeDateString(source.checkInAt, existing.checkInAt || ''),
+    checkInAt,
     completedAt,
     cancelledAt,
     metadata: {

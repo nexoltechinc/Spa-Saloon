@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clearCrmToken } from '../config/crm';
+import { clearCrmToken, getCrmSession } from '../config/crm';
 import { crmList, crmUpdate } from '../config/crmApi';
 import CrmShell from '../components/CrmShell';
+import CrmSyncBanner from '../components/CrmSyncBanner';
 import './CrmDashboard.css';
 
 const APPOINTMENT_STATUSES = [
@@ -23,12 +24,67 @@ const TOP_BRANCHES = [
   'Beverly Hills Retreat',
 ];
 
-const ACTIVE_DASHBOARD_ROLE = 'receptionist';
+const DASHBOARD_ROLE_ALIASES = {
+  admin: 'owner',
+  owner: 'owner',
+  manager: 'manager',
+  supervisor: 'manager',
+  receptionist: 'receptionist',
+  frontdesk: 'receptionist',
+  front_desk: 'receptionist',
+};
+
+const DASHBOARD_ROLE_LABELS = {
+  owner: 'Owner',
+  manager: 'Manager',
+  receptionist: 'Receptionist',
+};
 
 const WIDGET_ACCESS = {
   appointments: ['receptionist', 'manager', 'owner'],
-  conciergeActions: ['receptionist', 'manager'],
+  conciergeActions: ['receptionist', 'manager', 'owner'],
   financialOverview: ['manager', 'owner', 'receptionist'],
+};
+
+const normalizeDashboardRole = (role) => {
+  const value = String(role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return DASHBOARD_ROLE_ALIASES[value] || value || 'receptionist';
+};
+
+const formatRoleLabel = (role) => DASHBOARD_ROLE_LABELS[normalizeDashboardRole(role)] || 'CRM user';
+
+const formatDisplayName = (value) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+
+  const localPart = text.split('@')[0].replace(/[._-]+/g, ' ').trim();
+  if (!localPart) return '';
+
+  return localPart
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+};
+
+const describeDashboardLoadIssue = (resources = []) => {
+  if (!resources.length) return '';
+
+  const labels = resources.map((resource) =>
+    String(resource || '')
+      .replace(/_/g, ' ')
+      .replace(/^\w/, (letter) => letter.toUpperCase()),
+  );
+
+  if (labels.length === 1) {
+    return `Could not refresh ${labels[0]} from the CRM API. The dashboard is still showing the rest of the live data.`;
+  }
+
+  if (labels.length === 2) {
+    return `Could not refresh ${labels[0]} and ${labels[1]} from the CRM API. The dashboard is still showing the rest of the live data.`;
+  }
+
+  return `Could not refresh ${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]} from the CRM API. The dashboard is still showing the rest of the live data.`;
 };
 
 const quickActions = [
@@ -369,6 +425,8 @@ const dashboardSeed = (() => {
   };
 })();
 
+void dashboardSeed;
+
 const parseMoney = (value) => {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') {
@@ -481,6 +539,13 @@ const normalizeStaff = (staff, index = 0) => ({
   capacityToday: Number(staff.capacityToday ?? staff.dailyCapacity ?? staff.capacity ?? 0),
 });
 
+const normalizeBranch = (branch, index = 0) => ({
+  id: branch.id || branch._id || branch.branchId || `branch-${index + 1}`,
+  name: branch.name || branch.branchName || `Branch ${index + 1}`,
+  status: branch.status || (branch.active === false ? 'Closed' : 'Open'),
+  active: Boolean(branch.active ?? String(branch.status || '').toLowerCase() === 'open'),
+});
+
 const normalizeAppointmentStatus = (status, paymentStatus) => {
   const value = String(status || '').trim().toLowerCase();
   let normalized = 'Confirmed';
@@ -551,7 +616,7 @@ const normalizeAppointment = (appointment, index = 0, { customerLookup, serviceL
     ),
     status,
     paymentStatus,
-    branch: appointment.branch || appointment.location || 'Melrose Sanctuary',
+    branch: appointment.branchName || appointment.branch || appointment.location || 'Melrose Sanctuary',
   };
 };
 
@@ -591,23 +656,38 @@ const paymentStatusTone = (status) => {
 
 const toPhoneHref = (phone) => `tel:${String(phone || '').replace(/[^0-9+]/g, '')}`;
 
-const roleAllows = (widgetId) => {
+const roleAllows = (widgetId, role) => {
   const allowed = WIDGET_ACCESS[widgetId] || [];
-  return allowed.includes(ACTIVE_DASHBOARD_ROLE);
+  return allowed.includes(normalizeDashboardRole(role));
 };
 
 const CrmDashboard = () => {
   const navigate = useNavigate();
+  const dashboardSession = getCrmSession();
+  const dashboardRole = normalizeDashboardRole(dashboardSession?.role);
+  const dashboardRoleLabel = formatRoleLabel(dashboardRole);
+  const dashboardUserLabel = formatDisplayName(dashboardSession?.email || dashboardSession?.sub) || dashboardRoleLabel;
   const [selectedBranch, setSelectedBranch] = useState(TOP_BRANCHES[0]);
   const [globalSearch, setGlobalSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [syncNotice, setSyncNotice] = useState('');
+  const [now, setNow] = useState(() => new Date());
 
-  const [appointments, setAppointments] = useState(dashboardSeed.appointments);
-  const [customers, setCustomers] = useState(dashboardSeed.customers);
-  const [leads, setLeads] = useState(dashboardSeed.leads);
-  const [payments, setPayments] = useState(dashboardSeed.payments);
-  const [services, setServices] = useState(dashboardSeed.services);
-  const [staff, setStaff] = useState(dashboardSeed.staff);
+  const [appointments, setAppointments] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [services, setServices] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [branches, setBranches] = useState([]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -615,49 +695,61 @@ const CrmDashboard = () => {
     const loadDashboardData = async () => {
       setIsLoading(true);
 
-      const [customersResult, servicesResult, staffResult, appointmentsResult, leadsResult, paymentsResult] = await Promise.allSettled([
-        crmList('customers'),
-        crmList('services'),
-        crmList('staff'),
-        crmList('appointments'),
-        crmList('leads'),
-        crmList('payments'),
-      ]);
+      setSyncNotice('');
+
+      const resourceRequests = [
+        { key: 'customers', request: crmList('customers') },
+        { key: 'services', request: crmList('services') },
+        { key: 'staff', request: crmList('staff') },
+        { key: 'appointments', request: crmList('appointments') },
+        { key: 'leads', request: crmList('leads') },
+        { key: 'payments', request: crmList('payments') },
+        { key: 'branches', request: crmList('branches') },
+      ];
+
+      const results = await Promise.allSettled(resourceRequests.map((entry) => entry.request));
 
       if (!mounted) return;
 
-      const customersRaw = customersResult.status === 'fulfilled' ? customersResult.value : [];
-      const servicesRaw = servicesResult.status === 'fulfilled' ? servicesResult.value : [];
-      const staffRaw = staffResult.status === 'fulfilled' ? staffResult.value : [];
-      const appointmentsRaw = appointmentsResult.status === 'fulfilled' ? appointmentsResult.value : [];
-      const leadsRaw = leadsResult.status === 'fulfilled' ? leadsResult.value : [];
-      const paymentsRaw = paymentsResult.status === 'fulfilled' ? paymentsResult.value : [];
+      const customersRaw = results[0].status === 'fulfilled' ? results[0].value : [];
+      const servicesRaw = results[1].status === 'fulfilled' ? results[1].value : [];
+      const staffRaw = results[2].status === 'fulfilled' ? results[2].value : [];
+      const appointmentsRaw = results[3].status === 'fulfilled' ? results[3].value : [];
+      const leadsRaw = results[4].status === 'fulfilled' ? results[4].value : [];
+      const paymentsRaw = results[5].status === 'fulfilled' ? results[5].value : [];
+      const branchesRaw = results[6].status === 'fulfilled' ? results[6].value : [];
 
-      const normalizedCustomers = customersRaw.length > 0 ? customersRaw.map(normalizeCustomer) : dashboardSeed.customers;
-      const normalizedServices = servicesRaw.length > 0 ? servicesRaw.map(normalizeService) : dashboardSeed.services;
-      const normalizedStaff = staffRaw.length > 0 ? staffRaw.map(normalizeStaff) : dashboardSeed.staff;
-      const normalizedLeads = leadsRaw.length > 0 ? leadsRaw.map(normalizeLead) : dashboardSeed.leads;
-      const normalizedPayments = paymentsRaw.length > 0 ? paymentsRaw.map(normalizePayment) : dashboardSeed.payments;
+      const failedResources = results
+        .map((result, index) => (result.status === 'rejected' ? resourceRequests[index].key : ''))
+        .filter(Boolean);
+
+      const normalizedCustomers = customersRaw.map(normalizeCustomer);
+      const normalizedServices = servicesRaw.map(normalizeService);
+      const normalizedStaff = staffRaw.map(normalizeStaff);
+      const normalizedLeads = leadsRaw.map(normalizeLead);
+      const normalizedPayments = paymentsRaw.map(normalizePayment);
+      const normalizedBranches = branchesRaw.map(normalizeBranch);
 
       const customerLookup = new Map(normalizedCustomers.map((item) => [item.id, item]));
       const serviceLookup = new Map(normalizedServices.map((item) => [item.id, item]));
       const staffLookup = new Map(normalizedStaff.map((item) => [String(item.name).toLowerCase(), item]));
 
-      const normalizedAppointments = appointmentsRaw.length > 0
-        ? appointmentsRaw.map((appointment, index) =>
-            normalizeAppointment(appointment, index, {
-              customerLookup,
-              serviceLookup,
-              staffLookup,
-            }))
-        : dashboardSeed.appointments;
+      const normalizedAppointments = appointmentsRaw.map((appointment, index) =>
+        normalizeAppointment(appointment, index, {
+          customerLookup,
+          serviceLookup,
+          staffLookup,
+        }),
+      );
 
       setCustomers(normalizedCustomers);
       setServices(normalizedServices);
       setStaff(normalizedStaff);
+      setBranches(normalizedBranches);
       setAppointments(normalizedAppointments);
       setLeads(normalizedLeads);
       setPayments(normalizedPayments);
+      setSyncNotice(describeDashboardLoadIssue(failedResources));
 
       setIsLoading(false);
     };
@@ -669,8 +761,19 @@ const CrmDashboard = () => {
     };
   }, []);
 
-  const today = useMemo(() => new Date(), []);
-  const nowMs = useMemo(() => today.getTime(), [today]);
+  const branchOptions = useMemo(() => {
+    const names = [
+      ...TOP_BRANCHES.slice(1),
+      ...branches.map((branch) => branch.name),
+      ...appointments.map((appointment) => appointment.branch),
+    ].filter(Boolean);
+
+    return [TOP_BRANCHES[0], ...new Set(names)];
+  }, [appointments, branches]);
+  const activeBranch = branchOptions.includes(selectedBranch) ? selectedBranch : TOP_BRANCHES[0];
+
+  const today = now;
+  const nowMs = now.getTime();
   const todayKey = useMemo(() => toLocalDateKey(today), [today]);
   const yesterdayKey = useMemo(() => {
     const prior = new Date(today);
@@ -679,9 +782,9 @@ const CrmDashboard = () => {
   }, [today]);
 
   const branchFilteredAppointments = useMemo(() => {
-    if (selectedBranch === 'All Branches') return appointments;
-    return appointments.filter((item) => item.branch === selectedBranch);
-  }, [appointments, selectedBranch]);
+    if (activeBranch === 'All Branches') return appointments;
+    return appointments.filter((item) => item.branch === activeBranch);
+  }, [appointments, activeBranch]);
 
   const todayAppointments = useMemo(() => {
     return branchFilteredAppointments
@@ -785,6 +888,47 @@ const CrmDashboard = () => {
   }, [appointments, customers, globalSearch, leads]);
 
   const kpiCards = useMemo(() => {
+    if (isLoading) {
+      return [
+        {
+          title: "Today's Appointments",
+          value: '—',
+          subtext: 'Loading live schedule...',
+          trend: 'Syncing',
+        },
+        {
+          title: 'Cash Collected Today',
+          value: '—',
+          subtext: 'Loading payment ledger...',
+          trend: 'Syncing',
+        },
+        {
+          title: 'Pending Payments',
+          value: '—',
+          subtext: 'Loading payment balances...',
+          trend: 'Syncing',
+        },
+        {
+          title: 'New Inquiries Today',
+          value: '—',
+          subtext: 'Loading lead pipeline...',
+          trend: 'Syncing',
+        },
+        {
+          title: 'Staff On Duty',
+          value: '—',
+          subtext: 'Loading staff status...',
+          trend: 'Syncing',
+        },
+        {
+          title: 'Completed Appointments',
+          value: '—',
+          subtext: 'Loading completion status...',
+          trend: 'Syncing',
+        },
+      ];
+    }
+
     const appointmentDelta = todayAppointments.length - yesterdayAppointmentsCount;
     const appointmentTrend = appointmentDelta === 0
       ? 'No change vs yesterday'
@@ -832,6 +976,7 @@ const CrmDashboard = () => {
     cardCollectedToday,
     cashCollectedToday,
     completedAppointments,
+    isLoading,
     leads,
     newLeadsToday,
     pendingPaymentAmount,
@@ -895,16 +1040,16 @@ const CrmDashboard = () => {
       .map(([name, count]) => ({ name, count }));
   }, [todayAppointments]);
 
-  const notificationCount = alertsList.length;
+  const notificationCount = alertsList.length + (syncNotice ? 1 : 0);
 
   const todayLabel = useMemo(
     () =>
-      new Date().toLocaleDateString('en-US', {
+      now.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'short',
         day: 'numeric',
       }),
-    [],
+    [now],
   );
 
   const handleLogout = () => {
@@ -913,16 +1058,31 @@ const CrmDashboard = () => {
   };
 
   const patchAppointment = (appointmentId, patch) => {
+    let previousAppointment = null;
+
     setAppointments((current) =>
-      current.map((appointment) =>
-        appointment.id === appointmentId
-          ? { ...appointment, ...patch }
-          : appointment,
-      ),
+      current.map((appointment) => {
+        if (appointment.id !== appointmentId) {
+          return appointment;
+        }
+
+        previousAppointment = appointment;
+        return { ...appointment, ...patch };
+      }),
     );
 
-    void crmUpdate('appointments', appointmentId, patch).catch(() => {
-      // Keep the local appointment update silent if the API is temporarily unavailable.
+    void crmUpdate('appointments', appointmentId, patch).catch((error) => {
+      if (previousAppointment) {
+        setAppointments((current) =>
+          current.map((appointment) => (appointment.id === appointmentId ? previousAppointment : appointment)),
+        );
+      }
+
+      setSyncNotice(
+        error?.message
+          ? `Could not save that appointment update: ${error.message}`
+          : 'Could not save that appointment update. The dashboard was restored locally.',
+      );
     });
   };
 
@@ -957,10 +1117,10 @@ const CrmDashboard = () => {
             <span>Branch</span>
             <select
               id="dashboard-branch"
-              value={selectedBranch}
+              value={activeBranch}
               onChange={(event) => setSelectedBranch(event.target.value)}
             >
-              {TOP_BRANCHES.map((branch) => (
+              {branchOptions.map((branch) => (
                 <option key={branch} value={branch}>
                   {branch}
                 </option>
@@ -974,22 +1134,24 @@ const CrmDashboard = () => {
           </button>
 
           <button type="button" className="crm-profile-btn" onClick={() => navigate('/crm/settings')}>
-            Isabella
+            {dashboardUserLabel}
           </button>
           <button type="button" className="crm-logout-btn" onClick={handleLogout}>
             Logout
           </button>
         </header>
 
+        {syncNotice ? <CrmSyncBanner message={syncNotice} /> : null}
+
         <section className="crm-welcome">
           <div>
-            <h2>Good morning, Isabella</h2>
-              <p>
-                Front desk flow, settlement priorities, and guest service in one calm operational view.
-              </p>
+            <h2>Good morning, {dashboardUserLabel}</h2>
+            <p>
+              Front desk flow, settlement priorities, and guest service in one calm operational view.
+            </p>
           </div>
           <div className="crm-welcome-meta">
-            <span className="crm-role-pill">Receptionist view</span>
+            <span className="crm-role-pill">{dashboardRoleLabel} view</span>
             <span className="crm-date-pill">{todayLabel}</span>
           </div>
         </section>
@@ -1006,7 +1168,7 @@ const CrmDashboard = () => {
         </section>
 
         <section className="crm-main-grid">
-          {roleAllows('appointments') ? (
+          {roleAllows('appointments', dashboardRole) ? (
             <article className="crm-appointments-card">
               <div className="crm-section-head">
                 <div>
@@ -1080,7 +1242,7 @@ const CrmDashboard = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => patchAppointment(appointment.id, { status: 'Arrived' })}
+                          onClick={() => patchAppointment(appointment.id, { status: 'Arrived', checkInAt: new Date().toISOString() })}
                           disabled={['Arrived', 'In Progress', 'Completed', 'Cancelled', 'No Show', 'Payment Pending'].includes(appointment.status)}
                         >
                           Check In
@@ -1114,7 +1276,7 @@ const CrmDashboard = () => {
           ) : null}
 
           <div className="crm-side-stack">
-            {roleAllows('conciergeActions') ? (
+            {roleAllows('conciergeActions', dashboardRole) ? (
               <article className="crm-concierge-card">
                 <h3>Front Desk Actions</h3>
                 <div className="crm-action-grid">
@@ -1135,7 +1297,7 @@ const CrmDashboard = () => {
         </section>
 
         <section className="crm-lower-grid">
-          {roleAllows('financialOverview') ? (
+          {roleAllows('financialOverview', dashboardRole) ? (
             <article className="crm-insight-card">
               <h3>Cash Flow Snapshot</h3>
               <div className="crm-finance-grid">

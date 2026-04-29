@@ -10,7 +10,97 @@ const assertArrayContains = (array, predicate, message) => {
   assert.ok(array.some(predicate), message);
 };
 
+const createExpiredToken = (email) => {
+  const payload = {
+    sub: email,
+    email,
+    role: 'admin',
+    issuedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    expiresAt: new Date(Date.now() - 1000 * 60).toISOString(),
+  };
+
+  return `${Buffer.from(JSON.stringify(payload)).toString('base64url')}.expired`;
+};
+
+const runAuthOnlyReadinessCheck = async (harness, { logger = () => {} } = {}) => {
+  logger('Checking degraded CRM startup');
+  const health = await harness.health();
+  assert.equal(health.ok, false);
+  assert.equal(health.status, 503);
+  assert.equal(health.payload?.database?.state, 'degraded');
+
+  logger('Checking degraded login response');
+  await harness.clearToken();
+  let degradedSession = null;
+
+  try {
+    degradedSession = await harness.login('admin@spa.local', 'ChangeMe123!');
+  } catch (error) {
+    assert.equal(error.status, 503);
+    assert.ok(error.code === 'CRM_AUTH_BOOTING' || error.code === 'CRM_AUTH_SERVICE_UNAVAILABLE');
+  }
+
+  if (degradedSession) {
+    assert.ok(degradedSession.token, 'Expected a degraded login token.');
+    assert.equal(degradedSession.user.email, dbInfo.adminEmail);
+    assert.equal(degradedSession.degraded, true);
+    assert.equal(await harness.getToken(), degradedSession.token);
+  }
+
+  logger('Starting auth-only fallback server');
+  await harness.startMockAuthServer();
+
+  const healthyMock = await harness.health();
+  assert.equal(healthyMock.ok, true);
+  assert.equal(healthyMock.status, 200);
+
+  logger('Checking login success');
+  await harness.clearToken();
+  const session = await harness.login();
+  assert.ok(session.token, 'Expected an auth token from the mock login endpoint.');
+  assert.equal(session.user.email, dbInfo.adminEmail);
+  assert.equal(await harness.getToken(), session.token);
+
+  logger('Checking invalid credentials');
+  await harness.clearToken();
+  await assert.rejects(
+    harness.login('wrong@example.com', 'incorrect'),
+    (error) => error.status === 401 && error.code === 'CRM_INVALID_CREDENTIALS',
+  );
+
+  logger('Checking session persistence');
+  const persistentSession = await harness.login();
+  await harness.simulateRefresh();
+  assert.equal(await harness.getToken(), persistentSession.token);
+
+  logger('Checking session storage path');
+  await harness.setToken(persistentSession.token, false);
+  await harness.simulateRefresh();
+  assert.equal(await harness.getToken(), persistentSession.token);
+
+  logger('Checking expired token cleanup');
+  const { getCrmSession } = await harness.loadFrontendClient();
+  await harness.setToken(createExpiredToken(dbInfo.adminEmail), true);
+  assert.equal(getCrmSession(), null);
+  assert.equal(await harness.getToken(), '');
+
+  logger('Checking logout cleanup');
+  await harness.login();
+  await harness.clearToken();
+  assert.equal(await harness.getToken(), '');
+
+  return {
+    mode: 'auth-only',
+    databaseMode: harness.databaseMode,
+    databaseStartupError: harness.databaseStartupError?.message || String(harness.databaseStartupError || ''),
+  };
+};
+
 export const runOperationalReadinessCheck = async (harness, { logger = () => {} } = {}) => {
+  if (harness.verificationMode === 'auth-only') {
+    return runAuthOnlyReadinessCheck(harness, { logger });
+  }
+
   logger('Checking migration chain');
   const migrations = await harness.queryMigrations();
   assert.deepEqual(migrations, [
@@ -93,6 +183,112 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   const leadAfterUpdate = await harness.get('leads', lead.id);
   assert.equal(leadAfterUpdate.status, 'Booked');
   assert.equal(leadAfterUpdate.budget, 420);
+
+  logger('Checking customer record CRUD');
+  const customerName = `Smoke Customer ${Date.now()}`;
+  const customer = await harness.create('customers', {
+    id: `CUS-SMOKE-${Date.now()}`,
+    fullName: customerName,
+    name: customerName,
+    email: `customer-${Date.now()}@example.com`,
+    phone: '+1 555 010 2300',
+    segment: 'Repeat Customer',
+    status: 'Active',
+    acquisitionSource: 'Website Form',
+    createdAt: new Date().toISOString(),
+    lastVisit: futureIso(-10),
+    visitCount: 5,
+    totalSpend: 860,
+    loyaltyPoints: 120,
+    favoriteService: 'Signature Facial',
+    favoriteStaff: 'Elena',
+    preferredTimes: 'Late afternoons',
+    preferredChannel: 'Website',
+    sensitivities: 'None reported',
+    upcomingAppointment: {
+      id: `APT-SMOKE-${Date.now()}`,
+      dateTime: futureIso(48),
+      service: 'Signature Facial',
+      staff: 'Elena',
+      status: 'Confirmed',
+    },
+    pendingBalance: 45,
+    paymentHistory: [
+      {
+        id: `PAY-SMOKE-${Date.now()}`,
+        date: futureIso(-6),
+        amount: 120,
+        method: 'Cash',
+        service: 'Signature Facial',
+        receiptNo: `RCPT-SMOKE-${Date.now()}`,
+        status: 'Paid',
+      },
+    ],
+    appointmentHistory: [
+      {
+        id: `APT-SMOKE-${Date.now()}`,
+        dateTime: futureIso(48),
+        service: 'Signature Facial',
+        staff: 'Elena',
+        status: 'Confirmed',
+      },
+    ],
+    activityTimeline: [
+      {
+        id: `ACT-SMOKE-${Date.now()}`,
+        type: 'Customer Created',
+        at: new Date().toISOString(),
+        actor: 'Front Desk',
+        channel: 'CRM',
+        outcome: 'Created',
+        summary: 'Created by smoke test.',
+      },
+    ],
+    notes: [
+      {
+        id: `NOTE-SMOKE-${Date.now()}`,
+        at: new Date().toISOString(),
+        author: 'Front Desk',
+        text: 'Smoke test customer.',
+      },
+    ],
+    membership: 'None',
+    preferences: ['Signature Facial'],
+  });
+
+  assert.ok(customer.id, 'Customer should have an id.');
+  assert.equal(customer.fullName, customerName);
+
+  const customerList = await harness.list('customers');
+  assertArrayContains(customerList, (row) => row.id === customer.id, 'Customer should appear in list results.');
+
+  const customerFetched = await harness.get('customers', customer.id);
+  assert.equal(customerFetched.fullName, customerName);
+  assert.equal(customerFetched.upcomingAppointment?.service, 'Signature Facial');
+  assert.ok(Array.isArray(customerFetched.paymentHistory) && customerFetched.paymentHistory.length > 0);
+
+  const customerUpdated = await harness.update('customers', customer.id, {
+    ...customerFetched,
+    segment: 'VIP',
+    status: 'Active',
+    pendingBalance: 0,
+    totalSpend: 980,
+    loyaltyPoints: 240,
+    notes: [
+      ...(Array.isArray(customerFetched.notes) ? customerFetched.notes : []),
+      {
+        id: `NOTE-SMOKE-UPD-${Date.now()}`,
+        at: new Date().toISOString(),
+        author: 'Front Desk',
+        text: 'Updated by smoke test.',
+      },
+    ],
+  });
+  assert.equal(customerUpdated.segment, 'VIP');
+
+  const customerAfterUpdate = await harness.get('customers', customer.id);
+  assert.equal(customerAfterUpdate.segment, 'VIP');
+  assert.equal(customerAfterUpdate.pendingBalance, 0);
 
   logger('Checking appointment CRUD');
   const appointmentName = `Smoke Guest ${Date.now()}`;
@@ -183,6 +379,48 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   assert.equal(branchAfterUpdate.status, 'Open');
   assert.equal(branchAfterUpdate.active, true);
 
+  logger('Checking public website booking bridge');
+  const websiteCustomerName = `Website Guest ${Date.now()}`;
+  const websiteCustomerEmail = `website-${Date.now()}@example.com`;
+  const websiteBookingResponse = await fetch(new URL('/api/bookings', harness.baseUrl), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      customerName: websiteCustomerName,
+      customerEmail: websiteCustomerEmail,
+      phone: '+1 555 010 2201',
+      serviceName: 'Signature Facial',
+      staffName: 'Marcus',
+      branchName: 'West Hollywood',
+      appointmentAt: futureIso(48),
+      durationMinutes: 60,
+      amountDue: 220,
+      amountPaid: 40,
+      notes: 'Booked from website smoke test.',
+      source: 'Website Form',
+    }),
+  });
+
+  assert.equal(websiteBookingResponse.status, 201);
+  const websiteBooking = await websiteBookingResponse.json();
+
+  assert.ok(websiteBooking.customer?.id, 'Website booking should return a customer record.');
+  assert.ok(websiteBooking.appointment?.id, 'Website booking should return an appointment record.');
+  assert.equal(websiteBooking.customer.fullName, websiteCustomerName);
+  assert.equal(websiteBooking.appointment.customerId, websiteBooking.customer.id);
+  assert.equal(websiteBooking.appointment.source, 'Website');
+  assert.equal(websiteBooking.customer.metadata?.bookedFromWebsite, true);
+  assert.equal(websiteBooking.customer.upcomingAppointment?.service, 'Signature Facial');
+
+  const websiteCustomerList = await harness.list('customers');
+  assertArrayContains(websiteCustomerList, (row) => row.id === websiteBooking.customer.id, 'Website booking customer should appear in customer list.');
+
+  const websiteAppointmentList = await harness.list('appointments');
+  assertArrayContains(websiteAppointmentList, (row) => row.id === websiteBooking.appointment.id, 'Website booking appointment should appear in appointment list.');
+
   logger('Checking persistence after restart');
   await harness.restartDatabaseAndApi();
   await harness.login();
@@ -199,6 +437,21 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   assert.equal(branchAfterRestart.status, 'Open');
   assert.equal(branchAfterRestart.active, true);
 
+  const customerAfterRestart = await harness.get('customers', customer.id);
+  assert.equal(customerAfterRestart.fullName, customerName);
+  assert.equal(customerAfterRestart.segment, 'VIP');
+  assert.equal(customerAfterRestart.upcomingAppointment?.service, 'Signature Facial');
+  assert.ok(Array.isArray(customerAfterRestart.notes) && customerAfterRestart.notes.length > 0);
+
+  const websiteCustomerAfterRestart = await harness.get('customers', websiteBooking.customer.id);
+  assert.equal(websiteCustomerAfterRestart.fullName, websiteCustomerName);
+  assert.equal(websiteCustomerAfterRestart.metadata?.bookedFromWebsite, true);
+  assert.equal(websiteCustomerAfterRestart.upcomingAppointment?.service, 'Signature Facial');
+
+  const websiteAppointmentAfterRestart = await harness.get('appointments', websiteBooking.appointment.id);
+  assert.equal(websiteAppointmentAfterRestart.customerId, websiteBooking.customer.id);
+  assert.equal(websiteAppointmentAfterRestart.source, 'Website');
+
   const settingsAfterRestart = await harness.getSettings();
   assert.equal(settingsAfterRestart.profile.businessName, mutatedSettings.profile.businessName);
   assert.equal(settingsAfterRestart.branding.receiptHeaderQuote, mutatedSettings.branding.receiptHeaderQuote);
@@ -208,6 +461,9 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
 
   logger('Cleaning up smoke data');
   await harness.remove('appointments', appointment.id);
+  await harness.remove('appointments', websiteBooking.appointment.id);
+  await harness.remove('customers', websiteBooking.customer.id);
+  await harness.remove('customers', customer.id);
   await harness.remove('branches', branch.id);
   await harness.remove('leads', lead.id);
   await harness.saveSettings(initialSettings);
@@ -229,5 +485,6 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
     appointmentId: appointment.id,
     branchId: branch.id,
     databaseName: harness.databaseName,
+    mode: 'full',
   };
 };

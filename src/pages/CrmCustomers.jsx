@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
-import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
+import { crmCreate, crmDelete, crmList, crmUpdate } from '../config/crmApi';
 import CrmShell from '../components/CrmShell';
 import './CrmCustomers.css';
 
@@ -666,38 +666,73 @@ const CrmCustomers = () => {
       status: 'Confirmed',
     };
 
-    updateCustomerInState(selectedCustomer.id, (customer) => ({
-      ...customer,
+    const timelineEntry = {
+      id: createTimelineId(),
+      type: 'Appointment Booked',
+      at: new Date().toISOString(),
+      actor: 'Front Desk',
+      channel: 'CRM',
+      outcome: 'Confirmed',
+      summary: `Booked ${service} for ${formatDateTime(dateTime)}`,
+    };
+    const customerPatch = {
       upcomingAppointment: appointmentEntry,
-      appointmentHistory: [appointmentEntry, ...customer.appointmentHistory].sort(
+      appointmentHistory: [appointmentEntry, ...selectedCustomer.appointmentHistory].sort(
         (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime(),
       ),
-      activityTimeline: [
-        {
-          id: createTimelineId(),
-          type: 'Appointment Booked',
-          at: new Date().toISOString(),
-          actor: 'Front Desk',
-          channel: 'CRM',
-          outcome: 'Confirmed',
-          summary: `Booked ${service} for ${formatDateTime(dateTime)}`,
-        },
-        ...customer.activityTimeline,
-      ],
+      activityTimeline: [timelineEntry, ...selectedCustomer.activityTimeline],
+    };
+
+    updateCustomerInState(selectedCustomer.id, (customer) => ({
+      ...customer,
+      ...customerPatch,
     }));
 
-    void crmCreate('appointments', {
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
-      phone: selectedCustomer.phone,
-      serviceName: service,
-      staffName: staff,
-      appointmentAt: dateTime,
-      status: 'Confirmed',
-      note: `Booked from customer profile ${selectedCustomer.id}`,
-    }).catch((error) => {
-      setLoadError(error.message || 'Customer booking failed.');
-    });
+    void (async () => {
+      let createdAppointment = null;
+      try {
+        createdAppointment = await crmCreate('appointments', {
+          id: appointmentEntry.id,
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          phone: selectedCustomer.phone,
+          serviceName: service,
+          staffName: staff,
+          appointmentAt: dateTime,
+          durationMinutes: 60,
+          status: 'Confirmed',
+          paymentStatus: 'Pending',
+          amountDue: 0,
+          amountPaid: 0,
+          balanceRemaining: 0,
+          source: 'CRM',
+          notes: `Booked from customer profile ${selectedCustomer.id}`,
+        });
+
+        const persistedAppointment = normalizeAppointmentEntry(createdAppointment, 0);
+        const persistedCustomer = await crmUpdate('customers', selectedCustomer.id, {
+          ...customerPatch,
+          upcomingAppointment: persistedAppointment,
+          appointmentHistory: [persistedAppointment, ...selectedCustomer.appointmentHistory].sort(
+            (a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime(),
+          ),
+          activityTimeline: [
+            {
+              ...timelineEntry,
+              summary: `Booked ${persistedAppointment.service} for ${formatDateTime(persistedAppointment.dateTime)}`,
+            },
+            ...selectedCustomer.activityTimeline,
+          ],
+        });
+
+        updateCustomerInState(selectedCustomer.id, () => normalizeCustomer(persistedCustomer));
+      } catch (error) {
+        if (createdAppointment?.id) {
+          await crmDelete('appointments', createdAppointment.id).catch(() => {});
+        }
+        setLoadError(error.message || 'Customer booking failed.');
+      }
+    })();
   };
 
   const handleRecordPayment = () => {
@@ -724,42 +759,80 @@ const CrmCustomers = () => {
       status: 'Paid',
     };
 
-    updateCustomerInState(selectedCustomer.id, (customer) => ({
-      ...customer,
-      pendingBalance: Math.max(0, Number(customer.pendingBalance || 0) - amount),
-      paymentHistory: [paymentEntry, ...customer.paymentHistory].sort(
+    const timelineEntry = {
+      id: createTimelineId(),
+      type: 'Payment Recorded',
+      at: recordedAt,
+      actor: 'Front Desk',
+      channel: 'POS',
+      outcome: 'Paid',
+      summary: `${formatCurrency(amount)} recorded via ${method}`,
+    };
+    const updatedSpend = Number(selectedCustomer.totalSpend || 0) + amount;
+    const updatedLoyaltyPoints = Number(selectedCustomer.loyaltyPoints || 0) + Math.max(1, Math.round(amount));
+    const customerPatch = {
+      pendingBalance: Math.max(0, Number(selectedCustomer.pendingBalance || 0) - amount),
+      totalSpend: updatedSpend,
+      loyaltyPoints: updatedLoyaltyPoints,
+      paymentHistory: [paymentEntry, ...selectedCustomer.paymentHistory].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       ),
-      activityTimeline: [
-        {
-          id: createTimelineId(),
-          type: 'Payment Recorded',
-          at: recordedAt,
-          actor: 'Front Desk',
-          channel: 'POS',
-          outcome: 'Paid',
-          summary: `${formatCurrency(amount)} recorded via ${method}`,
-        },
-        ...customer.activityTimeline,
-      ],
+      activityTimeline: [timelineEntry, ...selectedCustomer.activityTimeline],
+    };
+
+    updateCustomerInState(selectedCustomer.id, (customer) => ({
+      ...customer,
+      ...customerPatch,
     }));
 
-    void crmCreate('payments', {
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
-      serviceName: service,
-      amountDue: amount,
-      amountPaid: amount,
-      balanceRemaining: 0,
-      method,
-      status: 'Paid',
-      paymentDate: recordedAt,
-      recordedBy: 'Front Desk',
-      receiptNo: paymentEntry.receiptNo,
-      notes: `Recorded from customer profile ${selectedCustomer.id}`,
-    }).catch((error) => {
-      setLoadError(error.message || 'Customer payment failed.');
-    });
+    void (async () => {
+      let createdPayment = null;
+      try {
+        createdPayment = await crmCreate('payments', {
+          id: paymentEntry.id,
+          customerId: selectedCustomer.id,
+          customerName: selectedCustomer.name,
+          serviceName: service,
+          amountDue: amount,
+          amountPaid: amount,
+          balanceRemaining: 0,
+          method,
+          status: 'Paid',
+          paymentDate: recordedAt,
+          recordedBy: 'Front Desk',
+          receiptNo: paymentEntry.receiptNo,
+          notes: `Recorded from customer profile ${selectedCustomer.id}`,
+        });
+
+        const persistedPayment = normalizePaymentEntry({
+          ...paymentEntry,
+          id: createdPayment?.id || paymentEntry.id,
+          paymentDate: createdPayment?.paymentDate || recordedAt,
+          status: createdPayment?.status || 'Paid',
+        });
+
+        const persistedCustomer = await crmUpdate('customers', selectedCustomer.id, {
+          ...customerPatch,
+          paymentHistory: [persistedPayment, ...selectedCustomer.paymentHistory].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          ),
+          activityTimeline: [
+            {
+              ...timelineEntry,
+              summary: `${formatCurrency(amount)} recorded via ${method}`,
+            },
+            ...selectedCustomer.activityTimeline,
+          ],
+        });
+
+        updateCustomerInState(selectedCustomer.id, () => normalizeCustomer(persistedCustomer));
+      } catch (error) {
+        if (createdPayment?.id) {
+          await crmDelete('payments', createdPayment.id).catch(() => {});
+        }
+        setLoadError(error.message || 'Customer payment failed.');
+      }
+    })();
   };
 
   const handleLogout = () => {

@@ -7,7 +7,12 @@ try {
   console.log('Starting Spa Saloon CRM smoke test...');
   await harness.prepare();
   console.log(`API: ${harness.baseUrl}`);
-  console.log(`Database: ${harness.databaseName}`);
+  console.log(`Mode: ${harness.verificationMode}`);
+  if (harness.verificationMode === 'full') {
+    console.log(`Database: ${harness.databaseName}`);
+  } else {
+    console.log(`Database blocker: ${harness.databaseStartupError?.message || String(harness.databaseStartupError || 'Unavailable')}`);
+  }
 
   const result = await runOperationalReadinessCheck(harness, {
     logger: (message) => console.log(`- ${message}`),

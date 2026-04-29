@@ -317,6 +317,40 @@
   min-width: 0;
 }
 
+.crm-settings-workspace {
+  margin-top: 2.15rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.72fr) minmax(320px, 368px);
+  gap: 0.95rem;
+  width: 100%;
+  min-width: 0;
+  align-items: start;
+}
+
+.crm-settings-primary-stack,
+.crm-settings-rail-stack {
+  min-width: 0;
+}
+
+.crm-settings-primary-stack {
+  display: grid;
+  gap: 1.15rem;
+  align-content: start;
+}
+
+.crm-settings-primary-stack > .crm-settings-hours-section,
+.crm-settings-primary-stack > .crm-settings-lower-grid {
+  margin-top: 0;
+}
+
+.crm-settings-rail-stack {
+  display: grid;
+  gap: 1rem;
+  align-self: start;
+  position: sticky;
+  top: 1rem;
+}
+
 .crm-settings-card,
 .crm-settings-live-card {
   border-radius: 24px;
@@ -332,7 +366,8 @@
 }
 
 .crm-settings-card-profile {
-  min-height: 486px;
+  min-height: 0;
+  align-self: start;
 }
 
 .crm-settings-card-head {
@@ -632,6 +667,7 @@
 
 .crm-settings-hours-section {
   margin-top: 1.15rem;
+  align-self: start;
 }
 
 .crm-settings-card-head-inline {
@@ -1500,6 +1536,80 @@
   grid-column: 1 / -1;
 }
 
+.crm-settings-disclosure-card {
+  display: grid;
+  gap: 0.76rem;
+  padding: 0.9rem 0.94rem;
+  border-radius: 18px;
+  border: 1px solid rgba(167, 151, 118, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(247, 243, 234, 0.84) 100%);
+  box-shadow: 0 14px 28px rgba(92, 68, 22, 0.04);
+}
+
+.crm-settings-disclosure-card-full {
+  grid-column: 1 / -1;
+}
+
+.crm-settings-disclosure-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.crm-settings-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.crm-settings-disclosure-summary h6 {
+  margin: 0;
+  color: #27221c;
+  font-family: var(--font-editorial);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.crm-settings-disclosure-summary p {
+  margin: 0.2rem 0 0;
+  color: #7c7263;
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+.crm-settings-disclosure-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #8d6a1e;
+}
+
+.crm-settings-disclosure-meta span {
+  border-radius: 999px;
+  background: rgba(143, 106, 28, 0.08);
+  padding: 0.34rem 0.55rem;
+  color: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.crm-settings-disclosure-meta svg {
+  transition: transform 0.22s ease;
+}
+
+.crm-settings-disclosure-card[open] .crm-settings-disclosure-meta svg {
+  transform: rotate(180deg);
+}
+
+.crm-settings-disclosure-body {
+  display: grid;
+  gap: 0.82rem;
+}
+
 .crm-settings-group-head h5 {
   margin: 0;
   color: #27221c;
@@ -2042,21 +2152,21 @@
 }
 
 .crm-settings-shell .crm-settings-main {
-  max-width: 1660px;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 1.05rem 1.15rem 1.5rem !important;
+  padding: 1.2rem 1.3rem 1.75rem !important;
 }
 
 .crm-settings-shell .crm-settings-topbar {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(350px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
   gap: 1.1rem;
   align-items: start;
-  border-radius: 22px !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 241, 233, 0.84) 100%) !important;
+  border-radius: 26px !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 241, 233, 0.88) 100%) !important;
   border: 1px solid var(--settings-border) !important;
   box-shadow: var(--settings-shadow-soft) !important;
-  padding: 1rem 1.1rem !important;
+  padding: 1.15rem 1.2rem !important;
   min-height: unset !important;
 }
 
@@ -2066,58 +2176,40 @@
 
 .crm-settings-shell .crm-settings-kicker {
   color: #9a7f4e !important;
-  font-size: 0.64rem !important;
-  letter-spacing: 0.28em !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.2em !important;
 }
 
 .crm-settings-shell .crm-settings-header-copy h1 {
   margin-top: 0.32rem;
   max-width: 780px;
   color: var(--settings-heading);
-  font-size: clamp(2.15rem, 2.8vw, 3.1rem) !important;
+  font-size: clamp(2.45rem, 3vw, 3.45rem) !important;
   line-height: 1.02 !important;
-  letter-spacing: -0.025em !important;
+  letter-spacing: -0.03em !important;
 }
 
 .crm-settings-shell .crm-settings-subcopy {
-  margin-top: 0.58rem;
+  margin-top: 0.62rem;
   max-width: 72ch;
   color: var(--settings-muted);
-  font-size: 0.9rem;
-  line-height: 1.48;
+  font-size: 0.98rem;
+  line-height: 1.52;
 }
 
-<<<<<<< ours
-<<<<<<< ours
-.crm-settings-shell .crm-settings-inline-error {
-  margin-top: 0.55rem;
-  border: 1px solid rgba(165, 84, 79, 0.22);
-  border-radius: 14px;
-  background: #fff4f3;
-  color: #a5564f;
-  padding: 0.62rem 0.8rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 .crm-settings-shell .crm-settings-topbar-stack {
   display: grid;
-  gap: 0.66rem;
+  gap: 0.76rem;
   justify-items: stretch;
   width: 100%;
 }
 
 .crm-settings-shell .crm-settings-save-state {
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.62rem;
+  gap: 0.84rem;
   width: 100%;
-  border-radius: 20px;
-  padding: 0.8rem 0.86rem;
+  border-radius: 22px;
+  padding: 1.04rem 1.06rem;
   border-color: var(--settings-border-soft);
   background: var(--settings-surface);
   box-shadow: var(--settings-shadow-soft);
@@ -2129,12 +2221,12 @@
 
 .crm-settings-shell .crm-settings-save-pill strong {
   color: #2f2721;
-  font-size: 0.76rem;
+  font-size: 0.9rem;
 }
 
 .crm-settings-shell .crm-settings-save-pill span {
   color: var(--settings-muted);
-  font-size: 0.67rem;
+  font-size: 0.8rem;
 }
 
 .crm-settings-shell .crm-settings-save-meta {
@@ -2145,20 +2237,20 @@
 
 .crm-settings-shell .crm-settings-save-meta div {
   border: 1px solid var(--settings-border-soft);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--settings-surface-soft);
-  padding: 0.54rem 0.62rem;
+  padding: 0.78rem 0.82rem;
 }
 
 .crm-settings-shell .crm-settings-save-meta span {
-  font-size: 0.56rem;
-  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
   color: var(--settings-label);
 }
 
 .crm-settings-shell .crm-settings-save-meta strong {
-  margin-top: 0.16rem;
-  font-size: 0.78rem;
+  margin-top: 0.26rem;
+  font-size: 0.98rem;
 }
 
 .crm-settings-shell .crm-settings-save-actions {
@@ -2172,9 +2264,9 @@
 .crm-settings-shell .crm-settings-modal-close,
 .crm-settings-shell .crm-settings-modal-actions button,
 .crm-settings-shell .crm-settings-inline-action {
-  min-height: 38px;
-  font-size: 0.66rem;
-  letter-spacing: 0.12em;
+  min-height: 42px;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
   line-height: 1;
 }
 
@@ -2191,16 +2283,16 @@
 }
 
 .crm-settings-shell .crm-settings-icon-btn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
 }
 
 .crm-settings-shell .crm-settings-tabs-grouped {
-  margin-top: 1.02rem;
-  border-radius: 20px;
+  margin-top: 1.1rem;
+  border-radius: 22px;
   border: 1px solid var(--settings-border-soft);
   background: rgba(251, 247, 240, 0.78);
-  padding: 0.82rem 0.88rem;
+  padding: 0.96rem 0.98rem;
 }
 
 .crm-settings-shell .crm-settings-tab-group {
@@ -2209,8 +2301,8 @@
 
 .crm-settings-shell .crm-settings-tab-group-label {
   color: #a4864f;
-  font-size: 0.62rem;
-  letter-spacing: 0.18em;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
 }
 
 .crm-settings-shell .crm-settings-tab-group-row {
@@ -2218,14 +2310,14 @@
 }
 
 .crm-settings-shell .crm-settings-tab {
-  min-height: 38px;
+  min-height: 42px;
   border-radius: 999px;
   border: 1px solid var(--settings-border);
   background: rgba(255, 255, 255, 0.88);
   color: #7f7667;
-  font-size: 0.66rem;
-  letter-spacing: 0.09em;
-  padding: 0.58rem 0.84rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 0.66rem 0.92rem;
 }
 
 .crm-settings-shell .crm-settings-tab svg {
@@ -2238,8 +2330,8 @@
 }
 
 .crm-settings-shell .crm-settings-tab em {
-  font-size: 0.56rem;
-  padding: 0.22rem 0.42rem;
+  font-size: 0.6rem;
+  padding: 0.22rem 0.48rem;
 }
 
 .crm-settings-shell .crm-settings-tab-active {
@@ -2250,28 +2342,110 @@
 
 .crm-settings-shell .crm-settings-content-grid,
 .crm-settings-shell .crm-settings-lower-grid {
-  margin-top: 1.08rem;
-  gap: 1rem !important;
+  margin-top: 1.15rem;
+  gap: 1.05rem !important;
+}
+
+.crm-settings-shell .crm-settings-workspace {
+  margin-top: 1.15rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.68fr) minmax(330px, 378px);
+  gap: 1.05rem;
+  align-items: start;
+}
+
+.crm-settings-shell .crm-settings-primary-stack {
+  display: grid;
+  gap: 1.05rem;
+  align-content: start;
+}
+
+.crm-settings-shell .crm-settings-rail-stack {
+  display: grid;
+  gap: 1rem;
+  align-self: start;
+  position: sticky;
+  top: 1rem;
+}
+
+.crm-settings-shell .crm-settings-workspace > * {
+  min-width: 0;
+}
+
+.crm-settings-shell .crm-settings-card-profile {
+  min-height: 0;
+}
+
+.crm-settings-shell .crm-settings-workspace .crm-settings-hours-section,
+.crm-settings-shell .crm-settings-workspace .crm-settings-lower-grid {
+  margin-top: 0;
 }
 
 .crm-settings-shell .crm-settings-content-grid {
-  grid-template-columns: minmax(0, 1.52fr) minmax(340px, 392px);
+  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 416px);
 }
 
 .crm-settings-shell .crm-settings-side-stack {
-  gap: 0.92rem;
+  gap: 1rem;
+  grid-template-columns: 1fr;
 }
 
 .crm-settings-shell .crm-settings-card,
 .crm-settings-shell .crm-settings-preview-card,
 .crm-settings-shell .crm-settings-live-card,
 .crm-settings-shell .crm-settings-trust-card {
-  border-radius: 24px !important;
+  border-radius: 26px !important;
   border: 1px solid var(--settings-border-soft) !important;
   box-shadow: var(--settings-shadow) !important;
   background: var(--settings-surface) !important;
-  padding: 1.04rem 1.08rem;
+  padding: 1.1rem 1.14rem;
   overflow: hidden;
+}
+
+.crm-settings-shell .crm-settings-section-compact {
+  display: grid;
+  gap: 0.72rem;
+  padding: 0.96rem 0 0.1rem;
+}
+
+.crm-settings-shell .crm-settings-section-compact p {
+  margin: 0;
+  color: var(--settings-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.crm-settings-shell .crm-settings-section-compact-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.crm-settings-shell .crm-settings-section-compact-points span {
+  border: 1px solid var(--settings-border-soft);
+  border-radius: 999px;
+  background: rgba(251, 247, 240, 0.82);
+  color: #6f5f47;
+  padding: 0.54rem 0.78rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.crm-settings-shell .crm-settings-section-open {
+  justify-self: start;
+  border: 1px solid rgba(170, 151, 118, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 252, 246, 0.92);
+  color: #8a6d2e;
+  padding: 0.72rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
 }
 
 .crm-settings-shell .crm-settings-hours-section {
@@ -2281,36 +2455,36 @@
 .crm-settings-shell .crm-settings-card-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.72rem;
+  gap: 0.84rem;
   align-items: start;
-  padding-bottom: 0.8rem;
-  margin-bottom: 0.1rem;
+  padding-bottom: 0.9rem;
+  margin-bottom: 0.08rem;
   border-bottom: 1px solid var(--settings-border-soft);
 }
 
 .crm-settings-shell .crm-settings-section-kicker {
   margin: 0;
   color: var(--settings-label);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
 }
 
 .crm-settings-shell .crm-settings-card-head h3 {
   margin-top: 0.22rem;
   margin-bottom: 0;
   color: var(--settings-heading);
-  font-size: clamp(1.7rem, 2vw, 2.08rem) !important;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.92rem, 2.15vw, 2.36rem) !important;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
 }
 
 .crm-settings-shell .crm-settings-card-head p {
   margin-top: 0.34rem;
   color: var(--settings-muted);
-  font-size: 0.94rem;
-  line-height: 1.5;
+  font-size: 0.98rem;
+  line-height: 1.52;
 }
 
 .crm-settings-shell .crm-settings-section-head-actions {
@@ -2318,9 +2492,9 @@
 }
 
 .crm-settings-shell .crm-settings-section-status {
-  min-height: 32px;
-  padding: 0.42rem 0.7rem;
-  font-size: 0.64rem;
+  min-height: 34px;
+  padding: 0.46rem 0.74rem;
+  font-size: 0.68rem;
   letter-spacing: 0.08em;
 }
 
@@ -2329,106 +2503,168 @@
 }
 
 .crm-settings-shell .crm-settings-brand-row {
-  margin-top: 0.94rem;
-  grid-template-columns: auto minmax(0, 1fr) minmax(192px, 242px);
-  gap: 0.9rem;
+  margin-top: 1rem;
+  grid-template-columns: auto minmax(0, 1fr) minmax(208px, 260px);
+  gap: 1rem;
   align-items: center;
 }
 
 .crm-settings-shell .crm-settings-brand-seal {
-  width: 108px;
-  height: 108px;
+  width: 116px;
+  height: 116px;
 }
 
 .crm-settings-shell .crm-settings-brand-mark {
-  width: 60px;
-  height: 60px;
-  font-size: 1.1rem;
+  width: 64px;
+  height: 64px;
+  font-size: 1.16rem;
 }
 
 .crm-settings-shell .crm-settings-brand-copy h4 {
   margin-bottom: 0;
-  font-size: clamp(1.28rem, 1.95vw, 1.78rem);
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+  font-size: clamp(1.45rem, 2.05vw, 2rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
 }
 
 .crm-settings-shell .crm-settings-brand-copy p {
   margin-top: 0.2rem;
   color: #7a7162;
-  font-size: 0.88rem;
-  line-height: 1.45;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .crm-settings-shell .crm-settings-inline-link {
   margin-top: 0.64rem;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 
 .crm-settings-shell .crm-settings-inline-note {
   margin-top: 0.3rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
 }
 
 .crm-settings-shell .crm-settings-brand-meta {
-  gap: 0.64rem;
+  gap: 0.7rem;
 }
 
 .crm-settings-shell .crm-settings-brand-meta div {
   min-width: 0;
-  border-radius: 16px;
-  padding: 0.7rem 0.76rem;
+  border-radius: 18px;
+  padding: 0.82rem 0.88rem;
   border-color: var(--settings-border-soft);
   background: var(--settings-surface-soft);
 }
 
 .crm-settings-shell .crm-settings-brand-meta span {
-  font-size: 0.58rem;
-  letter-spacing: 0.13em;
+  font-size: 0.64rem;
+  letter-spacing: 0.11em;
 }
 
 .crm-settings-shell .crm-settings-brand-meta strong {
-  margin-top: 0.18rem;
-  font-size: 0.8rem;
-  line-height: 1.3;
+  margin-top: 0.22rem;
+  font-size: 0.88rem;
+  line-height: 1.32;
 }
 
 .crm-settings-shell .crm-settings-form-group-label {
-  margin-top: 1rem;
+  margin-top: 1.08rem;
   margin-bottom: -0.02rem;
   color: #a3854f;
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
 }
 
 .crm-settings-shell .crm-settings-form-grid {
-  margin-top: 1.08rem;
-  gap: 0.84rem 0.94rem;
+  margin-top: 1.12rem;
+  gap: 0.92rem 1rem;
 }
 
 .crm-settings-shell .crm-settings-form-grid-compact {
-  gap: 0.74rem 0.84rem;
+  gap: 0.82rem 0.92rem;
 }
 
 .crm-settings-shell .crm-settings-group-grid {
-  margin-top: 0.92rem;
-  gap: 0.8rem;
+  margin-top: 0.98rem;
+  gap: 0.88rem;
+}
+
+.crm-settings-shell .crm-settings-profile-groups {
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+}
+
+.crm-settings-shell .crm-settings-rule-groups {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .crm-settings-shell .crm-settings-group-card {
-  padding: 0.9rem 0.94rem;
-  border-radius: 18px;
+  padding: 1rem 1.02rem;
+  border-radius: 22px;
   border-color: var(--settings-border-soft);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 244, 235, 0.9) 100%);
   box-shadow: var(--settings-shadow-soft);
+}
+
+.crm-settings-shell .crm-settings-disclosure-card {
+  padding: 0.94rem 0.98rem;
+  border-radius: 20px;
+  border-color: var(--settings-border-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(247, 243, 233, 0.9) 100%);
+  box-shadow: var(--settings-shadow-soft);
+}
+
+.crm-settings-shell .crm-settings-disclosure-card-full {
+  grid-column: 1 / -1;
+}
+
+.crm-settings-shell .crm-settings-disclosure-summary h6 {
+  margin: 0;
+  color: var(--settings-heading);
+  font-family: var(--font-editorial);
+  font-size: 1.06rem;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.crm-settings-shell .crm-settings-disclosure-summary p {
+  margin-top: 0.16rem;
+  color: var(--settings-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.crm-settings-shell .crm-settings-disclosure-meta span {
+  padding: 0.38rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(143, 106, 28, 0.08);
+  color: #8d6a1e;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.crm-settings-shell .crm-settings-disclosure-body {
+  gap: 0.86rem;
+}
+
+.crm-settings-shell .crm-settings-disclosure-card[open] {
+  gap: 0.92rem;
+}
+
+.crm-settings-shell .crm-settings-disclosure-meta svg {
+  transition: transform 0.22s ease;
+}
+
+.crm-settings-shell .crm-settings-disclosure-card[open] .crm-settings-disclosure-meta svg {
+  transform: rotate(180deg);
 }
 
 .crm-settings-shell .crm-settings-group-head h5 {
   margin: 0;
   color: var(--settings-heading);
   font-family: var(--font-editorial);
-  font-size: 1rem;
+  font-size: 1.12rem;
   font-weight: 400;
   line-height: 1.08;
 }
@@ -2436,8 +2672,8 @@
 .crm-settings-shell .crm-settings-group-head p {
   margin: 0.14rem 0 0;
   color: var(--settings-muted);
-  font-size: 0.74rem;
-  line-height: 1.4;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .crm-settings-shell .crm-settings-field {
@@ -2446,29 +2682,29 @@
 
 .crm-settings-shell .crm-settings-field span {
   color: var(--settings-label);
-  font-size: 0.66rem !important;
-  letter-spacing: 0.1em !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.08em !important;
 }
 
 .crm-settings-shell .crm-settings-field-hint {
   margin-top: -0.02rem;
   color: #9c8f78;
-  font-size: 0.74rem;
-  line-height: 1.42;
+  font-size: 0.8rem;
+  line-height: 1.48;
 }
 
 .crm-settings-shell .crm-settings-field input,
 .crm-settings-shell .crm-settings-field select,
 .crm-settings-shell .crm-settings-field textarea,
 .crm-settings-shell .crm-settings-pill-input {
-  min-height: 42px;
-  border-radius: 13px;
+  min-height: 46px;
+  border-radius: 14px;
   border: 1px solid var(--settings-border);
   background: #fffcf8;
   color: #342d26;
-  padding: 0.58rem 0.78rem;
-  font-size: 0.94rem;
-  line-height: 1.32;
+  padding: 0.72rem 0.92rem;
+  font-size: 1rem;
+  line-height: 1.36;
   font-family: var(--font-sans);
 }
 
@@ -2486,14 +2722,14 @@
 }
 
 .crm-settings-shell .crm-settings-input-icon-wrap svg {
-  width: 15px;
-  height: 15px;
-  left: 0.78rem;
+  width: 16px;
+  height: 16px;
+  left: 0.82rem;
 }
 
 .crm-settings-shell .crm-settings-input-icon-wrap input,
 .crm-settings-shell .crm-settings-input-icon-wrap select {
-  padding-left: 2.25rem;
+  padding-left: 2.35rem;
 }
 
 .crm-settings-shell .crm-settings-field-textarea {
@@ -2508,17 +2744,17 @@
 .crm-settings-shell .crm-settings-rule-stack,
 .crm-settings-shell .crm-settings-communication-stack,
 .crm-settings-shell .crm-settings-branding-panel {
-  margin-top: 1rem;
-  gap: 0.96rem;
+  margin-top: 1.06rem;
+  gap: 1rem;
 }
 
 .crm-settings-shell .crm-settings-rule-grid,
 .crm-settings-shell .crm-settings-message-grid {
-  gap: 0.84rem 0.94rem;
+  gap: 0.92rem 1rem;
 }
 
 .crm-settings-shell .crm-settings-group-card .crm-settings-rule-grid {
-  gap: 0.74rem 0.84rem;
+  gap: 0.84rem 0.92rem;
 }
 
 .crm-settings-shell .crm-settings-group-card .crm-settings-switch-stack {
@@ -2531,34 +2767,34 @@
 }
 
 .crm-settings-shell .crm-settings-switch-row {
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--settings-border-soft);
   background: rgba(252, 249, 242, 0.8);
-  padding: 0.66rem 0.76rem;
+  padding: 0.78rem 0.86rem;
 }
 
 .crm-settings-shell .crm-settings-rule-row span,
 .crm-settings-shell .crm-settings-switch-row span {
-  font-size: 0.76rem;
-  letter-spacing: 0.07em;
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
 }
 
 .crm-settings-shell .crm-settings-rule-row p,
 .crm-settings-shell .crm-settings-switch-row p {
-  margin-top: 0.16rem;
-  font-size: 0.82rem;
-  line-height: 1.42;
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+  line-height: 1.46;
 }
 
 .crm-settings-shell .crm-settings-toggle {
-  width: 32px;
-  height: 18px;
+  width: 34px;
+  height: 20px;
   padding: 2px;
 }
 
 .crm-settings-shell .crm-settings-toggle span {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .crm-settings-shell .crm-settings-toggle-on span {
@@ -2569,51 +2805,51 @@
   border-radius: 14px !important;
   background: rgba(251, 247, 240, 0.92) !important;
   border: 1px solid var(--settings-border-soft) !important;
-  padding: 0.62rem 0.68rem !important;
-  gap: 0.44rem !important;
+  padding: 0.72rem 0.78rem !important;
+  gap: 0.52rem !important;
 }
 
 .crm-settings-shell .crm-settings-branding-chip {
   border-radius: 999px;
-  padding: 0.48rem 0.68rem;
-  font-size: 0.66rem;
-  letter-spacing: 0.07em;
-  min-height: 32px;
+  padding: 0.58rem 0.78rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  min-height: 36px;
 }
 
 .crm-settings-shell .crm-settings-hours-grid {
-  margin-top: 1rem;
-  gap: 0.78rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1.1rem;
+  gap: 0.86rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .crm-settings-shell .crm-settings-hour-card,
 .crm-settings-shell .crm-settings-hour-add-card {
-  min-height: 220px;
-  border-radius: 20px !important;
+  min-height: 248px;
+  border-radius: 22px !important;
 }
 
 .crm-settings-shell .crm-settings-hour-card {
-  padding: 0.9rem 0.92rem;
-  gap: 0.72rem;
+  padding: 1.05rem 1.06rem;
+  gap: 0.88rem;
 }
 
 .crm-settings-shell .crm-settings-hour-head span {
   color: #40382e;
-  font-size: 0.68rem;
-  letter-spacing: 0.09em;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
 }
 
 .crm-settings-shell .crm-settings-hour-head strong {
   display: block;
-  margin-top: 0.1rem;
+  margin-top: 0.12rem;
   color: #302922;
-  font-size: 0.9rem;
+  font-size: 1.04rem;
   font-weight: 700;
 }
 
 .crm-settings-shell .crm-settings-hour-inputs {
-  gap: 0.55rem;
+  gap: 0.72rem;
 }
 
 .crm-settings-shell .crm-settings-hour-inputs .crm-settings-field {
@@ -2621,30 +2857,71 @@
 }
 
 .crm-settings-shell .crm-settings-hour-inputs .crm-settings-field span {
-  font-size: 0.6rem !important;
+  font-size: 0.7rem !important;
+}
+
+.crm-settings-shell .crm-settings-hour-details {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.72rem 0.76rem;
+  border-radius: 14px;
+  border: 1px solid var(--settings-border-soft);
+  background: rgba(251, 247, 240, 0.78);
+}
+
+.crm-settings-shell .crm-settings-hour-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  list-style: none;
+  cursor: pointer;
+  color: #7d6b4b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.crm-settings-shell .crm-settings-hour-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.crm-settings-shell .crm-settings-hour-details summary svg {
+  transition: transform 0.22s ease;
+}
+
+.crm-settings-shell .crm-settings-hour-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.crm-settings-shell .crm-settings-hour-break-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem;
 }
 
 .crm-settings-shell .crm-settings-hour-inputs input {
-  min-height: 36px;
+  min-height: 42px;
   font-family: var(--font-sans);
-  font-size: 0.96rem;
+  font-size: 1rem;
   font-variant-numeric: tabular-nums;
   border-radius: 11px;
   border: 1px solid var(--settings-border-soft);
   background: rgba(255, 255, 255, 0.86);
-  padding: 0.42rem 0.58rem;
+  padding: 0.56rem 0.66rem;
 }
 
 .crm-settings-shell .crm-settings-hour-note {
   margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.4;
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .crm-settings-shell .crm-settings-hour-badge {
   margin-top: auto;
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
 }
 
 .crm-settings-shell .crm-settings-hour-add-card {
@@ -2653,8 +2930,8 @@
   border-style: dashed !important;
   color: #b09b76;
   gap: 0.34rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
 }
 
 .crm-settings-shell .crm-settings-special-hours {
@@ -2663,12 +2940,12 @@
 }
 
 .crm-settings-shell .crm-settings-special-hours-head h4 {
-  font-size: 1.2rem;
+  font-size: 1.28rem;
   margin-bottom: 0;
 }
 
 .crm-settings-shell .crm-settings-special-hours-head p {
-  font-size: 0.84rem;
+  font-size: 0.9rem;
 }
 
 .crm-settings-shell .crm-settings-seasonal-grid {
@@ -2677,24 +2954,24 @@
 }
 
 .crm-settings-shell .crm-settings-seasonal-card {
-  border-radius: 18px;
-  padding: 0.82rem 0.86rem;
+  border-radius: 20px;
+  padding: 0.92rem 0.96rem;
 }
 
 .crm-settings-shell .crm-settings-seasonal-card span,
 .crm-settings-shell .crm-settings-seasonal-card strong {
-  font-size: 0.64rem;
+  font-size: 0.7rem;
 }
 
 .crm-settings-shell .crm-settings-seasonal-card p {
   margin-top: 0.48rem;
-  font-size: 0.84rem;
-  line-height: 1.42;
+  font-size: 0.9rem;
+  line-height: 1.46;
 }
 
 .crm-settings-shell .crm-settings-seasonal-card em {
   margin-top: 0.56rem;
-  font-size: 0.64rem;
+  font-size: 0.68rem;
 }
 
 .crm-settings-shell .crm-settings-inline-action {
@@ -2702,62 +2979,62 @@
 }
 
 .crm-settings-shell .crm-settings-preview-card {
-  padding: 1rem 1.02rem;
+  padding: 1.08rem 1.12rem;
 }
 
 .crm-settings-shell .crm-settings-preview-shell {
-  margin-top: 0.86rem;
-  gap: 0.84rem;
+  margin-top: 0.94rem;
+  gap: 0.92rem;
 }
 
 .crm-settings-shell .crm-settings-preview-brand strong {
-  font-size: 1.22rem;
+  font-size: 1.42rem;
   line-height: 1.08;
 }
 
 .crm-settings-shell .crm-settings-preview-brand p {
-  margin-top: 0.16rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  margin-top: 0.18rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .crm-settings-shell .crm-settings-preview-mark {
-  width: 48px;
-  height: 48px;
-  font-size: 0.92rem;
+  width: 56px;
+  height: 56px;
+  font-size: 1rem;
 }
 
 .crm-settings-shell .crm-settings-preview-meta {
-  gap: 0.52rem;
+  gap: 0.58rem;
 }
 
 .crm-settings-shell .crm-settings-preview-meta div {
-  border-radius: 14px;
-  padding: 0.6rem 0.64rem;
+  border-radius: 16px;
+  padding: 0.7rem 0.74rem;
 }
 
 .crm-settings-shell .crm-settings-preview-meta span {
-  font-size: 0.6rem;
+  font-size: 0.66rem;
 }
 
 .crm-settings-shell .crm-settings-preview-meta strong {
-  font-size: 0.8rem;
-  margin-top: 0.18rem;
-  line-height: 1.3;
+  font-size: 0.86rem;
+  margin-top: 0.2rem;
+  line-height: 1.32;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt {
-  border-radius: 16px;
-  padding: 0.82rem;
+  border-radius: 18px;
+  padding: 0.92rem;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt-head p {
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt-head strong {
-  font-size: 1.08rem;
+  font-size: 1.16rem;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt-head span {
@@ -2766,8 +3043,8 @@
 }
 
 .crm-settings-shell .crm-settings-preview-receipt-lines {
-  margin-top: 0.72rem;
-  gap: 0.52rem;
+  margin-top: 0.82rem;
+  gap: 0.58rem;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt-lines div {
@@ -2776,43 +3053,95 @@
 
 .crm-settings-shell .crm-settings-preview-receipt-lines span,
 .crm-settings-shell .crm-settings-preview-receipt-lines strong {
-  font-size: 0.8rem;
+  font-size: 0.88rem;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt footer {
-  margin-top: 0.74rem;
+  margin-top: 0.82rem;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt footer strong {
-  font-size: 0.98rem;
+  font-size: 1.06rem;
   line-height: 1.28;
 }
 
 .crm-settings-shell .crm-settings-preview-receipt footer p {
-  margin-top: 0.28rem;
-  font-size: 0.76rem;
-  line-height: 1.42;
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  line-height: 1.46;
 }
 
 .crm-settings-shell .crm-settings-preview-note {
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--settings-border-soft);
   background: rgba(251, 247, 240, 0.8);
-  padding: 0.64rem 0.7rem;
-  gap: 0.58rem;
+  padding: 0.76rem 0.8rem;
+  gap: 0.64rem;
 }
 
 .crm-settings-shell .crm-settings-preview-note strong {
   color: #2e2822;
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   text-transform: none;
   letter-spacing: 0;
 }
 
 .crm-settings-shell .crm-settings-preview-note p {
-  margin-top: 0.16rem;
-  font-size: 0.76rem;
-  line-height: 1.4;
+  margin-top: 0.18rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.crm-settings-shell .crm-settings-trust-stack,
+.crm-settings-shell .crm-settings-status-grid,
+.crm-settings-shell .crm-settings-permissions {
+  gap: 0.62rem;
+}
+
+.crm-settings-shell .crm-settings-trust-stat,
+.crm-settings-shell .crm-settings-status-pill,
+.crm-settings-shell .crm-settings-permissions {
+  border-radius: 16px;
+}
+
+.crm-settings-shell .crm-settings-trust-stat span,
+.crm-settings-shell .crm-settings-status-pill span {
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+}
+
+.crm-settings-shell .crm-settings-trust-stat strong,
+.crm-settings-shell .crm-settings-status-pill strong {
+  font-size: 0.88rem;
+}
+
+.crm-settings-shell .crm-settings-status-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.crm-settings-shell .crm-settings-permissions {
+  padding: 1rem 1.02rem;
+}
+
+.crm-settings-shell .crm-settings-permissions-head strong {
+  font-size: 0.8rem;
+  letter-spacing: 0.09em;
+}
+
+.crm-settings-shell .crm-settings-permissions p {
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.crm-settings-shell .crm-settings-permissions-tags {
+  margin-top: 0.8rem;
+  gap: 0.44rem;
+}
+
+.crm-settings-shell .crm-settings-permissions-tags span {
+  padding: 0.46rem 0.72rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
 }
 
 .crm-settings-shell .crm-settings-footer {
@@ -2820,8 +3149,8 @@
   padding-top: 0.7rem;
   border-top: 1px solid var(--settings-border-soft);
   color: #9c927f;
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
+  font-size: 0.74rem;
+  letter-spacing: 0.09em;
 }
 
 .crm-settings-shell .crm-settings-footer-links {
@@ -2863,13 +3192,13 @@
 }
 
 .crm-settings-shell .crm-settings-modal-head p {
-  font-size: 0.64rem;
-  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
 }
 
 .crm-settings-shell .crm-settings-modal-head h3 {
   margin-top: 0.24rem;
-  font-size: clamp(1.3rem, 2vw, 1.72rem);
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
 }
 
 .crm-settings-shell .crm-settings-modal-list {
@@ -2906,6 +3235,10 @@
     grid-template-columns: minmax(0, 1fr) minmax(292px, 332px);
   }
 
+  .crm-settings-shell .crm-settings-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(292px, 332px);
+  }
+
   .crm-settings-shell .crm-settings-hours-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2921,12 +3254,20 @@
     grid-template-columns: 1fr;
   }
 
+  .crm-settings-shell .crm-settings-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-settings-shell .crm-settings-rail-stack {
+    position: static;
+  }
+
   .crm-settings-shell .crm-settings-group-grid {
     grid-template-columns: 1fr;
   }
 
   .crm-settings-shell .crm-settings-side-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .crm-settings-shell .crm-settings-brand-row {

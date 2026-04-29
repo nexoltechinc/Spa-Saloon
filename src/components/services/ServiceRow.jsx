@@ -1,5 +1,4 @@
 import ServiceHealthBadge from './ServiceHealthBadge';
-import StaffCoverageIndicator from './StaffCoverageIndicator';
 
 const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency }) => {
   const visibleSignals = service.healthSignals.slice(0, 2);
@@ -38,15 +37,6 @@ const ServiceRow = ({ service, isSelected, onSelect, onOpenQuick, formatCurrency
       <div className="crm-service-row-branch">
         <p className="crm-service-row-label">Branch</p>
         <strong>{branchLabel}</strong>
-      </div>
-
-      <div className="crm-service-row-staff">
-        <StaffCoverageIndicator
-          coverage={service.staffCoverage}
-          staffCount={service.assignedStaff.length}
-          staff={service.assignedStaff}
-          compact
-        />
       </div>
 
       <div className="crm-service-row-status-stack">

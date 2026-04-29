@@ -21,11 +21,14 @@ import {
   ReceiptBrandingPreview,
   RegionalDefaultsBlock,
   SettingsSaveState,
+  SettingsDisclosureCard,
   SettingsSectionChip,
   SettingsSectionHeader,
+  SettingsTrustPanel,
 
   SpecialHoursManager,
 } from '../components/settings/SettingsBlocks';
+import './CrmSettings.css';
 
 const sectionGroups = [
   {
@@ -87,6 +90,22 @@ const panelMetaById = {
     title: 'Terms summary',
   },
 };
+
+const SectionCompactPanel = ({ description, points = [], onOpen }) => (
+  <div className="crm-settings-section-compact">
+    <p>{description}</p>
+    {points.length ? (
+      <div className="crm-settings-section-compact-points">
+        {points.map((point, index) => (
+          <span key={`${point}-${index}`}>{point}</span>
+        ))}
+      </div>
+    ) : null}
+    <button type="button" className="crm-settings-section-open" onClick={onOpen}>
+      Open section
+    </button>
+  </div>
+);
 
 const cloneSettings = (value) => {
   if (typeof structuredClone === 'function') return structuredClone(value);
@@ -533,231 +552,323 @@ const CrmSettings = () => {
           ))}
         </section>
 
-        <section className="crm-settings-content-grid">
-          <article className="crm-settings-card crm-settings-card-profile" id="business-profile">
-            <SettingsSectionHeader
-              kicker="Core Business"
-              title="Business Profile"
-              description="Public-facing identity and contact details visible to guests."
-              status={sectionStateById['business-profile']?.stateLabel}
-              statusTone={sectionStateById['business-profile']?.state}
-              actions={
-                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('business-profile')}>
-                  <span>Reset Section</span>
-                </button>
-              }
-            />
+        <section className="crm-settings-workspace">
+          <div className="crm-settings-primary-stack">
+            <article className="crm-settings-card crm-settings-card-profile" id="business-profile">
+              <SettingsSectionHeader
+                kicker="Core Business"
+                title="Business Profile"
+                description="Public-facing identity and contact details visible to guests."
+                status={sectionStateById['business-profile']?.stateLabel}
+                statusTone={sectionStateById['business-profile']?.state}
+                actions={
+                  <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('business-profile')}>
+                    <span>Reset Section</span>
+                  </button>
+                }
+              />
 
-            <BusinessProfileForm
-              profile={draft.profile}
-              onChange={updateProfile}
-              brandMarkLabel={brandMarkLabel}
-              brandMarkPreview={brandMarkPreview}
-              onPickBrandMark={() => brandMarkInputRef.current?.click()}
-            />
+              {activeSection === 'business-profile' ? (
+                <BusinessProfileForm
+                  profile={draft.profile}
+                  onChange={updateProfile}
+                  brandMarkLabel={brandMarkLabel}
+                  brandMarkPreview={brandMarkPreview}
+                  onPickBrandMark={() => brandMarkInputRef.current?.click()}
+                />
+              ) : (
+                <SectionCompactPanel
+                  description="Public identity, contact channels, and legal details for the business profile."
+                  points={[
+                    draft.profile.businessName || 'Business name',
+                    draft.profile.branchName || 'Branch name',
+                    draft.profile.receiptDisplayName || 'Receipt display name',
+                  ]}
+                  onOpen={() => scrollToSection('business-profile')}
+                />
+              )}
 
-            <input
-              ref={brandMarkInputRef}
-              className="crm-settings-sr-file"
-              type="file"
-              accept="image/*"
-              onChange={handleBrandMarkChange}
-              aria-label="Upload brand mark"
-            />
-          </article>
+              <input
+                ref={brandMarkInputRef}
+                className="crm-settings-sr-file"
+                type="file"
+                accept="image/*"
+                onChange={handleBrandMarkChange}
+                aria-label="Upload brand mark"
+              />
+            </article>
 
-          <div className="crm-settings-side-stack">
+            <section className="crm-settings-card crm-settings-hours-section" id="operating-hours">
+              <SettingsSectionHeader
+                kicker="Core Business"
+                title="Operating Hours"
+                description="Control the weekly rhythm your booking engine presents to guests."
+                status={sectionStateById['operating-hours']?.stateLabel}
+                statusTone={sectionStateById['operating-hours']?.state}
+                actions={
+                  <button className="crm-settings-ghost-action" type="button" onClick={handleAddSpecialHours}>
+                    <Sparkles size={15} />
+                    <span>Add Special Hours</span>
+                  </button>
+                }
+              />
+
+              {activeSection === 'operating-hours' ? (
+                <>
+                  <div className="crm-settings-hours-grid">
+                    {draft.operatingHours.map((entry, index) => (
+                      <OperatingHoursDayCard
+                        key={entry.day}
+                        entry={entry}
+                        onChange={(field, value) => updateHour(index, field, value)}
+                        onToggle={() => toggleHour(index)}
+                      />
+                    ))}
+
+                    <button className="crm-settings-hour-add-card" type="button" onClick={handleAddSpecialHours}>
+                      <Sparkles size={24} />
+                      <span>Create Special Hours</span>
+                    </button>
+                  </div>
+
+                  <SpecialHoursManager
+                    specialHours={draft.specialHours}
+                    onAdd={handleAddSpecialHours}
+                    onRemove={handleRemoveSpecialHour}
+                  />
+                </>
+              ) : (
+                <SectionCompactPanel
+                  description="Weekly operating rhythm, guest-booking availability, and seasonal exceptions."
+                  points={[
+                    `${draft.operatingHours.filter((entry) => entry.enabled).length} open days`,
+                    `${draft.specialHours.length} special windows`,
+                    `${draft.operatingHours.filter((entry) => entry.guestBookingOpen).length} guest-booking days`,
+                  ]}
+                  onOpen={() => scrollToSection('operating-hours')}
+                />
+              )}
+            </section>
+
+            <section className="crm-settings-lower-grid">
+              <article className="crm-settings-card" id="regional-defaults">
+                <SettingsSectionHeader
+                  kicker="Core Business"
+                  title="Regional Defaults"
+                  description="Timezone, currency, date format, and locale settings used across the CRM."
+                  status={sectionStateById['regional-defaults']?.stateLabel}
+                  statusTone={sectionStateById['regional-defaults']?.state}
+                  actions={
+                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('regional-defaults')}>
+                      <span>Reset Section</span>
+                    </button>
+                  }
+                />
+
+                {activeSection === 'regional-defaults' ? (
+                  <RegionalDefaultsBlock regionalDefaults={draft.regionalDefaults} onChange={updateRegionalDefaults} />
+                ) : (
+                  <SectionCompactPanel
+                    description="Timezone, currency, date format, and locale defaults across the CRM."
+                    points={[
+                      draft.regionalDefaults.timezone,
+                      draft.regionalDefaults.currency,
+                      draft.regionalDefaults.locale,
+                    ]}
+                    onOpen={() => scrollToSection('regional-defaults')}
+                  />
+                )}
+              </article>
+
+              <article className="crm-settings-card" id="booking-rules">
+                <SettingsSectionHeader
+                  kicker="Booking Engine"
+                  title="Booking Rules"
+                  description="Guide guest expectations, booking windows, confirmations, and premium slot handling."
+                  status={sectionStateById['booking-rules']?.stateLabel}
+                  statusTone={sectionStateById['booking-rules']?.state}
+                  actions={
+                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('booking-rules')}>
+                      <span>Reset Section</span>
+                    </button>
+                  }
+                />
+
+                {activeSection === 'booking-rules' ? (
+                  <BookingRulesBlock bookingRules={draft.bookingRules} onChange={updateBooking} onToggle={toggleBooking} />
+                ) : (
+                  <SectionCompactPanel
+                    description="Buffer times, approvals, visibility, and guest policy controls."
+                    points={[
+                      `${draft.bookingRules.bufferTime} min buffer`,
+                      draft.bookingRules.defaultAppointmentStatus,
+                      draft.bookingRules.guestBookingVisibility,
+                    ]}
+                    onOpen={() => scrollToSection('booking-rules')}
+                  />
+                )}
+              </article>
+            </section>
+
+            <section className="crm-settings-lower-grid">
+              <article className="crm-settings-card" id="communications">
+                <SettingsSectionHeader
+                  kicker="Booking Engine"
+                  title="Communication Settings"
+                  description="Keep booking confirmations and reminders aligned with the guest experience."
+                  status={sectionStateById.communications?.stateLabel}
+                  statusTone={sectionStateById.communications?.state}
+                  actions={
+                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('communications')}>
+                      <span>Reset Section</span>
+                    </button>
+                  }
+                />
+
+                {activeSection === 'communications' ? (
+                  <CommunicationSettingsBlock
+                    communication={draft.communication}
+                    onChange={updateCommunication}
+                    onToggle={toggleCommunication}
+                  />
+                ) : (
+                  <SectionCompactPanel
+                    description="Confirmation and reminder defaults, sender identity, and preview copy."
+                    points={[
+                      draft.communication.senderName,
+                      draft.communication.senderEmail,
+                      draft.communication.reminderCadence,
+                    ]}
+                    onOpen={() => scrollToSection('communications')}
+                  />
+                )}
+              </article>
+
+              <article className="crm-settings-card" id="branding-receipts">
+                <SettingsSectionHeader
+                  kicker="Brand Experience"
+                  title="Branding & Receipts"
+                  description="Shape the post-visit touchpoint with polished brand presentation."
+                  status={sectionStateById['branding-receipts']?.stateLabel}
+                  statusTone={sectionStateById['branding-receipts']?.state}
+                  actions={
+                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('branding-receipts')}>
+                      <span>Reset Section</span>
+                    </button>
+                  }
+                />
+
+                {activeSection === 'branding-receipts' ? (
+                  <div className="crm-settings-branding-panel">
+                    <div className="crm-settings-form-grid crm-settings-form-grid-compact">
+                      <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea">
+                        <span>Receipt Header Quote</span>
+                        <textarea rows="4" value={draft.branding.receiptHeaderQuote} onChange={(e) => updateBranding('receiptHeaderQuote', e.target.value)} />
+                      </label>
+                      <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea">
+                        <span>Receipt Footer Text</span>
+                        <textarea rows="4" value={draft.branding.receiptFooterText} onChange={(e) => updateBranding('receiptFooterText', e.target.value)} />
+                      </label>
+                      <label className="crm-settings-field">
+                        <span>Receipt Number Prefix</span>
+                        <input type="text" value={draft.branding.receiptNumberPrefix} onChange={(e) => updateBranding('receiptNumberPrefix', e.target.value)} />
+                      </label>
+                      <label className="crm-settings-field">
+                        <span>Logo Placement</span>
+                        <select value={draft.branding.logoPlacement} onChange={(e) => updateBranding('logoPlacement', e.target.value)}>
+                          <option value="centered">Centered</option>
+                          <option value="left">Left aligned</option>
+                        </select>
+                      </label>
+                      <label className="crm-settings-field">
+                        <span>Logo Size</span>
+                        <select value={draft.branding.logoSize} onChange={(e) => updateBranding('logoSize', e.target.value)}>
+                          <option value="small">Small</option>
+                          <option value="medium">Medium</option>
+                          <option value="large">Large</option>
+                        </select>
+                      </label>
+                      <label className="crm-settings-field">
+                        <span>Tax Display</span>
+                        <select value={draft.branding.taxDisplayMode} onChange={(e) => updateBranding('taxDisplayMode', e.target.value)}>
+                          <option value="Included">Included</option>
+                          <option value="Excluded">Excluded</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <SettingsDisclosureCard
+                      title="Receipt visibility"
+                      description="Control which contact, tax, and brand details appear on receipts."
+                      badge="Advanced"
+                      full
+                    >
+                      <div className="crm-settings-switch-stack crm-settings-switch-stack-compact">
+                        {BRANDING_SWITCHES.map(([key, label, hint]) => (
+                          <div className="crm-settings-switch-row" key={key}>
+                            <div>
+                              <span>{label}</span>
+                              <p>{hint}</p>
+                            </div>
+                            <button
+                              className={`crm-settings-toggle${draft.branding[key] ? ' crm-settings-toggle-on' : ''}`}
+                              type="button"
+                              aria-pressed={draft.branding[key]}
+                              onClick={() => updateBranding(key, !draft.branding[key])}
+                            >
+                              <span />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </SettingsDisclosureCard>
+
+                    <div className="crm-settings-branding-summary">
+                      <div className="crm-settings-branding-chip">
+                        <Sparkles size={16} />
+                        <span>{draft.branding.logoPlacement === 'left' ? 'Logo left' : 'Logo centered'}</span>
+                      </div>
+                      <div className="crm-settings-branding-chip">
+                        <Palette size={16} />
+                        <span>Receipt quote active</span>
+                      </div>
+                      <div className="crm-settings-branding-chip">
+                        <Clock3 size={16} />
+                        <span>{draft.branding.taxDisplayMode} tax display</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <SectionCompactPanel
+                    description="Receipt header, footer, numbering, logo placement, and visibility rules."
+                    points={[
+                      draft.branding.receiptNumberPrefix || 'RCT-',
+                      draft.branding.logoPlacement === 'left' ? 'Logo left' : 'Logo centered',
+                      draft.branding.taxDisplayMode,
+                    ]}
+                    onOpen={() => scrollToSection('branding-receipts')}
+                  />
+                )}
+              </article>
+            </section>
+          </div>
+
+          <div className="crm-settings-rail-stack">
             <ReceiptBrandingPreview
               profile={draft.profile}
               branding={draft.branding}
               communication={draft.communication}
               regionalDefaults={draft.regionalDefaults}
             />
+
+            <SettingsTrustPanel
+              saveState={saveState}
+              dirty={dirty}
+              lastSavedAt={lastSavedAt}
+              validationCount={validationCount}
+              sectionStates={sectionStates}
+            />
           </div>
-        </section>
-
-        <section className="crm-settings-card crm-settings-hours-section" id="operating-hours">
-          <SettingsSectionHeader
-            kicker="Core Business"
-            title="Operating Hours"
-            description="Control the weekly rhythm your booking engine presents to guests."
-            status={sectionStateById['operating-hours']?.stateLabel}
-            statusTone={sectionStateById['operating-hours']?.state}
-            actions={
-              <button className="crm-settings-ghost-action" type="button" onClick={handleAddSpecialHours}>
-                <Sparkles size={15} />
-                <span>Add Special Hours</span>
-              </button>
-            }
-          />
-
-          <div className="crm-settings-hours-grid">
-            {draft.operatingHours.map((entry, index) => (
-              <OperatingHoursDayCard
-                key={entry.day}
-                entry={entry}
-                onChange={(field, value) => updateHour(index, field, value)}
-                onToggle={() => toggleHour(index)}
-              />
-            ))}
-
-            <button className="crm-settings-hour-add-card" type="button" onClick={handleAddSpecialHours}>
-              <Sparkles size={24} />
-              <span>Create Special Hours</span>
-            </button>
-          </div>
-
-          <SpecialHoursManager
-            specialHours={draft.specialHours}
-            onAdd={handleAddSpecialHours}
-            onRemove={handleRemoveSpecialHour}
-          />
-        </section>
-        <section className="crm-settings-lower-grid">
-          <article className="crm-settings-card" id="regional-defaults">
-            <SettingsSectionHeader
-              kicker="Core Business"
-              title="Regional Defaults"
-              description="Timezone, currency, date format, and locale settings used across the CRM."
-              status={sectionStateById['regional-defaults']?.stateLabel}
-              statusTone={sectionStateById['regional-defaults']?.state}
-              actions={
-                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('regional-defaults')}>
-                  <span>Reset Section</span>
-                </button>
-              }
-            />
-
-            <RegionalDefaultsBlock regionalDefaults={draft.regionalDefaults} onChange={updateRegionalDefaults} />
-          </article>
-
-          <article className="crm-settings-card" id="booking-rules">
-            <SettingsSectionHeader
-              kicker="Booking Engine"
-              title="Booking Rules"
-              description="Guide guest expectations, booking windows, confirmations, and premium slot handling."
-              status={sectionStateById['booking-rules']?.stateLabel}
-              statusTone={sectionStateById['booking-rules']?.state}
-              actions={
-                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('booking-rules')}>
-                  <span>Reset Section</span>
-                </button>
-              }
-            />
-
-            <BookingRulesBlock bookingRules={draft.bookingRules} onChange={updateBooking} onToggle={toggleBooking} />
-          </article>
-        </section>
-
-        <section className="crm-settings-lower-grid">
-          <article className="crm-settings-card" id="communications">
-            <SettingsSectionHeader
-              kicker="Booking Engine"
-              title="Communication Settings"
-              description="Keep booking confirmations and reminders aligned with the guest experience."
-              status={sectionStateById.communications?.stateLabel}
-              statusTone={sectionStateById.communications?.state}
-              actions={
-                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('communications')}>
-                  <span>Reset Section</span>
-                </button>
-              }
-            />
-
-            <CommunicationSettingsBlock
-              communication={draft.communication}
-              onChange={updateCommunication}
-              onToggle={toggleCommunication}
-            />
-          </article>
-
-          <article className="crm-settings-card" id="branding-receipts">
-            <SettingsSectionHeader
-              kicker="Brand Experience"
-              title="Branding & Receipts"
-              description="Shape the post-visit touchpoint with polished brand presentation."
-              status={sectionStateById['branding-receipts']?.stateLabel}
-              statusTone={sectionStateById['branding-receipts']?.state}
-              actions={
-                <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('branding-receipts')}>
-                  <span>Reset Section</span>
-                </button>
-              }
-            />
-
-            <div className="crm-settings-branding-panel">
-              <div className="crm-settings-form-grid crm-settings-form-grid-compact">
-                <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea">
-                  <span>Receipt Header Quote</span>
-                  <textarea rows="4" value={draft.branding.receiptHeaderQuote} onChange={(e) => updateBranding('receiptHeaderQuote', e.target.value)} />
-                </label>
-                <label className="crm-settings-field crm-settings-field-full crm-settings-field-textarea">
-                  <span>Receipt Footer Text</span>
-                  <textarea rows="4" value={draft.branding.receiptFooterText} onChange={(e) => updateBranding('receiptFooterText', e.target.value)} />
-                </label>
-                <label className="crm-settings-field">
-                  <span>Receipt Number Prefix</span>
-                  <input type="text" value={draft.branding.receiptNumberPrefix} onChange={(e) => updateBranding('receiptNumberPrefix', e.target.value)} />
-                </label>
-                <label className="crm-settings-field">
-                  <span>Logo Placement</span>
-                  <select value={draft.branding.logoPlacement} onChange={(e) => updateBranding('logoPlacement', e.target.value)}>
-                    <option value="centered">Centered</option>
-                    <option value="left">Left aligned</option>
-                  </select>
-                </label>
-                <label className="crm-settings-field">
-                  <span>Logo Size</span>
-                  <select value={draft.branding.logoSize} onChange={(e) => updateBranding('logoSize', e.target.value)}>
-                    <option value="small">Small</option>
-                    <option value="medium">Medium</option>
-                    <option value="large">Large</option>
-                  </select>
-                </label>
-                <label className="crm-settings-field">
-                  <span>Tax Display</span>
-                  <select value={draft.branding.taxDisplayMode} onChange={(e) => updateBranding('taxDisplayMode', e.target.value)}>
-                    <option value="Included">Included</option>
-                    <option value="Excluded">Excluded</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="crm-settings-switch-stack crm-settings-switch-stack-compact">
-                {BRANDING_SWITCHES.map(([key, label, hint]) => (
-                  <div className="crm-settings-switch-row" key={key}>
-                    <div>
-                      <span>{label}</span>
-                      <p>{hint}</p>
-                    </div>
-                    <button
-                      className={`crm-settings-toggle${draft.branding[key] ? ' crm-settings-toggle-on' : ''}`}
-                      type="button"
-                      aria-pressed={draft.branding[key]}
-                      onClick={() => updateBranding(key, !draft.branding[key])}
-                    >
-                      <span />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="crm-settings-branding-summary">
-                <div className="crm-settings-branding-chip">
-                  <Sparkles size={16} />
-                  <span>{draft.branding.logoPlacement === 'left' ? 'Logo left' : 'Logo centered'}</span>
-                </div>
-                <div className="crm-settings-branding-chip">
-                  <Palette size={16} />
-                  <span>Receipt quote active</span>
-                </div>
-                <div className="crm-settings-branding-chip">
-                  <Clock3 size={16} />
-                  <span>{draft.branding.taxDisplayMode} tax display</span>
-                </div>
-              </div>
-            </div>
-          </article>
         </section>
 
         <footer className="crm-settings-footer">

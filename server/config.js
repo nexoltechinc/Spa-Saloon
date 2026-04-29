@@ -25,5 +25,6 @@ export const config = {
   adminEmail: process.env.CRM_ADMIN_EMAIL || 'admin@spa.local',
   adminPassword: process.env.CRM_ADMIN_PASSWORD || 'ChangeMe123!',
   requireAuth: String(process.env.CRM_REQUIRE_AUTH || '').toLowerCase() === 'true',
+  allowDegradedLogin: String(process.env.CRM_ALLOW_DEGRADED_LOGIN ?? 'true').toLowerCase() !== 'false',
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
 }

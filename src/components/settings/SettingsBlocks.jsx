@@ -5,6 +5,7 @@ import {
   Check,
   CircleAlert,
   CircleCheckBig,
+  ChevronDown,
   Globe2,
   LoaderCircle,
   Mail,
@@ -108,6 +109,29 @@ const SettingsGroupCard = ({ title, description, full = false, children }) => (
     </div>
     {children}
   </section>
+);
+
+export const SettingsDisclosureCard = ({
+  title,
+  description,
+  badge = 'Advanced',
+  defaultOpen = false,
+  full = false,
+  children,
+}) => (
+  <details className={`crm-settings-disclosure-card${full ? ' crm-settings-disclosure-card-full' : ''}`} open={defaultOpen}>
+    <summary className="crm-settings-disclosure-summary">
+      <div>
+        <h6>{title}</h6>
+        {description ? <p>{description}</p> : null}
+      </div>
+      <div className="crm-settings-disclosure-meta">
+        {badge ? <span>{badge}</span> : null}
+        <ChevronDown size={15} />
+      </div>
+    </summary>
+    <div className="crm-settings-disclosure-body">{children}</div>
+  </details>
 );
 
 export const SettingsSectionChip = ({ label, icon: Icon, active, status = 'saved', onClick }) => (
@@ -299,9 +323,11 @@ export const BusinessProfileForm = ({
         </div>
       </SettingsGroupCard>
 
-      <SettingsGroupCard
+      <SettingsDisclosureCard
         title="Guest contact"
         description="Public booking channels guests can use to connect with the spa."
+        badge="Public"
+        full
       >
         <div className="crm-settings-form-grid crm-settings-form-grid-compact">
           <SettingsFieldInput
@@ -328,11 +354,12 @@ export const BusinessProfileForm = ({
             onChange={(value) => onChange('bookingPageUrl', value)}
           />
         </div>
-      </SettingsGroupCard>
+      </SettingsDisclosureCard>
 
-      <SettingsGroupCard
+      <SettingsDisclosureCard
         title="Location and legal"
         description="Operational and legal contact details used by receipts, admin, and staff workflows."
+        badge="Advanced"
         full
       >
         <div className="crm-settings-form-grid crm-settings-form-grid-compact">
@@ -385,7 +412,7 @@ export const BusinessProfileForm = ({
             onChange={(value) => onChange('taxId', value)}
           />
         </div>
-      </SettingsGroupCard>
+      </SettingsDisclosureCard>
     </div>
   </div>
 );
@@ -471,18 +498,27 @@ export const OperatingHoursDayCard = ({ entry, onChange, onToggle }) => (
           onChange={(value) => onChange('close', value)}
           type="time"
         />
-        <SettingsFieldInput
-          label="Break start"
-          value={entry.breakStart}
-          onChange={(value) => onChange('breakStart', value)}
-          type="time"
-        />
-        <SettingsFieldInput
-          label="Break end"
-          value={entry.breakEnd}
-          onChange={(value) => onChange('breakEnd', value)}
-          type="time"
-        />
+
+        <details className="crm-settings-hour-details" open={Boolean(entry.breakStart || entry.breakEnd)}>
+          <summary>
+            <span>Break window</span>
+            <ChevronDown size={14} />
+          </summary>
+          <div className="crm-settings-hour-break-grid">
+            <SettingsFieldInput
+              label="Break start"
+              value={entry.breakStart}
+              onChange={(value) => onChange('breakStart', value)}
+              type="time"
+            />
+            <SettingsFieldInput
+              label="Break end"
+              value={entry.breakEnd}
+              onChange={(value) => onChange('breakEnd', value)}
+              type="time"
+            />
+          </div>
+        </details>
       </div>
     ) : (
       <div className="crm-settings-hour-closed-copy">
@@ -575,19 +611,28 @@ export const BookingRulesBlock = ({ bookingRules, onChange, onToggle }) => (
             value={bookingRules.reminderTiming}
             onChange={(value) => onChange('reminderTiming', value)}
           />
-          <SettingsFieldInput
-            label="Max Advance Booking"
-            hint="How far ahead guests may book."
-            value={bookingRules.maxAdvanceBooking}
-            onChange={(value) => onChange('maxAdvanceBooking', value)}
-          />
-          <SettingsFieldInput
-            label="Minimum Lead Time"
-            hint="Minimum time before a booking can be made."
-            value={bookingRules.minimumLeadTime}
-            onChange={(value) => onChange('minimumLeadTime', value)}
-          />
         </div>
+
+        <SettingsDisclosureCard
+          title="Advanced lead times"
+          description="Define how far ahead guests can book and the minimum notice they must give."
+          badge="Advanced"
+        >
+          <div className="crm-settings-rule-grid crm-settings-rule-grid-advanced">
+            <SettingsFieldInput
+              label="Max Advance Booking"
+              hint="How far ahead guests may book."
+              value={bookingRules.maxAdvanceBooking}
+              onChange={(value) => onChange('maxAdvanceBooking', value)}
+            />
+            <SettingsFieldInput
+              label="Minimum Lead Time"
+              hint="Minimum time before a booking can be made."
+              value={bookingRules.minimumLeadTime}
+              onChange={(value) => onChange('minimumLeadTime', value)}
+            />
+          </div>
+        </SettingsDisclosureCard>
       </SettingsGroupCard>
 
       <SettingsGroupCard
@@ -636,10 +681,11 @@ export const BookingRulesBlock = ({ bookingRules, onChange, onToggle }) => (
         </div>
       </SettingsGroupCard>
 
-      <SettingsGroupCard
+      <SettingsDisclosureCard
         title="Guest policies"
         description="Operating rules that shape same-day access, deposits, and guest pricing visibility."
         full
+        badge="Advanced"
       >
         <div className="crm-settings-switch-stack">
           {[
@@ -657,7 +703,7 @@ export const BookingRulesBlock = ({ bookingRules, onChange, onToggle }) => (
             </div>
           ))}
         </div>
-      </SettingsGroupCard>
+      </SettingsDisclosureCard>
     </div>
   </div>
 );

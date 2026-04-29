@@ -22,7 +22,7 @@ const verifyPassword = (password, storedHash) => {
   return timingSafeEqual(digestBuffer, attemptedBuffer)
 }
 
-const signSession = (payload) => {
+export const createSessionToken = (payload) => {
   const issuedAt = new Date().toISOString()
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString()
   const encodedPayload = Buffer.from(JSON.stringify({ ...payload, issuedAt, expiresAt })).toString('base64url')
@@ -37,7 +37,7 @@ const readBearerToken = (header) => {
   return raw.slice(7).trim()
 }
 
-const decodeSession = (token) => {
+export const decodeSessionToken = (token) => {
   const [encodedPayload, signature] = String(token || '').split('.')
   if (!encodedPayload || !signature) return null
 
@@ -63,16 +63,27 @@ export const seedAdminAccount = async () => {
 
 export const loginWithCredentials = async ({ email, password }) => {
   const normalizedEmail = String(email || '').trim().toLowerCase()
-  const user = await findUserByEmail(normalizedEmail)
+  let user
+
+  try {
+    user = await findUserByEmail(normalizedEmail)
+  } catch (error) {
+    const unavailableError = new Error('CRM authentication is temporarily unavailable while the database starts.')
+    unavailableError.statusCode = 503
+    unavailableError.code = 'CRM_AUTH_SERVICE_UNAVAILABLE'
+    unavailableError.cause = error
+    throw unavailableError
+  }
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
     const error = new Error('Invalid CRM credentials.')
     error.statusCode = 401
+    error.code = 'CRM_INVALID_CREDENTIALS'
     throw error
   }
 
   return {
-    token: signSession({
+    token: createSessionToken({
       sub: user.email,
       email: user.email,
       role: user.role,
@@ -84,7 +95,34 @@ export const loginWithCredentials = async ({ email, password }) => {
   }
 }
 
-export const verifyAuthToken = decodeSession
+export const loginWithDegradedFallback = ({ email, password }) => {
+  const normalizedEmail = String(email || '').trim().toLowerCase()
+  const normalizedAdmin = String(config.adminEmail || '').trim().toLowerCase()
+  const submittedPassword = String(password || '')
+  const expectedPassword = String(config.adminPassword || '')
+
+  if (!normalizedEmail || normalizedEmail !== normalizedAdmin || submittedPassword !== expectedPassword) {
+    const error = new Error('Invalid CRM credentials.')
+    error.statusCode = 401
+    error.code = 'CRM_INVALID_CREDENTIALS'
+    throw error
+  }
+
+  return {
+    token: createSessionToken({
+      sub: normalizedAdmin,
+      email: normalizedAdmin,
+      role: 'admin',
+    }),
+    user: {
+      email: normalizedAdmin,
+      role: 'admin',
+    },
+    degraded: true,
+  }
+}
+
+export const verifyAuthToken = decodeSessionToken
 
 export const authMiddleware = (req, res, next) => {
   if (!config.requireAuth) {
@@ -92,10 +130,13 @@ export const authMiddleware = (req, res, next) => {
   }
 
   const token = readBearerToken(req.headers.authorization)
-  const session = decodeSession(token)
+  const session = decodeSessionToken(token)
 
   if (!session) {
-    return res.status(401).json({ message: 'Missing or invalid CRM bearer token.' })
+    return res.status(401).json({
+      code: 'CRM_TOKEN_INVALID',
+      message: 'Session expired or invalid. Please sign in again.',
+    })
   }
 
   req.crmSession = session

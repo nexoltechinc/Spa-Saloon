@@ -786,7 +786,6 @@ const CrmServices = () => {
               <p>Duration</p>
               <p>Price</p>
               <p>Branch</p>
-              <p>Staff</p>
               <p>State</p>
               <p>Action</p>
             </header>

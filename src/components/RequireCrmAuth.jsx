@@ -1,11 +1,11 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { getCrmToken } from '../config/crm';
+import { getCrmSession } from '../config/crm';
 
 const RequireCrmAuth = ({ children }) => {
   const location = useLocation();
-  const token = getCrmToken();
+  const session = getCrmSession();
 
-  if (!token) {
+  if (!session) {
     return <Navigate to="/crm-login" replace state={{ from: location }} />;
   }
 

@@ -1017,92 +1017,23 @@ const CrmPayments = () => {
           </div>
         </section>
 
-        <AwaitingCheckoutQueue
-          items={filteredAwaitingCheckoutQueue}
-          formatMoney={formatMoney}
-          onRecordPayment={(item) => openCreateDrawer(item)}
-          onOpenCheckout={() => navigate('/crm/appointments')}
-          onGenerateReceipt={(item) => {
-            if (item.paymentId) {
-              const linked = payments.find((payment) => payment.id === item.paymentId);
-              if (linked) {
-                void handleReceiptAction('download', linked);
-                return;
+        <section className="crm-payments-workflow-grid">
+          <AwaitingCheckoutQueue
+            items={filteredAwaitingCheckoutQueue}
+            formatMoney={formatMoney}
+            onRecordPayment={(item) => openCreateDrawer(item)}
+            onOpenCheckout={() => navigate('/crm/appointments')}
+            onGenerateReceipt={(item) => {
+              if (item.paymentId) {
+                const linked = payments.find((payment) => payment.id === item.paymentId);
+                if (linked) {
+                  void handleReceiptAction('download', linked);
+                  return;
+                }
               }
-            }
-            openCreateDrawer(item);
-          }}
-        />
-
-        <section className="crm-payments-content">
-          <div className="crm-payments-left-column">
-            <article className="crm-payments-table-card">
-              <header className="crm-payments-table-head">
-                <p>Payment ID</p>
-                <p>Customer</p>
-                <p>Appointment</p>
-                <p>Service</p>
-                <p>Amount Due</p>
-                <p>Amount Paid</p>
-                <p>Balance</p>
-                <p>Method</p>
-                <p>Status</p>
-                <p>Date</p>
-                <p>Receipt</p>
-                <p>Actions</p>
-              </header>
-
-              {isLoading ? (
-                <div className="crm-payments-empty">
-                  <h3>Loading payments</h3>
-                  <p>Fetching live payment, balance, and receipt records from your CRM backend.</p>
-                </div>
-              ) : visiblePayments.length === 0 ? (
-                <div className="crm-payments-empty crm-payments-empty-smart">
-                  <h3>No records match current filters</h3>
-                  <p>Use quick actions below to continue checkout operations without leaving this page.</p>
-                  <div className="crm-payments-empty-actions">
-                    <button type="button" className="crm-payments-primary-btn" onClick={() => openCreateDrawer()}>
-                      Record Payment
-                    </button>
-                    <button type="button" className="crm-payments-secondary-btn" onClick={() => navigate('/crm/appointments')}>
-                      Open Checkout Queue
-                    </button>
-                  </div>
-                  <div className="crm-payments-empty-grid">
-                    <article>
-                      <p>Awaiting Checkout</p>
-                      <strong>{filteredAwaitingCheckoutQueue.length}</strong>
-                      <span>{filteredAwaitingCheckoutQueue[0]?.customerName || 'No waiting customers right now.'}</span>
-                    </article>
-                    <article>
-                      <p>Recent Payments</p>
-                      <strong>{recentPayments.length}</strong>
-                      <span>{recentPayments[0] ? `${recentPayments[0].customerName} - ${formatMoney(recentPayments[0].amountPaid)}` : 'No payment activity yet.'}</span>
-                    </article>
-                  </div>
-                </div>
-              ) : (
-                <div className="crm-payments-table-body">
-                  {visiblePayments.map((payment) => (
-                    <PaymentRow
-                      key={payment.id}
-                      payment={payment}
-                      active={selectedPayment?.id === payment.id}
-                      formatMoney={formatMoney}
-                      formatDateTime={formatDateTime}
-                      onSelect={(entry) => {
-                        setIsRecordOpen(false);
-                        setSelectedPaymentId(entry.id);
-                      }}
-                      onAction={handleRowAction}
-                    />
-                  ))}
-                </div>
-              )}
-            </article>
-
-          </div>
+              openCreateDrawer(item);
+            }}
+          />
 
           {isRecordOpen ? (
             <aside className="crm-payments-detail-card">
@@ -1159,6 +1090,51 @@ const CrmPayments = () => {
               formatDateTime={formatDateTime}
             />
           )}
+        </section>
+
+        <section className="crm-payments-table-section">
+          <article className="crm-payments-table-card">
+              <header className="crm-payments-table-head">
+                <p>Payment ID</p>
+                <p>Customer</p>
+                <p>Appointment</p>
+                <p>Service</p>
+                <p>Amount Due</p>
+                <p>Amount Paid</p>
+                <p>Balance</p>
+                <p>Method</p>
+                <p>Status</p>
+                <p>Date</p>
+                <p>Receipt</p>
+                <p>Actions</p>
+              </header>
+
+              {isLoading ? (
+                <div className="crm-payments-empty">
+                  <h3>Loading payments</h3>
+                  <p>Fetching live payment, balance, and receipt records from your CRM backend.</p>
+                </div>
+              ) : visiblePayments.length === 0 ? (
+                <div className="crm-payments-table-body crm-payments-table-body-empty" aria-hidden="true" />
+              ) : (
+                <div className="crm-payments-table-body">
+                  {visiblePayments.map((payment) => (
+                    <PaymentRow
+                      key={payment.id}
+                      payment={payment}
+                      active={selectedPayment?.id === payment.id}
+                      formatMoney={formatMoney}
+                      formatDateTime={formatDateTime}
+                      onSelect={(entry) => {
+                        setIsRecordOpen(false);
+                        setSelectedPaymentId(entry.id);
+                      }}
+                      onAction={handleRowAction}
+                    />
+                  ))}
+                </div>
+              )}
+            </article>
         </section>
 
       </main>
