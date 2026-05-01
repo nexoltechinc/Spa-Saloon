@@ -2,9 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Bell,
-  CalendarClock,
   Clock3,
-  Globe2,
   LogOut,
   Palette,
   Sparkles,
@@ -14,18 +12,13 @@ import { clearCrmToken } from '../config/crm';
 import { fetchReceiptSettings, loadReceiptSettings, saveReceiptSettings } from '../config/receiptSettings';
 import CrmShell from '../components/CrmShell';
 import {
-  BookingRulesBlock,
   BusinessProfileForm,
-  CommunicationSettingsBlock,
   OperatingHoursDayCard,
   ReceiptBrandingPreview,
-  RegionalDefaultsBlock,
   SettingsSaveState,
   SettingsDisclosureCard,
   SettingsSectionChip,
   SettingsSectionHeader,
-  SettingsTrustPanel,
-
   SpecialHoursManager,
 } from '../components/settings/SettingsBlocks';
 import './CrmSettings.css';
@@ -35,15 +28,7 @@ const sectionGroups = [
     title: 'Core Business',
     sections: [
       { id: 'business-profile', label: 'Business Profile', icon: Sparkles },
-      { id: 'regional-defaults', label: 'Regional Defaults', icon: Globe2 },
       { id: 'operating-hours', label: 'Operating Hours', icon: Clock3 },
-    ],
-  },
-  {
-    title: 'Booking Engine',
-    sections: [
-      { id: 'booking-rules', label: 'Booking Rules', icon: CalendarClock },
-      { id: 'communications', label: 'Communications', icon: Bell },
     ],
   },
   {
@@ -139,7 +124,6 @@ const createSpecialHourDraft = () => {
 
 const isNonEmpty = (value) => String(value || '').trim().length > 0;
 const isEmailLike = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
-const isDigitsOnly = (value) => /^\d+$/.test(String(value || '').trim());
 
 const buildSectionSnapshot = (settings) => ({
   profile: {
@@ -161,10 +145,8 @@ const buildSectionSnapshot = (settings) => ({
     brandMarkName: settings.profile.brandMarkName,
     brandMarkImage: settings.profile.brandMarkImage,
   },
-  regionalDefaults: settings.regionalDefaults,
   operatingHours: settings.operatingHours,
   specialHours: settings.specialHours,
-  bookingRules: settings.bookingRules,
   communication: settings.communication,
   branding: settings.branding,
 });
@@ -172,18 +154,13 @@ const buildSectionSnapshot = (settings) => ({
 const validateSettings = (settings) => {
   const issues = {
     profile: [],
-    regionalDefaults: [],
     operatingHours: [],
-    bookingRules: [],
-    communications: [],
     branding: [],
   };
 
   if (!isNonEmpty(settings.profile.businessName)) issues.profile.push('Business name is required.');
   if (!isEmailLike(settings.profile.contactEmail)) issues.profile.push('Main contact email should be valid.');
   if (!isNonEmpty(settings.profile.address)) issues.profile.push('Primary location address is missing.');
-  if (!isNonEmpty(settings.regionalDefaults.timezone)) issues.regionalDefaults.push('Timezone is required.');
-  if (!isNonEmpty(settings.regionalDefaults.currency)) issues.regionalDefaults.push('Currency is required.');
 
   settings.operatingHours.forEach((entry) => {
     if (entry.enabled && (!isNonEmpty(entry.open) || !isNonEmpty(entry.close))) {
@@ -194,11 +171,6 @@ const validateSettings = (settings) => {
     }
   });
 
-  if (!isDigitsOnly(settings.bookingRules.bufferTime)) issues.bookingRules.push('Buffer time should be a number.');
-  if (!isNonEmpty(settings.bookingRules.slotInterval)) issues.bookingRules.push('Slot interval is required.');
-  if (!isNonEmpty(settings.bookingRules.maxAdvanceBooking)) issues.bookingRules.push('Maximum advance booking is required.');
-  if (!isEmailLike(settings.communication.senderEmail)) issues.communications.push('Sender email should be valid.');
-  if (!isEmailLike(settings.communication.replyToEmail)) issues.communications.push('Reply-to email should be valid.');
   if (!isNonEmpty(settings.branding.receiptNumberPrefix)) issues.branding.push('Receipt number prefix is required.');
   if (!isNonEmpty(settings.branding.receiptHeaderQuote)) issues.branding.push('Receipt header quote can not be blank.');
   if (!isNonEmpty(settings.branding.receiptFooterText)) issues.branding.push('Receipt footer text can not be blank.');
@@ -265,10 +237,7 @@ const CrmSettings = () => {
 
     return {
       profile: compare('profile'),
-      regionalDefaults: compare('regionalDefaults'),
       operatingHours: compare('operatingHours') || compare('specialHours'),
-      bookingRules: compare('bookingRules'),
-      communications: compare('communication'),
       branding: compare('branding'),
     };
   }, [draft, savedSettings]);
@@ -279,10 +248,7 @@ const CrmSettings = () => {
   const sectionStates = useMemo(
     () => [
       ['business-profile', 'Business Profile', 'profile'],
-      ['regional-defaults', 'Regional Defaults', 'regionalDefaults'],
       ['operating-hours', 'Operating Hours', 'operatingHours'],
-      ['booking-rules', 'Booking Rules', 'bookingRules'],
-      ['communications', 'Communications', 'communications'],
       ['branding-receipts', 'Branding & Receipts', 'branding'],
     ].map(([id, label, key]) => {
       const errorCount = validationErrors[key]?.length || 0;
@@ -308,31 +274,6 @@ const CrmSettings = () => {
 
   const updateProfile = (field, value) => {
     setDraft((current) => ({ ...current, profile: { ...current.profile, [field]: value } }));
-    markChanged();
-  };
-
-  const updateRegionalDefaults = (field, value) => {
-    setDraft((current) => ({ ...current, regionalDefaults: { ...current.regionalDefaults, [field]: value } }));
-    markChanged();
-  };
-
-  const updateBooking = (field, value) => {
-    setDraft((current) => ({ ...current, bookingRules: { ...current.bookingRules, [field]: value } }));
-    markChanged();
-  };
-
-  const toggleBooking = (field) => {
-    setDraft((current) => ({ ...current, bookingRules: { ...current.bookingRules, [field]: !current.bookingRules[field] } }));
-    markChanged();
-  };
-
-  const updateCommunication = (field, value) => {
-    setDraft((current) => ({ ...current, communication: { ...current.communication, [field]: value } }));
-    markChanged();
-  };
-
-  const toggleCommunication = (field) => {
-    setDraft((current) => ({ ...current, communication: { ...current.communication, [field]: !current.communication[field] } }));
     markChanged();
   };
 
@@ -408,18 +349,9 @@ const CrmSettings = () => {
           setBrandMarkLabel(savedSettings.profile.brandMarkName || 'Update brand mark');
           setBrandMarkPreview(savedSettings.profile.brandMarkImage || '');
           break;
-        case 'regional-defaults':
-          next.regionalDefaults = cloneSettings(savedSettings.regionalDefaults);
-          break;
         case 'operating-hours':
           next.operatingHours = cloneSettings(savedSettings.operatingHours);
           next.specialHours = cloneSettings(savedSettings.specialHours);
-          break;
-        case 'booking-rules':
-          next.bookingRules = cloneSettings(savedSettings.bookingRules);
-          break;
-        case 'communications':
-          next.communication = cloneSettings(savedSettings.communication);
           break;
         case 'branding-receipts':
           next.branding = cloneSettings(savedSettings.branding);
@@ -497,8 +429,8 @@ const CrmSettings = () => {
             <p className="crm-settings-kicker">Ecosystem Configuration</p>
             <h1>Refine the Essence of Your Sanctuary</h1>
             <p className="crm-settings-subcopy">
-              Configure the business profile, operating rhythm, booking rules, guest communication,
-              and branded receipt presentation that shape the premium spa experience.
+              Configure the business profile, operating rhythm, and branded receipt presentation
+              that shape the premium spa experience.
             </p>
           </div>
 
@@ -661,99 +593,6 @@ const CrmSettings = () => {
             </section>
 
             <section className="crm-settings-lower-grid">
-              <article className="crm-settings-card" id="regional-defaults">
-                <SettingsSectionHeader
-                  kicker="Core Business"
-                  title="Regional Defaults"
-                  description="Timezone, currency, date format, and locale settings used across the CRM."
-                  status={sectionStateById['regional-defaults']?.stateLabel}
-                  statusTone={sectionStateById['regional-defaults']?.state}
-                  actions={
-                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('regional-defaults')}>
-                      <span>Reset Section</span>
-                    </button>
-                  }
-                />
-
-                {activeSection === 'regional-defaults' ? (
-                  <RegionalDefaultsBlock regionalDefaults={draft.regionalDefaults} onChange={updateRegionalDefaults} />
-                ) : (
-                  <SectionCompactPanel
-                    description="Timezone, currency, date format, and locale defaults across the CRM."
-                    points={[
-                      draft.regionalDefaults.timezone,
-                      draft.regionalDefaults.currency,
-                      draft.regionalDefaults.locale,
-                    ]}
-                    onOpen={() => scrollToSection('regional-defaults')}
-                  />
-                )}
-              </article>
-
-              <article className="crm-settings-card" id="booking-rules">
-                <SettingsSectionHeader
-                  kicker="Booking Engine"
-                  title="Booking Rules"
-                  description="Guide guest expectations, booking windows, confirmations, and premium slot handling."
-                  status={sectionStateById['booking-rules']?.stateLabel}
-                  statusTone={sectionStateById['booking-rules']?.state}
-                  actions={
-                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('booking-rules')}>
-                      <span>Reset Section</span>
-                    </button>
-                  }
-                />
-
-                {activeSection === 'booking-rules' ? (
-                  <BookingRulesBlock bookingRules={draft.bookingRules} onChange={updateBooking} onToggle={toggleBooking} />
-                ) : (
-                  <SectionCompactPanel
-                    description="Buffer times, approvals, visibility, and guest policy controls."
-                    points={[
-                      `${draft.bookingRules.bufferTime} min buffer`,
-                      draft.bookingRules.defaultAppointmentStatus,
-                      draft.bookingRules.guestBookingVisibility,
-                    ]}
-                    onOpen={() => scrollToSection('booking-rules')}
-                  />
-                )}
-              </article>
-            </section>
-
-            <section className="crm-settings-lower-grid">
-              <article className="crm-settings-card" id="communications">
-                <SettingsSectionHeader
-                  kicker="Booking Engine"
-                  title="Communication Settings"
-                  description="Keep booking confirmations and reminders aligned with the guest experience."
-                  status={sectionStateById.communications?.stateLabel}
-                  statusTone={sectionStateById.communications?.state}
-                  actions={
-                    <button className="crm-settings-ghost-action" type="button" onClick={() => resetSection('communications')}>
-                      <span>Reset Section</span>
-                    </button>
-                  }
-                />
-
-                {activeSection === 'communications' ? (
-                  <CommunicationSettingsBlock
-                    communication={draft.communication}
-                    onChange={updateCommunication}
-                    onToggle={toggleCommunication}
-                  />
-                ) : (
-                  <SectionCompactPanel
-                    description="Confirmation and reminder defaults, sender identity, and preview copy."
-                    points={[
-                      draft.communication.senderName,
-                      draft.communication.senderEmail,
-                      draft.communication.reminderCadence,
-                    ]}
-                    onOpen={() => scrollToSection('communications')}
-                  />
-                )}
-              </article>
-
               <article className="crm-settings-card" id="branding-receipts">
                 <SettingsSectionHeader
                   kicker="Brand Experience"
@@ -875,14 +714,6 @@ const CrmSettings = () => {
               activeSectionId={activeSection}
               activeSectionLabel={sectionStateById[activeSection]?.label || 'Business Profile'}
               activeSectionMeta={sectionMetaById[activeSection] || sectionMetaById['business-profile']}
-            />
-
-            <SettingsTrustPanel
-              saveState={saveState}
-              dirty={dirty}
-              lastSavedAt={lastSavedAt}
-              validationCount={validationCount}
-              sectionStates={sectionStates}
             />
           </div>
         </section>
