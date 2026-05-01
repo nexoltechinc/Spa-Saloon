@@ -893,7 +893,7 @@ const normalizeLabelList = (value, fallback = []) =>
     )),
   ).filter(Boolean);
 
-const normalizeCustomerInput = (payload, existing = {}) => {
+const _normalizeCustomerInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const fullName = normalizeText(source.fullName ?? source.name ?? source.customerName ?? existing.fullName, normalizeText(existing.fullName));
 
@@ -965,12 +965,12 @@ const normalizeCustomerInput = (payload, existing = {}) => {
     preferences,
     metadata: {
       ...(toObject(existing.metadata) || {}),
-      ...getMetadata(source, customerReservedKeys),
+      ...getMetadata(source, _customerReservedKeys),
     },
   };
 };
 
-const normalizeStaffInput = (payload, existing = {}) => {
+const _normalizeStaffInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const fullName = normalizeText(source.fullName ?? source.name ?? existing.fullName, normalizeText(existing.fullName));
 
@@ -1014,12 +1014,12 @@ const normalizeStaffInput = (payload, existing = {}) => {
     services: normalizeLabelList(source.services ?? source.assignedServices, existing.services || existing.assignedServices || []),
     metadata: {
       ...(toObject(existing.metadata) || {}),
-      ...getMetadata(source, staffReservedKeys),
+      ...getMetadata(source, _staffReservedKeys),
     },
   };
 };
 
-const normalizePaymentInput = (payload, existing = {}) => {
+const _normalizePaymentInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const amount = Math.max(0, normalizeNumber(source.amount ?? source.total ?? source.amountDue ?? existing.amount ?? existing.amountDue, existing.amount ?? 0));
   const amountDue = Math.max(0, normalizeNumber(source.amountDue ?? source.totalDue ?? source.total ?? amount, existing.amountDue ?? amount));
@@ -1066,12 +1066,12 @@ const normalizePaymentInput = (payload, existing = {}) => {
     receiptEmailedAt: normalizeDateString(source.receiptEmailedAt ?? source.receipt_emailed_at, existing.receiptEmailedAt || ''),
     metadata: {
       ...(toObject(existing.metadata) || {}),
-      ...getMetadata(source, paymentReservedKeys),
+      ...getMetadata(source, _paymentReservedKeys),
     },
   };
 };
 
-const normalizeReceiptInput = (payload, existing = {}) => {
+const _normalizeReceiptInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const subtotal = Math.max(0, normalizeNumber(source.subtotal ?? source.amountDue ?? existing.subtotal, existing.subtotal ?? 0));
   const taxAmount = Math.max(0, normalizeNumber(source.taxAmount ?? source.tax_amount, existing.taxAmount ?? 0));
@@ -1103,12 +1103,12 @@ const normalizeReceiptInput = (payload, existing = {}) => {
     notes: normalizeText(source.notes, existing.notes || ''),
     metadata: {
       ...(toObject(existing.metadata) || {}),
-      ...getMetadata(source, receiptReservedKeys),
+      ...getMetadata(source, _receiptReservedKeys),
     },
   };
 };
 
-const normalizeUserInput = (payload, existing = {}) => {
+const _normalizeUserInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const fullName = normalizeText(source.fullName ?? source.name, normalizeText(existing.fullName));
   const email = normalizeText(source.email, normalizeText(existing.email)).toLowerCase();
@@ -1140,12 +1140,12 @@ const normalizeUserInput = (payload, existing = {}) => {
     lastLoginAt: normalizeDateString(source.lastLoginAt ?? source.last_login_at, existing.lastLoginAt || ''),
     metadata: {
       ...(toObject(existing.metadata) || {}),
-      ...getMetadata(source, userReservedKeys),
+      ...getMetadata(source, _userReservedKeys),
     },
   };
 };
 
-const normalizePublicBookingInput = (payload, existing = {}) => {
+const _normalizePublicBookingInput = (payload, existing = {}) => {
   const source = ensureObject(payload);
   const fullName = normalizeText(source.fullName ?? source.name ?? source.customerName ?? existing.fullName, normalizeText(existing.fullName));
 
@@ -1174,7 +1174,7 @@ const normalizePublicBookingInput = (payload, existing = {}) => {
     referenceCode: normalizeText(source.referenceCode ?? source.reference_code, existing.referenceCode || `PBK-${randomUUID().slice(0, 8).toUpperCase()}`),
     metadata: {
       ...(toObject(existing.metadata) || {}),
-      ...getMetadata(source, publicBookingReservedKeys),
+      ...getMetadata(source, _publicBookingReservedKeys),
     },
   };
 };
@@ -1975,7 +1975,7 @@ const SETTINGS_GROUPS = ['profile', 'regionalDefaults', 'operatingHours', 'speci
 
 const settingsRowKey = (branchId, settingsGroup) => `${branchId || 'global'}:${settingsGroup}`;
 
-const settingsRowsToDocument = (rows = []) => {
+const _settingsRowsToDocument = (rows = []) => {
   const orderedRows = rows
     .filter((row) => row && row.is_active !== false)
     .sort((left, right) => {
@@ -2004,7 +2004,7 @@ const settingsRowsToDocument = (rows = []) => {
   return normalizeSettingsDocument(document);
 };
 
-const settingsDocumentToRows = (payload, branchId = null) => {
+const _settingsDocumentToRows = (payload, branchId = null) => {
   const normalized = normalizeSettingsDocument(payload);
   return SETTINGS_GROUPS.map((group) => ({
     id: settingsRowKey(branchId, group),
@@ -2115,7 +2115,7 @@ const resolveStaffIds = async (client, assignments = []) => {
   return uniqueBy(ids);
 };
 
-const syncStaffServiceAssignments = async (client, staffId, assignments = []) => {
+const _syncStaffServiceAssignments = async (client, staffId, assignments = []) => {
   const serviceIds = await resolveServiceIds(client, assignments);
   await client.query('DELETE FROM crm_staff_services WHERE staff_id = $1', [staffId]);
 
@@ -2136,7 +2136,7 @@ const syncStaffServiceAssignments = async (client, staffId, assignments = []) =>
   return serviceIds;
 };
 
-const syncServiceStaffAssignments = async (client, serviceId, assignments = []) => {
+const _syncServiceStaffAssignments = async (client, serviceId, assignments = []) => {
   const staffIds = await resolveStaffIds(client, assignments);
   await client.query('DELETE FROM crm_staff_services WHERE service_id = $1', [serviceId]);
 
@@ -2383,7 +2383,7 @@ const getStructuredRecord = async (resource, id) => {
   return null;
 };
 
-const upsertStructuredRecord = async (resource, payload, existing = null) => {
+const upsertStructuredRecord = async (client, resource, payload, existing = null) => {
   const id = normalizeText(payload?.id || existing?.id || randomUUID());
   const now = new Date();
 
@@ -2444,13 +2444,23 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
 
   if (resource === 'leads') {
     const normalized = normalizeLeadInput(payload, existing || {});
+    const branch = await ensureBranchRecord(client, normalized, { allowCreate: true });
+    const serviceLookup = normalized.interestedServiceId || normalized.interestedServiceName || normalized.interestedService || normalized.serviceInterest
+      ? await lookupServiceByIdOrName(client, {
+          id: normalized.interestedServiceId,
+          serviceId: normalized.interestedServiceId,
+          serviceName: normalized.interestedServiceName || normalized.interestedService || normalized.serviceInterest,
+          name: normalized.serviceInterest,
+        })
+      : null;
     const { rows } = await pool.query(
       `
         INSERT INTO crm_leads (
-          id, full_name, email, phone, source, status, priority, owner_name, branch_name, service_interest, budget, last_contact_at, next_follow_up_at, notes, metadata, created_at, updated_at
+          id, branch_id, full_name, email, phone, source, status, priority, owner_name, assigned_to_user_id, branch_name, interested_service_id, interested_service_name, service_interest, budget, last_contact_at, follow_up_at, next_follow_up_at, notes, metadata, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULLIF($12, '')::timestamptz, NULLIF($13, '')::timestamptz, $14, $15::jsonb, $16, $17)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11, $12, $13, $14, $15, NULLIF($16, '')::timestamptz, NULLIF($17, '')::timestamptz, NULLIF($18, '')::timestamptz, $19, $20::jsonb, $21, $22)
         ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
           full_name = EXCLUDED.full_name,
           email = EXCLUDED.email,
           phone = EXCLUDED.phone,
@@ -2458,18 +2468,23 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
           status = EXCLUDED.status,
           priority = EXCLUDED.priority,
           owner_name = EXCLUDED.owner_name,
+          assigned_to_user_id = EXCLUDED.assigned_to_user_id,
           branch_name = EXCLUDED.branch_name,
+          interested_service_id = EXCLUDED.interested_service_id,
+          interested_service_name = EXCLUDED.interested_service_name,
           service_interest = EXCLUDED.service_interest,
           budget = EXCLUDED.budget,
           last_contact_at = EXCLUDED.last_contact_at,
+          follow_up_at = EXCLUDED.follow_up_at,
           next_follow_up_at = EXCLUDED.next_follow_up_at,
           notes = EXCLUDED.notes,
           metadata = EXCLUDED.metadata,
           updated_at = EXCLUDED.updated_at
-        RETURNING id, full_name, email, phone, source, status, priority, owner_name, branch_name, service_interest, budget, last_contact_at, next_follow_up_at, notes, metadata, created_at, updated_at
+        RETURNING id, branch_id, full_name, email, phone, source, status, priority, owner_name, assigned_to_user_id, branch_name, interested_service_id, interested_service_name, service_interest, budget, last_contact_at, follow_up_at, next_follow_up_at, notes, metadata, created_at, updated_at
       `,
       [
         id,
+        branch?.id || normalized.branchId || null,
         normalized.fullName,
         normalized.email,
         normalized.phone,
@@ -2477,10 +2492,14 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
         normalized.status,
         normalized.priority,
         normalized.ownerName,
-        normalized.branchName,
-        normalized.serviceInterest,
+        normalized.assignedToUserId || null,
+        branch?.name || normalized.branchName,
+        serviceLookup?.id || normalized.interestedServiceId || null,
+        serviceLookup?.name || normalized.interestedServiceName || normalized.interestedService || normalized.serviceInterest || '',
+        normalized.serviceInterest || normalized.interestedService || normalized.interestedServiceName || serviceLookup?.name || '',
         normalized.budget,
         normalized.lastContactAt,
+        normalized.followUpAt,
         normalized.nextFollowUpAt,
         normalized.notes,
         JSON.stringify(normalized.metadata),
@@ -2493,16 +2512,73 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
 
   if (resource === 'appointments') {
     const normalized = normalizeAppointmentInput(payload, existing || {});
+    const branch = await ensureBranchRecord(client, normalized, { allowCreate: true });
+    const customer = await _ensureCustomerRecord(
+      client,
+      {
+        ...normalized,
+        customerId: normalized.customerId,
+        customerName: normalized.customerName,
+        email: normalized.customerEmail,
+        phone: normalized.phone,
+        branchId: normalized.branchId || branch?.id,
+        branchName: normalized.branchName || branch?.name,
+      },
+      { allowCreate: true },
+    );
+    const service = await _ensureServiceRecord(
+      client,
+      {
+        ...normalized,
+        serviceId: normalized.serviceId,
+        serviceName: normalized.serviceName,
+        branchId: normalized.branchId || branch?.id,
+        branchName: normalized.branchName || branch?.name,
+      },
+      { allowCreate: true },
+    );
+    const staff = normalized.staffId || normalized.staffName
+      ? await _ensureStaffRecord(
+          client,
+          {
+            ...normalized,
+            staffId: normalized.staffId,
+            staffName: normalized.staffName,
+            branchId: normalized.branchId || branch?.id,
+            branchName: normalized.branchName || branch?.name,
+          },
+          { allowCreate: true },
+        )
+      : null;
+    const appointmentCustomerId = customer?.id || normalized.customerId || '';
+    const appointmentServiceId = service?.id || normalized.serviceId || '';
+    const appointmentStaffId = staff?.id || normalized.staffId || '';
+    const appointmentBranchId = branch?.id || normalized.branchId || customer?.branch_id || service?.branch_id || staff?.branch_id || null;
+    const appointmentBranchName = branch?.name || normalized.branchName || customer?.branch_name || service?.branch_name || staff?.branch_name || '';
+    const appointmentCustomerName = customer?.full_name || normalized.customerName;
+    const appointmentCustomerEmail = customer?.email || normalized.customerEmail;
+    const appointmentServiceName = service?.name || normalized.serviceName;
+    const appointmentStaffName = staff?.full_name || normalized.staffName;
+    const appointmentSummary = {
+      id,
+      dateTime: normalized.appointmentAt,
+      service: appointmentServiceName,
+      staff: appointmentStaffName,
+      status: normalized.status,
+      branchName: appointmentBranchName,
+    };
     const { rows } = await pool.query(
       `
         INSERT INTO crm_appointments (
-          id, customer_id, customer_name, customer_email, phone, service_id, service_name, staff_id, staff_name, branch_name, appointment_at, duration_minutes, status, payment_status, amount_due, amount_paid, balance_remaining, source, notes, check_in_at, completed_at, cancelled_at, metadata, created_at, updated_at
+          id, branch_id, lead_id, customer_id, booked_by_user_id, customer_name, customer_email, phone, service_id, service_name, staff_id, staff_name, branch_name, appointment_date, start_time, end_time, appointment_at, duration_minutes, status, payment_status, booking_source, source, public_booking_reference, amount_due, amount_paid, balance_remaining, notes, check_in_at, completed_at, cancelled_at, metadata, created_at, updated_at
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::timestamptz, $12, $13, $14, $15, $16, $17, $18, $19,
-          NULLIF($20, '')::timestamptz, NULLIF($21, '')::timestamptz, NULLIF($22, '')::timestamptz, $23::jsonb, $24, $25
+          $1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, NULLIF($9, ''), $10, NULLIF($11, ''), $12, $13, NULLIF($14, '')::date, NULLIF($15, '')::time, NULLIF($16, '')::time, $17::timestamptz, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
+          NULLIF($28, '')::timestamptz, NULLIF($29, '')::timestamptz, NULLIF($30, '')::timestamptz, $31::jsonb, $32, $33
         )
         ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          lead_id = EXCLUDED.lead_id,
           customer_id = EXCLUDED.customer_id,
           customer_name = EXCLUDED.customer_name,
           customer_email = EXCLUDED.customer_email,
@@ -2512,6 +2588,9 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
           staff_id = EXCLUDED.staff_id,
           staff_name = EXCLUDED.staff_name,
           branch_name = EXCLUDED.branch_name,
+          appointment_date = EXCLUDED.appointment_date,
+          start_time = EXCLUDED.start_time,
+          end_time = EXCLUDED.end_time,
           appointment_at = EXCLUDED.appointment_at,
           duration_minutes = EXCLUDED.duration_minutes,
           status = EXCLUDED.status,
@@ -2519,34 +2598,44 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
           amount_due = EXCLUDED.amount_due,
           amount_paid = EXCLUDED.amount_paid,
           balance_remaining = EXCLUDED.balance_remaining,
+          booking_source = EXCLUDED.booking_source,
           source = EXCLUDED.source,
+          public_booking_reference = EXCLUDED.public_booking_reference,
           notes = EXCLUDED.notes,
           check_in_at = EXCLUDED.check_in_at,
           completed_at = EXCLUDED.completed_at,
           cancelled_at = EXCLUDED.cancelled_at,
           metadata = EXCLUDED.metadata,
           updated_at = EXCLUDED.updated_at
-        RETURNING id, customer_id, customer_name, customer_email, phone, service_id, service_name, staff_id, staff_name, branch_name, appointment_at, duration_minutes, status, payment_status, amount_due, amount_paid, balance_remaining, source, notes, check_in_at, completed_at, cancelled_at, metadata, created_at, updated_at
+        RETURNING id, branch_id, lead_id, customer_id, booked_by_user_id, customer_name, customer_email, phone, service_id, service_name, staff_id, staff_name, branch_name, appointment_date, start_time, end_time, appointment_at, duration_minutes, status, payment_status, booking_source, source, public_booking_reference, amount_due, amount_paid, balance_remaining, notes, check_in_at, completed_at, cancelled_at, metadata, created_at, updated_at
       `,
       [
         id,
-        normalized.customerId,
-        normalized.customerName,
-        normalized.customerEmail,
-        normalized.phone,
-        normalized.serviceId,
-        normalized.serviceName,
-        normalized.staffId,
-        normalized.staffName,
-        normalized.branchName,
+        appointmentBranchId,
+        normalized.leadId || '',
+        appointmentCustomerId,
+        normalized.bookedByUserId || '',
+        appointmentCustomerName,
+        appointmentCustomerEmail,
+        normalized.phone || customer?.phone || '',
+        appointmentServiceId,
+        appointmentServiceName,
+        appointmentStaffId,
+        appointmentStaffName || '',
+        appointmentBranchName,
+        normalized.appointmentDate || normalizeDateOnly(normalized.appointmentAt),
+        normalized.startTime,
+        normalized.endTime,
         normalized.appointmentAt,
         normalized.durationMinutes,
         normalized.status,
         normalized.paymentStatus,
+        normalized.bookingSource,
+        normalized.source,
+        normalized.publicBookingReference,
         normalized.amountDue,
         normalized.amountPaid,
         normalized.balanceRemaining,
-        normalized.source,
         normalized.notes,
         normalized.checkInAt,
         normalized.completedAt,
@@ -2557,6 +2646,59 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
       ],
     );
     const record = appointmentRowToView(rows[0]);
+    if (customer?.id) {
+      const customerHistory = normalizeJsonArray(customer.appointment_history_json);
+      const customerTimeline = normalizeJsonArray(customer.activity_timeline_json);
+      await pool.query(
+        `
+          UPDATE crm_customers
+          SET branch_id = COALESCE(branch_id, $2),
+              branch_name = COALESCE(branch_name, $3),
+              upcoming_appointment_json = $4::jsonb,
+              appointment_history_json = $5::jsonb,
+              last_visit_at = COALESCE(last_visit_at, $6::timestamptz),
+              activity_timeline_json = $7::jsonb,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [
+          customer.id,
+          appointmentBranchId,
+          appointmentBranchName,
+          JSON.stringify(appointmentSummary),
+          JSON.stringify([appointmentSummary, ...customerHistory].slice(0, 20)),
+          normalized.status === 'Completed' ? now.toISOString() : null,
+          JSON.stringify([
+            {
+              id: `ACT-${id}`,
+              type: 'Appointment Saved',
+              at: now.toISOString(),
+              actor: normalized.bookedByUserId || 'CRM',
+              channel: normalized.bookingSource || normalized.source || 'CRM',
+              outcome: normalized.status,
+              summary: `Saved ${appointmentServiceName} for ${appointmentCustomerName}`,
+            },
+            ...customerTimeline,
+          ].slice(0, 20)),
+        ],
+      );
+      await _refreshCustomerMetrics(client, customer.id);
+    }
+
+    if (normalized.leadId) {
+      await pool.query(
+        `
+          UPDATE crm_leads
+          SET branch_id = COALESCE(branch_id, $2),
+              branch_name = COALESCE(branch_name, $3),
+              status = CASE WHEN status = 'Lost' THEN status ELSE 'Booked' END,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [normalized.leadId, appointmentBranchId, appointmentBranchName],
+      );
+    }
+
     if (record.status === 'Completed' && !record.completedAt) {
       return {
         ...record,
@@ -2574,26 +2716,33 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
 
   if (resource === 'services') {
     const normalized = normalizeServiceInput(payload, existing || {});
+    const branch = await ensureBranchRecord(client, normalized, { allowCreate: true });
     const { rows } = await pool.query(
       `
         INSERT INTO crm_services (
-          id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+          id, branch_id, branch_name, name, category, duration_minutes, price, discount_price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, is_active, is_bookable, booking_visible, bookable, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $9, $10::jsonb, $11, $12, $13, $14, $15, $16, $17, $18, $19, NULLIF($20, '')::timestamptz, $21, $22::jsonb, $23::jsonb, $24, $25
+          $1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::numeric(12,2), $9, $10, $11::timestamptz, $12, $13::jsonb, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, NULLIF($26, '')::timestamptz, $27, $28::jsonb, $29::jsonb, $30, $31
         )
         ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          branch_name = EXCLUDED.branch_name,
           name = EXCLUDED.name,
           category = EXCLUDED.category,
           duration_minutes = EXCLUDED.duration_minutes,
           price = EXCLUDED.price,
+          discount_price = EXCLUDED.discount_price,
           previous_price = EXCLUDED.previous_price,
           price_review_needed = EXCLUDED.price_review_needed,
           price_last_updated = EXCLUDED.price_last_updated,
           price_updated_by = EXCLUDED.price_updated_by,
           assigned_staff = EXCLUDED.assigned_staff,
           active = EXCLUDED.active,
+          is_active = EXCLUDED.is_active,
+          is_bookable = EXCLUDED.is_bookable,
           booking_visible = EXCLUDED.booking_visible,
+          bookable = EXCLUDED.bookable,
           pos_available = EXCLUDED.pos_available,
           description = EXCLUDED.description,
           note = EXCLUDED.note,
@@ -2606,20 +2755,27 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
           package_readiness = EXCLUDED.package_readiness,
           metadata = EXCLUDED.metadata,
           updated_at = EXCLUDED.updated_at
-        RETURNING id, name, category, duration_minutes, price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, booking_visible, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
+        RETURNING id, branch_id, branch_name, name, category, duration_minutes, price, discount_price, previous_price, price_review_needed, price_last_updated, price_updated_by, assigned_staff, active, is_active, is_bookable, booking_visible, bookable, pos_available, description, note, updated_by, bookings_week, bookings_month, revenue_month, last_booked, popularity_rank, package_readiness, metadata, created_at, updated_at
       `,
       [
         id,
+        branch?.id || normalized.branchId || null,
+        branch?.name || normalized.branchName || '',
         normalized.name,
         normalized.category,
         normalized.duration,
         normalized.price,
+        normalized.discountPrice,
         normalized.previousPrice,
         normalized.priceReviewNeeded,
         normalized.priceLastUpdated,
         normalized.priceUpdatedBy,
         JSON.stringify(normalized.assignedStaff),
         normalized.active,
+        normalized.isActive,
+        normalized.isBookable,
+        normalized.bookingVisible,
+        normalized.bookingVisible,
         normalized.bookingVisible,
         normalized.posAvailable,
         normalized.description,
@@ -2636,7 +2792,536 @@ const upsertStructuredRecord = async (resource, payload, existing = null) => {
         now,
       ],
     );
-    return serviceRowToView(rows[0]);
+    await _syncServiceStaffAssignments(client, rows[0].id, normalized.assignedStaff);
+    return serviceRowToView(rows[0], normalized.assignedStaff);
+  }
+
+  if (resource === 'customers') {
+    const normalized = _normalizeCustomerInput(payload, existing || {});
+    const branch = normalized.branchId || normalized.branchName ? await ensureBranchRecord(client, normalized, { allowCreate: true }) : null;
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_customers (
+          id, branch_id, branch_name, full_name, phone, email, gender, date_of_birth, customer_source, notes, notes_json, loyalty_points, total_spent, last_visit_at, is_active, segment, status, membership, visit_count, pending_balance, favorite_service, favorite_staff, preferred_times, preferred_channel, sensitivities, upcoming_appointment_json, appointment_history_json, payment_history_json, activity_timeline_json, preferences_json, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::date, $9, $10, $11::jsonb, $12, $13, NULLIF($14, '')::timestamptz, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26::jsonb, $27::jsonb, $28::jsonb, $29::jsonb, $30::jsonb, $31::jsonb, $32, $33
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          branch_name = EXCLUDED.branch_name,
+          full_name = EXCLUDED.full_name,
+          phone = EXCLUDED.phone,
+          email = EXCLUDED.email,
+          gender = EXCLUDED.gender,
+          date_of_birth = EXCLUDED.date_of_birth,
+          customer_source = EXCLUDED.customer_source,
+          notes = EXCLUDED.notes,
+          notes_json = EXCLUDED.notes_json,
+          loyalty_points = EXCLUDED.loyalty_points,
+          total_spent = EXCLUDED.total_spent,
+          last_visit_at = EXCLUDED.last_visit_at,
+          is_active = EXCLUDED.is_active,
+          segment = EXCLUDED.segment,
+          status = EXCLUDED.status,
+          membership = EXCLUDED.membership,
+          visit_count = EXCLUDED.visit_count,
+          pending_balance = EXCLUDED.pending_balance,
+          favorite_service = EXCLUDED.favorite_service,
+          favorite_staff = EXCLUDED.favorite_staff,
+          preferred_times = EXCLUDED.preferred_times,
+          preferred_channel = EXCLUDED.preferred_channel,
+          sensitivities = EXCLUDED.sensitivities,
+          upcoming_appointment_json = EXCLUDED.upcoming_appointment_json,
+          appointment_history_json = EXCLUDED.appointment_history_json,
+          payment_history_json = EXCLUDED.payment_history_json,
+          activity_timeline_json = EXCLUDED.activity_timeline_json,
+          preferences_json = EXCLUDED.preferences_json,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, branch_id, branch_name, full_name, phone, email, gender, date_of_birth, customer_source, notes, notes_json, loyalty_points, total_spent, last_visit_at, is_active, segment, status, membership, visit_count, pending_balance, favorite_service, favorite_staff, preferred_times, preferred_channel, sensitivities, upcoming_appointment_json, appointment_history_json, payment_history_json, activity_timeline_json, preferences_json, metadata, created_at, updated_at
+      `,
+      [
+        id,
+        branch?.id || normalized.branchId || null,
+        branch?.name || normalized.branchName || '',
+        normalized.fullName,
+        normalized.phone,
+        normalized.email,
+        normalized.gender,
+        normalized.dateOfBirth,
+        normalized.customerSource,
+        normalized.notes,
+        JSON.stringify(normalized.notesJson),
+        normalized.loyaltyPoints,
+        normalized.totalSpent,
+        normalized.lastVisitAt,
+        normalized.isActive,
+        normalized.segment,
+        normalized.status,
+        normalized.membership,
+        normalized.visitCount,
+        normalized.pendingBalance,
+        normalized.favoriteService,
+        normalized.favoriteStaff,
+        normalized.preferredTimes,
+        normalized.preferredChannel,
+        normalized.sensitivities,
+        JSON.stringify(normalized.upcomingAppointment),
+        JSON.stringify(normalized.appointmentHistory),
+        JSON.stringify(normalized.paymentHistory),
+        JSON.stringify(normalized.activityTimeline),
+        JSON.stringify(normalized.preferences),
+        JSON.stringify(normalized.metadata),
+        existing?.createdAt ? new Date(existing.createdAt) : now,
+        now,
+      ],
+    );
+    const record = customerRowToView(rows[0]);
+    return record;
+  }
+
+  if (resource === 'staff') {
+    const normalized = _normalizeStaffInput(payload, existing || {});
+    const branch = normalized.branchId || normalized.branchName ? await ensureBranchRecord(client, normalized, { allowCreate: true }) : null;
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_staff (
+          id, branch_id, branch_name, full_name, role, phone, email, employment_type, shift_label, bio, is_active, on_duty, employment_status, shift_status, leave_status, working_hours, weekly_availability_json, today_schedule_json, next_appointment_json, appointments_today, capacity_today, appointments_completed_week, notes, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::jsonb, $18::jsonb, $19::jsonb, $20, $21, $22, $23, $24::jsonb, $25, $26
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          branch_name = EXCLUDED.branch_name,
+          full_name = EXCLUDED.full_name,
+          role = EXCLUDED.role,
+          phone = EXCLUDED.phone,
+          email = EXCLUDED.email,
+          employment_type = EXCLUDED.employment_type,
+          shift_label = EXCLUDED.shift_label,
+          bio = EXCLUDED.bio,
+          is_active = EXCLUDED.is_active,
+          on_duty = EXCLUDED.on_duty,
+          employment_status = EXCLUDED.employment_status,
+          shift_status = EXCLUDED.shift_status,
+          leave_status = EXCLUDED.leave_status,
+          working_hours = EXCLUDED.working_hours,
+          weekly_availability_json = EXCLUDED.weekly_availability_json,
+          today_schedule_json = EXCLUDED.today_schedule_json,
+          next_appointment_json = EXCLUDED.next_appointment_json,
+          appointments_today = EXCLUDED.appointments_today,
+          capacity_today = EXCLUDED.capacity_today,
+          appointments_completed_week = EXCLUDED.appointments_completed_week,
+          notes = EXCLUDED.notes,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, branch_id, branch_name, full_name, role, phone, email, employment_type, shift_label, bio, is_active, on_duty, employment_status, shift_status, leave_status, working_hours, weekly_availability_json, today_schedule_json, next_appointment_json, appointments_today, capacity_today, appointments_completed_week, notes, metadata, created_at, updated_at
+      `,
+      [
+        id,
+        branch?.id || normalized.branchId || null,
+        branch?.name || normalized.branchName || '',
+        normalized.fullName,
+        normalized.role,
+        normalized.phone,
+        normalized.email,
+        normalized.employmentType,
+        normalized.shiftLabel,
+        normalized.bio,
+        normalized.isActive,
+        normalized.onDuty,
+        normalized.employmentStatus,
+        normalized.shiftStatus,
+        normalized.leaveStatus,
+        normalized.workingHours,
+        JSON.stringify(normalized.weeklyAvailability),
+        JSON.stringify(normalized.todaySchedule),
+        JSON.stringify(normalized.nextAppointment),
+        normalized.appointmentsToday,
+        normalized.capacityToday,
+        normalized.appointmentsCompletedWeek,
+        normalized.notes,
+        JSON.stringify(normalized.metadata),
+        existing?.createdAt ? new Date(existing.createdAt) : now,
+        now,
+      ],
+    );
+    await _syncStaffServiceAssignments(client, rows[0].id, normalized.services);
+    return staffRowToView(rows[0], normalized.services);
+  }
+
+  if (resource === 'payments') {
+    const normalized = _normalizePaymentInput(payload, existing || {});
+    const appointmentLookup = normalized.appointmentId
+      ? await pool.query(
+          `
+            SELECT id, branch_id, branch_name, customer_id, customer_name, customer_email, phone, service_name
+            FROM crm_appointments
+            WHERE id = $1
+            LIMIT 1
+          `,
+          [normalized.appointmentId],
+        )
+      : { rows: [] };
+    const appointment = appointmentLookup.rows[0] || null;
+    const customer = await _ensureCustomerRecord(
+      client,
+      {
+        ...normalized,
+        customerId: normalized.customerId || appointment?.customer_id,
+        customerName: normalized.customerName || appointment?.customer_name,
+        email: normalized.customerEmail || appointment?.customer_email,
+        phone: normalized.phone || appointment?.phone,
+        branchId: normalized.branchId || appointment?.branch_id,
+        branchName: normalized.branchName || appointment?.branch_name,
+      },
+      { allowCreate: true },
+    );
+    const branch = normalized.branchId || normalized.branchName || appointment?.branch_id || customer?.branch_id
+      ? await ensureBranchRecord(
+          client,
+          {
+            branchId: normalized.branchId || appointment?.branch_id || customer?.branch_id,
+            branchName: normalized.branchName || appointment?.branch_name || customer?.branch_name,
+          },
+          { allowCreate: true },
+        )
+      : null;
+    const paymentCustomerId = customer?.id || normalized.customerId || appointment?.customer_id || '';
+    const paymentCustomerName = customer?.full_name || normalized.customerName || appointment?.customer_name || '';
+    const paymentCustomerEmail = customer?.email || normalized.customerEmail || appointment?.customer_email || '';
+    const paymentServiceName = normalized.serviceName || appointment?.service_name || '';
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_payments (
+          id, branch_id, branch_name, appointment_id, customer_id, customer_name, customer_email, service_name, amount, amount_due, amount_paid, balance_remaining, payment_method, payment_status, payment_date, due_date, recorded_by_user_id, recorded_by_name, edited_by_name, notes, reference_number, receipt_status, receipt_id, receipt_number, receipt_generated_at, receipt_printed_at, receipt_downloaded_at, receipt_emailed_at, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, $9, $10, $11, $12, $13, $14, NULLIF($15, '')::timestamptz, NULLIF($16, '')::timestamptz, NULLIF($17, ''), $18, $19, $20, $21, $22, NULLIF($23, ''), NULLIF($24, ''), NULLIF($25, '')::timestamptz, NULLIF($26, '')::timestamptz, NULLIF($27, '')::timestamptz, NULLIF($28, '')::timestamptz, $29::jsonb, $30, $31
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          branch_name = EXCLUDED.branch_name,
+          appointment_id = EXCLUDED.appointment_id,
+          customer_id = EXCLUDED.customer_id,
+          customer_name = EXCLUDED.customer_name,
+          customer_email = EXCLUDED.customer_email,
+          service_name = EXCLUDED.service_name,
+          amount = EXCLUDED.amount,
+          amount_due = EXCLUDED.amount_due,
+          amount_paid = EXCLUDED.amount_paid,
+          balance_remaining = EXCLUDED.balance_remaining,
+          payment_method = EXCLUDED.payment_method,
+          payment_status = EXCLUDED.payment_status,
+          payment_date = EXCLUDED.payment_date,
+          due_date = EXCLUDED.due_date,
+          recorded_by_user_id = EXCLUDED.recorded_by_user_id,
+          recorded_by_name = EXCLUDED.recorded_by_name,
+          edited_by_name = EXCLUDED.edited_by_name,
+          notes = EXCLUDED.notes,
+          reference_number = EXCLUDED.reference_number,
+          receipt_status = EXCLUDED.receipt_status,
+          receipt_id = EXCLUDED.receipt_id,
+          receipt_number = EXCLUDED.receipt_number,
+          receipt_generated_at = EXCLUDED.receipt_generated_at,
+          receipt_printed_at = EXCLUDED.receipt_printed_at,
+          receipt_downloaded_at = EXCLUDED.receipt_downloaded_at,
+          receipt_emailed_at = EXCLUDED.receipt_emailed_at,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, branch_id, branch_name, appointment_id, customer_id, customer_name, customer_email, service_name, amount, amount_due, amount_paid, balance_remaining, payment_method, payment_status, payment_date, due_date, recorded_by_user_id, recorded_by_name, edited_by_name, notes, reference_number, receipt_status, receipt_id, receipt_number, receipt_generated_at, receipt_printed_at, receipt_downloaded_at, receipt_emailed_at, metadata, created_at, updated_at
+      `,
+      [
+        id,
+        branch?.id || normalized.branchId || appointment?.branch_id || customer?.branch_id || null,
+        branch?.name || normalized.branchName || appointment?.branch_name || customer?.branch_name || '',
+        appointment?.id || normalized.appointmentId || '',
+        paymentCustomerId,
+        paymentCustomerName,
+        paymentCustomerEmail,
+        paymentServiceName,
+        normalized.amount,
+        normalized.amountDue,
+        normalized.amountPaid,
+        normalized.balanceRemaining,
+        normalized.paymentMethod,
+        normalized.paymentStatus,
+        normalized.paymentDate,
+        normalized.dueDate,
+        normalized.recordedByUserId || '',
+        normalized.recordedByName || normalized.recordedBy || '',
+        normalized.editedByName || normalized.editedBy || '',
+        normalized.notes,
+        normalized.referenceNumber,
+        normalized.receiptStatus,
+        normalized.receiptId,
+        normalized.receiptNumber,
+        normalized.receiptGeneratedAt,
+        normalized.receiptPrintedAt,
+        normalized.receiptDownloadedAt,
+        normalized.receiptEmailedAt,
+        JSON.stringify(normalized.metadata),
+        existing?.createdAt ? new Date(existing.createdAt) : now,
+        now,
+      ],
+    );
+    if (customer?.id) {
+      const customerPayments = normalizeJsonArray(customer.payment_history_json);
+      const customerTimeline = normalizeJsonArray(customer.activity_timeline_json);
+      const paymentSummary = {
+        id,
+        date: normalized.paymentDate,
+        amount: normalized.amountPaid,
+        method: normalized.paymentMethod,
+        service: paymentServiceName,
+        receiptNo: normalized.receiptNumber,
+        status: normalized.paymentStatus,
+      };
+      await pool.query(
+        `
+          UPDATE crm_customers
+          SET branch_id = COALESCE(branch_id, $2),
+              branch_name = COALESCE(branch_name, $3),
+              payment_history_json = $4::jsonb,
+              pending_balance = $5,
+              total_spent = GREATEST(total_spent, $6),
+              activity_timeline_json = $7::jsonb,
+              updated_at = NOW()
+          WHERE id = $1
+        `,
+        [
+          customer.id,
+          branch?.id || normalized.branchId || appointment?.branch_id || customer.branch_id || null,
+          branch?.name || normalized.branchName || appointment?.branch_name || customer.branch_name || '',
+          JSON.stringify([paymentSummary, ...customerPayments].slice(0, 20)),
+          normalized.balanceRemaining,
+          Number(customer.total_spent || 0) + Number(normalized.amountPaid || 0),
+          JSON.stringify([
+            {
+              id: `PAY-${id}`,
+              type: 'Payment Saved',
+              at: now.toISOString(),
+              actor: normalized.recordedByName || normalized.recordedBy || normalized.recordedByUserId || 'CRM',
+              channel: normalized.paymentMethod,
+              outcome: normalized.paymentStatus,
+              summary: `${normalized.paymentMethod} payment recorded for ${paymentCustomerName}`,
+            },
+            ...customerTimeline,
+          ].slice(0, 20)),
+        ],
+      );
+      await _refreshCustomerMetrics(client, customer.id);
+    }
+    return paymentRowToView(rows[0]);
+  }
+
+  if (resource === 'receipts') {
+    const normalized = _normalizeReceiptInput(payload, existing || {});
+    if (!normalized.paymentId) {
+      const error = new Error('Receipt paymentId is required.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const paymentLookup = await pool.query(
+      `
+        SELECT id, branch_id, branch_name, appointment_id, customer_id, customer_name, customer_email, phone, service_name, payment_method, receipt_id, receipt_number
+        FROM crm_payments
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [normalized.paymentId],
+    );
+    const payment = paymentLookup.rows[0] || null;
+    const existingReceiptLookup = payment?.receipt_id
+      ? await pool.query(
+          `
+            SELECT id, branch_id, branch_name, payment_id, appointment_id, customer_id, issued_by_user_id, receipt_number, receipt_status, delivery_method, issued_at, subtotal, tax_amount, discount_amount, total_amount, customer_name, customer_email, customer_phone, service_name, payment_method, branding_snapshot_json, line_items_json, notes, metadata, created_at, updated_at
+            FROM crm_receipts
+            WHERE id = $1
+            LIMIT 1
+          `,
+          [payment.receipt_id],
+        )
+      : { rows: [] };
+    const existingReceipt = existingReceiptLookup.rows[0] || null;
+
+    const customer = await _ensureCustomerRecord(
+      client,
+      {
+        ...normalized,
+        customerId: normalized.customerId || payment?.customer_id,
+        customerName: normalized.customerName || payment?.customer_name,
+        email: normalized.customerEmail || payment?.customer_email,
+        phone: normalized.customerPhone || payment?.phone,
+        branchId: normalized.branchId || payment?.branch_id,
+        branchName: normalized.branchName || payment?.branch_name,
+      },
+      { allowCreate: true },
+    );
+    const branch = normalized.branchId || normalized.branchName || payment?.branch_id || customer?.branch_id
+      ? await ensureBranchRecord(
+          client,
+          {
+            branchId: normalized.branchId || payment?.branch_id || customer?.branch_id,
+            branchName: normalized.branchName || payment?.branch_name || customer?.branch_name || 'Main Branch',
+          },
+          { allowCreate: true },
+        )
+      : null;
+    const receiptId = existingReceipt?.id || id;
+    const receiptNumber = normalized.receiptNumber || existingReceipt?.receipt_number || payment?.receipt_number || `RCT-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const receiptCustomerId = customer?.id || normalized.customerId || payment?.customer_id || '';
+    const receiptCustomerName = customer?.full_name || normalized.customerName || payment?.customer_name || '';
+    const receiptCustomerEmail = customer?.email || normalized.customerEmail || payment?.customer_email || '';
+    const receiptCustomerPhone = normalized.customerPhone || payment?.phone || customer?.phone || '';
+    const receiptServiceName = normalized.serviceName || payment?.service_name || '';
+    const receiptPaymentMethod = normalized.paymentMethod || payment?.payment_method || 'Cash';
+
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_receipts (
+          id, branch_id, branch_name, payment_id, appointment_id, customer_id, issued_by_user_id, receipt_number, receipt_status, delivery_method, issued_at, subtotal, tax_amount, discount_amount, total_amount, customer_name, customer_email, customer_phone, service_name, payment_method, branding_snapshot_json, line_items_json, notes, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), NULLIF($6, ''), NULLIF($7, ''), $8, $9, $10, NULLIF($11, '')::timestamptz, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb, $22::jsonb, $23, $24::jsonb, $25, $26
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          branch_name = EXCLUDED.branch_name,
+          payment_id = EXCLUDED.payment_id,
+          appointment_id = EXCLUDED.appointment_id,
+          customer_id = EXCLUDED.customer_id,
+          issued_by_user_id = EXCLUDED.issued_by_user_id,
+          receipt_number = EXCLUDED.receipt_number,
+          receipt_status = EXCLUDED.receipt_status,
+          delivery_method = EXCLUDED.delivery_method,
+          issued_at = EXCLUDED.issued_at,
+          subtotal = EXCLUDED.subtotal,
+          tax_amount = EXCLUDED.tax_amount,
+          discount_amount = EXCLUDED.discount_amount,
+          total_amount = EXCLUDED.total_amount,
+          customer_name = EXCLUDED.customer_name,
+          customer_email = EXCLUDED.customer_email,
+          customer_phone = EXCLUDED.customer_phone,
+          service_name = EXCLUDED.service_name,
+          payment_method = EXCLUDED.payment_method,
+          branding_snapshot_json = EXCLUDED.branding_snapshot_json,
+          line_items_json = EXCLUDED.line_items_json,
+          notes = EXCLUDED.notes,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, branch_id, branch_name, payment_id, appointment_id, customer_id, issued_by_user_id, receipt_number, receipt_status, delivery_method, issued_at, subtotal, tax_amount, discount_amount, total_amount, customer_name, customer_email, customer_phone, service_name, payment_method, branding_snapshot_json, line_items_json, notes, metadata, created_at, updated_at
+      `,
+      [
+        receiptId,
+        branch?.id || normalized.branchId || payment?.branch_id || customer?.branch_id || null,
+        branch?.name || normalized.branchName || payment?.branch_name || customer?.branch_name || 'Main Branch',
+        payment?.id || normalized.paymentId,
+        payment?.appointment_id || normalized.appointmentId || '',
+        receiptCustomerId,
+        normalized.issuedByUserId || '',
+        receiptNumber,
+        normalized.receiptStatus,
+        normalized.deliveryMethod,
+        normalized.issuedAt,
+        normalized.subtotal,
+        normalized.taxAmount,
+        normalized.discountAmount,
+        normalized.totalAmount,
+        receiptCustomerName,
+        receiptCustomerEmail,
+        receiptCustomerPhone,
+        receiptServiceName,
+        receiptPaymentMethod,
+        JSON.stringify(normalized.brandingSnapshot),
+        JSON.stringify(normalized.lineItems),
+        normalized.notes,
+        JSON.stringify(normalized.metadata),
+        existingReceipt?.createdAt ? new Date(existingReceipt.createdAt) : now,
+        now,
+      ],
+    );
+
+    await pool.query(
+      `
+        UPDATE crm_payments
+        SET branch_id = COALESCE(branch_id, $2),
+            branch_name = COALESCE(branch_name, $3),
+            receipt_id = $4,
+            receipt_number = $5,
+            receipt_status = $6,
+            receipt_generated_at = COALESCE(receipt_generated_at, $7::timestamptz),
+            updated_at = NOW()
+        WHERE id = $1
+      `,
+      [
+        payment?.id || normalized.paymentId,
+        branch?.id || normalized.branchId || payment?.branch_id || customer?.branch_id || null,
+        branch?.name || normalized.branchName || payment?.branch_name || customer?.branch_name || 'Main Branch',
+        receiptId,
+        receiptNumber,
+        normalized.receiptStatus,
+        normalized.issuedAt,
+      ],
+    );
+
+    return receiptRowToView(rows[0]);
+  }
+
+  if (resource === 'users') {
+    const normalized = _normalizeUserInput(payload, existing || {});
+    const current = existing || await _lookupUserByEmailOrId(client, { id, email: normalized.email });
+    const branch = normalized.branchId || normalized.branchName ? await ensureBranchRecord(client, normalized, { allowCreate: true }) : null;
+    const passwordHash = normalized.passwordHash || (normalized.password ? normalized.password : '');
+
+    if (!passwordHash) {
+      const error = new Error('User password hash is required.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const userId = current?.id || id;
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_users (
+          id, full_name, email, password_hash, role, phone, branch_id, is_active, last_login_at, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, NULLIF($9, '')::timestamptz, $10::jsonb, $11, $12
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          full_name = EXCLUDED.full_name,
+          email = EXCLUDED.email,
+          password_hash = EXCLUDED.password_hash,
+          role = EXCLUDED.role,
+          phone = EXCLUDED.phone,
+          branch_id = EXCLUDED.branch_id,
+          is_active = EXCLUDED.is_active,
+          last_login_at = EXCLUDED.last_login_at,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, full_name, email, role, phone, branch_id, is_active, last_login_at, created_at, updated_at
+      `,
+      [
+        userId,
+        normalized.fullName,
+        normalized.email,
+        passwordHash,
+        normalized.role,
+        normalized.phone,
+        branch?.id || normalized.branchId || null,
+        normalized.isActive,
+        normalized.lastLoginAt,
+        JSON.stringify(normalized.metadata),
+        existing?.createdAt ? new Date(existing.createdAt) : now,
+        now,
+      ],
+    );
+
+    return userRowToView(rows[0]);
   }
 
   const error = new Error(`Unsupported structured resource: ${resource}`);
@@ -3280,7 +3965,7 @@ export const createRecord = async (resource, payload) => {
   }
 
   if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
-    return upsertStructuredRecord(normalizedResource, payload);
+    return upsertStructuredRecord(pool, normalizedResource, payload);
   }
 
   return upsertGenericRecord(normalizedResource, payload);
@@ -3302,7 +3987,7 @@ export const updateRecord = async (resource, id, patch) => {
       error.statusCode = 404;
       throw error;
     }
-    return upsertStructuredRecord(normalizedResource, { ...current, ...patch, id }, current);
+    return upsertStructuredRecord(pool, normalizedResource, { ...current, ...patch, id }, current);
   }
 
   const current = await getGenericRecord(normalizedResource, id);
