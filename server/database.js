@@ -4116,6 +4116,7 @@ const deleteStructuredRecord = async (resource, id) => {
   }
 
   if (resource === 'services') {
+    await pool.query('DELETE FROM crm_staff_services WHERE service_id = $1', [id]);
     const { rowCount } = await pool.query(
       `
         UPDATE crm_services
@@ -4159,6 +4160,7 @@ const deleteStructuredRecord = async (resource, id) => {
   }
 
   if (resource === 'staff') {
+    await pool.query('DELETE FROM crm_staff_services WHERE staff_id = $1', [id]);
     const { rowCount } = await pool.query('DELETE FROM crm_staff WHERE id = $1', [id]);
     return rowCount;
   }
