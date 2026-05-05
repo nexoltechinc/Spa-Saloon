@@ -12,7 +12,7 @@ const CrmDashboard = lazy(() => import('./pages/CrmDashboard'));
 const CrmLeads = lazy(() => import('./pages/CrmLeads'));
 const CrmAppointments = lazy(() => import('./pages/CrmAppointments'));
 const CrmCustomers = lazy(() => import('./pages/CrmCustomers'));
-const CrmServices = lazy(() => import('./pages/CrmServicesModern'));
+const CrmServices = lazy(() => import('./pages/CrmServices'));
 const CrmStaff = lazy(() => import('./pages/CrmStaff'));
 const CrmPayments = lazy(() => import('./pages/CrmPayments'));
 const CrmReceipts = lazy(() => import('./pages/CrmReceipts'));

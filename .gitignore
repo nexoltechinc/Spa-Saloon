@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .env
+.embedded-postgres/
+spa_smoke.*
 
 # Editor directories and files
 .vscode/*
