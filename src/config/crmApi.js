@@ -70,6 +70,41 @@ const unwrapCollection = (payload, resourceName) => {
   return Array.isArray(match) ? match : [];
 };
 
+const normalizeErrorMessage = (value, fallback = 'CRM request failed.') => {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text || text === '[object Object]') return fallback;
+    return text;
+  }
+
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === 'object') {
+    const nestedCandidate = value.message ?? value.error ?? value.detail;
+    if (nestedCandidate !== undefined) {
+      const nestedText = normalizeErrorMessage(nestedCandidate, '');
+      if (nestedText) {
+        return nestedText;
+      }
+    }
+
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized && serialized !== '{}' && serialized !== '[object Object]') {
+        return serialized;
+      }
+    } catch {
+      // Fall through to string coercion.
+    }
+  }
+
+  const text = String(value).trim();
+  if (!text || text === '[object Object]') return fallback;
+  return text;
+};
+
 const buildAuthUrl = () => {
   const endpoint = String(CRM_AUTH_ENDPOINT || '').trim() || '/api/crm/auth/login';
 
@@ -98,10 +133,11 @@ const fetchJson = async (url, requestInit) => {
   const payload = await readPayload(response);
 
   if (!response.ok) {
-    const message =
-      (payload && typeof payload === 'object' && (payload.message || payload.error || payload.detail)) ||
-      (typeof payload === 'string' && payload) ||
-      `CRM request failed (${response.status})`;
+    const rawMessage =
+      payload && typeof payload === 'object'
+        ? payload.message ?? payload.error ?? payload.detail
+        : payload;
+    const message = normalizeErrorMessage(rawMessage, `CRM request failed (${response.status})`);
     const error = new Error(message);
     error.status = response.status;
     error.code =

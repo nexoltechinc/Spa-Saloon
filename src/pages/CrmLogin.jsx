@@ -6,6 +6,45 @@ import './CrmLogin.css';
 
 const HEALTH_REFRESH_MS = 15000;
 
+const normalizeFeedbackMessage = (value, fallback = '') => {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text || text === '[object Object]') return fallback;
+    return text;
+  }
+
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (value instanceof Error) {
+    return normalizeFeedbackMessage(value.message, fallback);
+  }
+
+  if (typeof value === 'object') {
+    const nestedCandidate = value.message ?? value.error ?? value.detail;
+    if (nestedCandidate !== undefined) {
+      const nestedText = normalizeFeedbackMessage(nestedCandidate, '');
+      if (nestedText) {
+        return nestedText;
+      }
+    }
+
+    try {
+      const serialized = JSON.stringify(value);
+      if (serialized && serialized !== '{}' && serialized !== '[object Object]') {
+        return serialized;
+      }
+    } catch {
+      // Fall through to string coercion.
+    }
+  }
+
+  const text = String(value).trim();
+  if (!text || text === '[object Object]') return fallback;
+  return text;
+};
+
 const statusCopy = {
   ready: {
     eyebrow: 'Ready for sign in',
@@ -57,10 +96,12 @@ const classifySubmitError = (error) => {
     code === 'CRM_AUTH_SERVICE_UNAVAILABLE' ||
     code === 'CRM_SERVICE_UNAVAILABLE'
   ) {
-    const databaseMessage =
+    const databaseMessage = normalizeFeedbackMessage(
       payload?.database?.message ||
-      payload?.message ||
-      'The CRM authentication service is temporarily unavailable. Start the backend and try again.';
+        payload?.message ||
+        'The CRM authentication service is temporarily unavailable. Start the backend and try again.',
+      'The CRM authentication service is temporarily unavailable. Start the backend and try again.',
+    );
 
     return {
       tone: 'warning',
@@ -73,14 +114,18 @@ const classifySubmitError = (error) => {
     return {
       tone: 'offline',
       title: 'CRM backend unreachable',
-      message: 'The browser could not reach the CRM service. Check that the API is running, then try again.',
+      message:
+        'The browser could not reach the CRM service. Check that the API is running, then try again.',
     };
   }
 
   return {
     tone: 'offline',
     title: 'Unable to sign in',
-    message: error?.message || 'The CRM login could not be completed right now.',
+    message: normalizeFeedbackMessage(
+      error?.message || 'The CRM login could not be completed right now.',
+      'The CRM login could not be completed right now.',
+    ),
   };
 };
 
