@@ -13,9 +13,8 @@ export const normalizeNumber = (value, fallback = 0) => {
 };
 
 export const formatMoney = (value = 0) =>
-  `$${Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  `Rs. ${Number(value || 0).toLocaleString('en-PK', {
+    maximumFractionDigits: 0,
   })}`;
 
 export const formatDate = (value, fallback = 'Not set') => {

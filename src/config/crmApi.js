@@ -7,6 +7,10 @@ export const CRM_API_PREFIX = runtimeEnv.VITE_CRM_API_PREFIX || '/api/crm';
 
 export const CRM_API_RESOURCES = {
   branches: '/branches',
+  'service-categories': '/service-categories',
+  'service-addons': '/service-addons',
+  'service-package-items': '/service-package-items',
+  'staff-pricing-rules': '/staff-pricing-rules',
   receipts: '/receipts',
   leads: '/leads',
   customers: '/customers',
@@ -195,4 +199,8 @@ export const crmGetSettings = async (options = {}) => {
 
 export const crmSaveSettings = async (body, options = {}) => {
   return crmApiRequest('/settings', { ...options, method: 'PUT', body });
+};
+
+export const crmCalculateServicePrice = async (body, options = {}) => {
+  return crmApiRequest('/services/price-calculation', { ...options, method: 'POST', body });
 };

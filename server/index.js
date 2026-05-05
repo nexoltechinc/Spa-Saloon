@@ -1,6 +1,9 @@
+import { existsSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 import cors from 'cors'
 import express from 'express'
+import { fileURLToPath } from 'node:url'
 import { config } from './config.js'
 import { authMiddleware, loginWithCredentials, loginWithDegradedFallback, seedAdminAccount } from './auth.js'
 import {
@@ -15,6 +18,16 @@ import {
   updateRecord,
   RESOURCE_NAMES,
 } from './db.js'
+import {
+  calculateServicePricing,
+  formatPkr,
+  SERVICE_ADDONS,
+  STAFF_PRICING_RULES,
+} from '../src/config/serviceCatalog.js'
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const distPath = path.join(projectRoot, 'dist')
+const indexHtmlPath = path.join(distPath, 'index.html')
 
 const asyncHandler = (handler) => (req, res, next) => {
   Promise.resolve(handler(req, res, next)).catch(next)
@@ -128,6 +141,17 @@ const runtimeUnavailableResponse = (res, { statusCode = 503, code, message } = {
       lastError: runtime.lastError,
     },
   })
+}
+
+const parseSelectionList = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || '').trim()).filter(Boolean)
+  }
+
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 const BRANCH_SCOPED_API_RESOURCES = new Set([
@@ -402,6 +426,188 @@ const createPublicBooking = async (req, res) => {
   }
 }
 
+const normalizeCustomerPhoneKey = (value) => normalizeBookingText(value).replace(/\D/g, '')
+
+const normalizeCustomerLabelList = (value) => {
+  if (!Array.isArray(value)) return []
+
+  return Array.from(
+    new Set(
+      value
+        .map((entry) => {
+          if (typeof entry === 'string') return normalizeBookingText(entry)
+          if (entry && typeof entry === 'object') {
+            return normalizeBookingText(entry.name ?? entry.label ?? entry.value ?? entry.id ?? '')
+          }
+          return ''
+        })
+        .filter(Boolean),
+    ),
+  )
+}
+
+const findCustomerPhoneDuplicates = async (phone) => {
+  const target = normalizeCustomerPhoneKey(phone)
+  if (!target) return []
+
+  const customers = await listRecords('customers')
+  return customers.filter((customer) => normalizeCustomerPhoneKey(customer?.phone) === target)
+}
+
+const buildCustomerCreateFieldErrors = ({ fullName, phone, email, branchId, branchName, isMultiBranch }) => {
+  const fieldErrors = {}
+
+  if (!fullName) {
+    fieldErrors.full_name = 'Full name is required.'
+  }
+
+  const phoneDigits = normalizeCustomerPhoneKey(phone)
+  if (!phoneDigits) {
+    fieldErrors.phone = 'Phone number is required.'
+  } else if (phoneDigits.length < 10) {
+    fieldErrors.phone = 'Enter a valid phone number.'
+  }
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    fieldErrors.email = 'Enter a valid email address.'
+  }
+
+  if (isMultiBranch && !branchId && !branchName) {
+    fieldErrors.branch_id = 'Choose a branch for this customer.'
+  }
+
+  return fieldErrors
+}
+
+const resolveBranchSelection = (branches = [], { branchId, branchName } = {}) => {
+  const normalizedBranchId = normalizeBookingText(branchId)
+  const normalizedBranchName = normalizeBookingText(branchName)
+
+  const matchedBranch = branches.find((branch) => {
+    const candidateId = normalizeBookingText(branch?.id)
+    const candidateName = normalizeBookingText(branch?.name || branch?.branchName || branch?.title)
+    return (
+      (normalizedBranchId && candidateId && candidateId === normalizedBranchId) ||
+      (normalizedBranchName && candidateName && candidateName.toLowerCase() === normalizedBranchName.toLowerCase())
+    )
+  })
+
+  if (matchedBranch) {
+    return {
+      branchId: normalizeBookingText(matchedBranch.id || normalizedBranchId),
+      branchName: normalizeBookingText(matchedBranch.name || matchedBranch.branchName || normalizedBranchName),
+    }
+  }
+
+  if (!normalizedBranchId && !normalizedBranchName && branches.length === 1) {
+    const branch = branches[0]
+    return {
+      branchId: normalizeBookingText(branch?.id),
+      branchName: normalizeBookingText(branch?.name || branch?.branchName || ''),
+    }
+  }
+
+  return {
+    branchId: normalizedBranchId,
+    branchName: normalizedBranchName,
+  }
+}
+
+app.post(
+  '/api/crm/customers',
+  asyncHandler(async (req, res) => {
+    const body = req.body || {}
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return res.status(400).json({
+        code: 'CRM_CUSTOMER_VALIDATION',
+        message: 'Request body must be a JSON object.',
+        fieldErrors: {
+          _form: 'Request body must be a JSON object.',
+        },
+      })
+    }
+
+    const branchList = await listRecords('branches').catch(() => [])
+    const isMultiBranch = Array.isArray(branchList) && branchList.length > 1
+    const branchSelection = resolveBranchSelection(branchList, {
+      branchId: body.branch_id ?? body.branchId,
+      branchName: body.branch_name ?? body.branchName,
+    })
+
+    const fullName = normalizeBookingText(body.full_name ?? body.fullName ?? body.name ?? body.customerName)
+    const phone = normalizeBookingText(body.phone ?? body.contactPhone ?? body.contactNumber ?? body.phoneNumber)
+    const email = normalizeBookingText(body.email ?? body.customerEmail).toLowerCase()
+    const gender = normalizeBookingText(body.gender)
+    const dateOfBirth = normalizeBookingText(body.date_of_birth ?? body.dateOfBirth)
+    const customerSource = normalizeBookingText(body.customer_source ?? body.customerSource ?? body.source ?? body.acquisitionSource, 'Walk-In')
+    const notes = normalizeBookingText(body.notes ?? body.note)
+    const tags = normalizeCustomerLabelList(body.tags ?? body.tagsJson ?? body.tags_json)
+    const preferences = normalizeCustomerLabelList(body.preferences ?? body.preferred_services ?? body.preferredServices)
+    const fieldErrors = buildCustomerCreateFieldErrors({
+      fullName,
+      phone,
+      email,
+      branchId: branchSelection.branchId,
+      branchName: branchSelection.branchName,
+      isMultiBranch,
+    })
+
+    if (Object.keys(fieldErrors).length) {
+      return res.status(400).json({
+        code: 'CRM_CUSTOMER_VALIDATION',
+        message: 'Please correct the highlighted customer fields.',
+        fieldErrors,
+      })
+    }
+
+    const duplicateMatches = await findCustomerPhoneDuplicates(phone)
+    const duplicateWarning = duplicateMatches.length
+      ? `A customer with this phone already exists${duplicateMatches[0]?.fullName ? `: ${duplicateMatches[0].fullName}` : ''}.`
+      : ''
+
+    const record = await createRecord(
+      'customers',
+      {
+        full_name: fullName,
+        fullName,
+        name: fullName,
+        phone,
+        email,
+        gender,
+        date_of_birth: dateOfBirth,
+        dateOfBirth,
+        branch_id: branchSelection.branchId,
+        branchId: branchSelection.branchId,
+        branch_name: branchSelection.branchName,
+        branchName: branchSelection.branchName,
+        customer_source: customerSource,
+        customerSource,
+        source: customerSource,
+        notes,
+        tags,
+        preferences,
+      },
+      buildRequestContext(req),
+    )
+
+    return res.status(201).json({
+      ...record,
+      duplicateWarning,
+      duplicateCount: duplicateMatches.length,
+      duplicateMatch: duplicateMatches[0]
+        ? {
+            id: duplicateMatches[0].id || null,
+            fullName: duplicateMatches[0].fullName || duplicateMatches[0].name || '',
+            phone: duplicateMatches[0].phone || '',
+            branchId: duplicateMatches[0].branchId || null,
+            branchName: duplicateMatches[0].branchName || '',
+          }
+        : null,
+    })
+  }),
+)
+
 const blockWhileBooting = (req, res, next) => {
   if (runtime.bootState === 'ready') {
     return next()
@@ -517,6 +723,48 @@ app.patch(
   }),
 )
 
+const calculateServicePriceResponse = async (req, res) => {
+  const payload = req.method === 'GET' ? req.query : req.body || {}
+  const serviceId = String(payload.serviceId || payload.id || payload.service_id || '').trim()
+  const servicePayload = payload.service && typeof payload.service === 'object' ? payload.service : null
+  const service = servicePayload || (serviceId ? await getRecord('services', serviceId, buildRequestContext(req)) : null)
+
+  if (!service) {
+    return res.status(404).json({ message: 'Service not found.' })
+  }
+
+  const addons = await listRecords('service-addons', {}, buildRequestContext(req)).catch(() => [])
+  const staffRules = await listRecords('staff-pricing-rules', {}, buildRequestContext(req)).catch(() => [])
+  const selectedAddonIds = parseSelectionList(
+    payload.selectedAddonIds || payload.addonIds || payload.addons || payload.selected_addon_ids || payload.selected_addon_id,
+  )
+
+  const quote = calculateServicePricing(service, {
+    selectedAddonIds,
+    staffLevel: payload.staffLevel || payload.staff_level || 'Junior Staff',
+    discountAmount: payload.discountAmount ?? payload.discount_amount ?? service.defaultDiscountAmountPkr ?? 0,
+    discountPercent: payload.discountPercent ?? payload.discount_percent ?? 0,
+    taxRatePercent: payload.taxRatePercent ?? payload.tax_rate_percent ?? service.taxRatePercent ?? 0,
+    addonCatalog: addons.length ? addons : SERVICE_ADDONS,
+    staffRules: staffRules.length ? staffRules : STAFF_PRICING_RULES,
+  })
+
+  return res.json({
+    service,
+    currency: 'PKR',
+    selectedAddonIds,
+    quote: {
+      ...quote,
+      basePriceLabel: formatPkr(quote.basePrice),
+      addonTotalLabel: formatPkr(quote.addonTotal),
+      staffAdjustmentLabel: formatPkr(quote.staffAdjustmentAmount),
+      discountLabel: formatPkr(quote.discountAmount),
+      taxLabel: formatPkr(quote.taxAmount),
+      finalPriceLabel: formatPkr(quote.finalPrice),
+    },
+  })
+}
+
 app.get(
   '/api/crm/:resource',
   asyncHandler(async (req, res) => {
@@ -540,6 +788,9 @@ app.get(
     res.json(records)
   }),
 )
+
+app.get('/api/crm/services/price-calculation', asyncHandler(calculateServicePriceResponse))
+app.post('/api/crm/services/price-calculation', asyncHandler(calculateServicePriceResponse))
 
 app.get(
   '/api/crm/:resource/:id',
@@ -596,6 +847,24 @@ app.delete(
     res.status(204).end()
   }),
 )
+
+app.use(express.static(distPath, { index: false }))
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return next()
+  }
+
+  if (req.path.startsWith('/api/')) {
+    return next()
+  }
+
+  if (existsSync(indexHtmlPath)) {
+    return res.sendFile(indexHtmlPath)
+  }
+
+  return next()
+})
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found.' })

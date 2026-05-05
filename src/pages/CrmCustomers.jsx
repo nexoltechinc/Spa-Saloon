@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clearCrmToken } from '../config/crm';
+import { clearCrmToken, getCrmSession } from '../config/crm';
 import { crmCreate, crmDelete, crmList, crmUpdate } from '../config/crmApi';
 import CrmShell from '../components/CrmShell';
+import CustomerCreateDrawer from '../components/customers/CustomerCreateDrawer';
 import './CrmCustomers.css';
 
 const ROLE_VIEW = 'receptionist';
@@ -24,17 +25,10 @@ const SOURCE_FILTERS = ['All Sources', 'Website Form', 'Walk-In', 'Instagram', '
 const SPEND_FILTERS = ['Any Spend', 'Above $500', 'Above $1000', 'Above $3000'];
 const ACTIVITY_FILTERS = ['All Activity', 'Rebook Soon', 'At Risk', 'Upcoming Today'];
 
-let customerIdCounter = 1300;
 let appointmentIdCounter = 7200;
 let paymentIdCounter = 8600;
 let receiptCounter = 15000;
 let timelineEventCounter = 5000;
-let noteIdCounter = 4000;
-
-const createCustomerId = () => {
-  customerIdCounter += 1;
-  return `C-${customerIdCounter}`;
-};
 
 const createAppointmentId = () => {
   appointmentIdCounter += 1;
@@ -54,11 +48,6 @@ const createReceiptNo = () => {
 const createTimelineId = () => {
   timelineEventCounter += 1;
   return `ACT-${timelineEventCounter}`;
-};
-
-const createNoteId = () => {
-  noteIdCounter += 1;
-  return `NOTE-${noteIdCounter}`;
 };
 
 const shiftIso = (days, hour = 10, minute = 0) => {
@@ -323,6 +312,13 @@ const CUSTOMER_SEED = [
 
 const normalizeCustomer = (customer, index = 0) => {
   const rawPreferences = Array.isArray(customer.preferences) ? customer.preferences : customer.favoriteService ? [customer.favoriteService] : ['General Wellness'];
+  const rawTags = Array.isArray(customer.tags)
+    ? customer.tags
+    : Array.isArray(customer.tagsJson)
+      ? customer.tagsJson
+      : Array.isArray(customer.tags_json)
+        ? customer.tags_json
+        : [];
 
   const appointmentHistory = (Array.isArray(customer.appointmentHistory) ? customer.appointmentHistory : [])
     .map(normalizeAppointmentEntry)
@@ -362,6 +358,8 @@ const normalizeCustomer = (customer, index = 0) => {
   return {
     id: customer.id || customer._id || customer.customerId || `customer-${index + 1}`,
     name: customer.name || customer.fullName || customer.customerName || 'Untitled Customer',
+    branchId: customer.branchId || customer.branch_id || '',
+    branchName: customer.branchName || customer.branch_name || '',
     phone: customer.phone || customer.mobile || customer.contactNumber || '',
     email: customer.email || customer.contactEmail || '',
     segment,
@@ -387,12 +385,17 @@ const normalizeCustomer = (customer, index = 0) => {
     cancellationCount: Number(customer.cancellationCount ?? 0),
     membership: customer.membership || 'None',
     preferences: rawPreferences,
+    preferredServices: rawPreferences,
+    tags: rawTags,
   };
 };
 
 const CrmCustomers = () => {
   const navigate = useNavigate();
+  const session = useMemo(() => getCrmSession(), []);
   const [customers, setCustomers] = useState([]);
+  const [branchOptions, setBranchOptions] = useState([]);
+  const [serviceOptions, setServiceOptions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('All Segments');
   const [sourceFilter, setSourceFilter] = useState('All Sources');
@@ -404,36 +407,133 @@ const CrmCustomers = () => {
   const [workspaceTab, setWorkspaceTab] = useState('activity');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [isCustomerDrawerOpen, setIsCustomerDrawerOpen] = useState(false);
+  const [customerToast, setCustomerToast] = useState(null);
+
+  const loadCustomers = useCallback(async ({ selectCustomerId = '', silent = false } = {}) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
+
+    setLoadError('');
+
+    try {
+      const data = await crmList('customers');
+      const normalized = (Array.isArray(data) ? data : [])
+        .map(normalizeCustomer)
+        .filter((entry) => !shouldHideCustomer(entry));
+
+      setCustomers(normalized);
+      setSelectedCustomerId((current) => {
+        if (selectCustomerId && normalized.some((entry) => entry.id === selectCustomerId)) {
+          return selectCustomerId;
+        }
+
+        if (normalized.some((entry) => entry.id === current)) {
+          return current;
+        }
+
+        return normalized[0]?.id || '';
+      });
+
+      return normalized;
+    } catch (error) {
+      setCustomers([]);
+      setSelectedCustomerId('');
+      setLoadError(error.message || 'Unable to load customers from the CRM API.');
+      return [];
+    } finally {
+      if (!silent) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  const loadReferenceData = useCallback(async () => {
+    const [branchesResult, servicesResult] = await Promise.allSettled([crmList('branches'), crmList('services')]);
+
+    if (branchesResult.status === 'fulfilled' && Array.isArray(branchesResult.value)) {
+      const normalizedBranches = branchesResult.value
+        .map((branch) => {
+          const id = branch?.id || branch?.branchId || branch?.code || branch?.value || '';
+          const name = branch?.name || branch?.branchName || branch?.label || branch?.title || '';
+          const city = branch?.city || '';
+          const state = branch?.state || '';
+          return {
+            id: String(id).trim(),
+            name: String(name).trim(),
+            branchName: String(name).trim(),
+            label: [String(name).trim(), [city, state].filter(Boolean).join(', ')].filter(Boolean).join(' - '),
+          };
+        })
+        .filter((branch) => branch.id || branch.label);
+
+      setBranchOptions(Array.from(new Map(normalizedBranches.map((branch) => [branch.id || branch.label, branch])).values()));
+    }
+
+    if (servicesResult.status === 'fulfilled' && Array.isArray(servicesResult.value)) {
+      const normalizedServices = Array.from(
+        new Set(
+          servicesResult.value
+            .map((service) => service?.name || service?.serviceName || service?.title || '')
+            .map((value) => String(value).trim())
+            .filter(Boolean),
+        ),
+      );
+      setServiceOptions(normalizedServices);
+    }
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    const loadCustomers = async () => {
-      setIsLoading(true);
-      setLoadError('');
-      try {
-        const data = await crmList('customers');
-        if (!mounted) return;
-        const normalized = (Array.isArray(data) ? data : [])
-          .map(normalizeCustomer)
-          .filter((entry) => !shouldHideCustomer(entry));
-        setCustomers(normalized);
-        setSelectedCustomerId((current) => (normalized.some((entry) => entry.id === current) ? current : normalized[0]?.id || ''));
-      } catch (error) {
-        if (!mounted) return;
-        setCustomers([]);
-        setLoadError(error.message || 'Unable to load customers from the CRM API.');
-        setSelectedCustomerId('');
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
     void loadCustomers();
-    return () => {
-      mounted = false;
+    void loadReferenceData();
+  }, [loadCustomers, loadReferenceData]);
+
+  useEffect(() => {
+    if (!customerToast) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setCustomerToast(null);
+    }, 4200);
+
+    return () => window.clearTimeout(timer);
+  }, [customerToast]);
+
+  const handleCustomerCreated = useCallback(async (created, details = {}) => {
+    const normalized = normalizeCustomer(created, customers.length);
+    setCustomers((current) => [normalized, ...current.filter((entry) => entry.id !== normalized.id)]);
+    setSelectedCustomerId(normalized.id);
+    setWorkspaceTab('activity');
+
+    await loadCustomers({ selectCustomerId: normalized.id, silent: true });
+
+    setCustomerToast({
+      tone: 'success',
+      title: 'Customer created successfully',
+      detail: details.duplicateWarning
+        ? `${details.duplicateWarning} The profile was saved to Postgres and the customer list was refreshed.`
+        : 'The profile was saved to Postgres and the customer list was refreshed.',
+    });
+  }, [customers.length, loadCustomers]);
+
+  const defaultCustomerBranch = useMemo(() => {
+    const sessionBranchId = String(session?.branchId || '').trim();
+    const sessionBranchName = String(session?.branchName || '').trim();
+    const branchMatch = branchOptions.find((branch) => (
+      (sessionBranchId && branch.id === sessionBranchId) ||
+      (sessionBranchName && (branch.label === sessionBranchName || branch.branchName === sessionBranchName))
+    ));
+    const branch = branchMatch || branchOptions[0] || null;
+
+    return {
+      id: branch?.id || sessionBranchId,
+      name: branch?.branchName || branch?.label || sessionBranchName || '',
     };
-  }, []);
+  }, [branchOptions, session]);
+
+  const handleOpenCustomerDrawer = () => {
+    setIsCustomerDrawerOpen(true);
+  };
 
   const filteredCustomers = useMemo(() => {
     const todayKey = toDateKey(new Date());
@@ -562,73 +662,6 @@ const CrmCustomers = () => {
       }
       setLoadError(error.message || 'Customer segment update failed.');
     });
-  };
-
-  const handleQuickCreateCustomer = async () => {
-    const name = window.prompt('Customer name');
-    if (!name) return;
-
-    const phone = window.prompt('Phone number', '') || '';
-    const email = window.prompt('Email address', '') || '';
-    const segment = window.prompt('Segment', 'Repeat Customer') || 'Repeat Customer';
-    const acquisitionSource = window.prompt('Acquisition source', 'Walk-In') || 'Walk-In';
-    const nowIso = new Date().toISOString();
-
-    const draftCustomer = {
-      id: createCustomerId(),
-      name,
-      phone,
-      email,
-      segment,
-      status: segment === 'Inactive' ? 'Dormant' : 'Active',
-      acquisitionSource,
-      createdAt: nowIso,
-      lastVisit: '',
-      visitCount: 0,
-      totalSpend: 0,
-      loyaltyPoints: 0,
-      favoriteService: 'General Wellness',
-      favoriteStaff: 'Unassigned',
-      preferredTimes: 'Flexible',
-      preferredChannel: 'Phone',
-      sensitivities: 'None reported',
-      upcomingAppointment: null,
-      pendingBalance: 0,
-      paymentHistory: [],
-      appointmentHistory: [],
-      activityTimeline: [
-        {
-          id: createTimelineId(),
-          type: 'Customer Created',
-          at: nowIso,
-          actor: 'Front Desk',
-          channel: 'CRM',
-          outcome: 'Created',
-          summary: 'Profile created from quick add',
-        },
-      ],
-      notes: [
-        {
-          id: createNoteId(),
-          at: nowIso,
-          author: 'Front Desk',
-          text: 'Created from CRM quick add',
-        },
-      ],
-      noShowCount: 0,
-      cancellationCount: 0,
-      membership: 'None',
-      preferences: ['General Wellness'],
-    };
-
-    try {
-      const created = await crmCreate('customers', draftCustomer);
-      const normalized = normalizeCustomer(created && typeof created === 'object' ? created : draftCustomer, customers.length);
-      setCustomers((current) => [normalized, ...current]);
-      setSelectedCustomerId(normalized.id);
-    } catch (error) {
-      setLoadError(error.message || 'Customer save failed.');
-    }
   };
 
   const handleExportCustomers = () => {
@@ -928,8 +961,8 @@ const CrmCustomers = () => {
             <button type="button" className="crm-customers-ghost-btn" onClick={handleExportCustomers}>
               Export
             </button>
-            <button type="button" className="crm-customers-primary-btn" onClick={handleQuickCreateCustomer}>
-              Add New Customer
+            <button type="button" className="crm-customers-primary-btn" onClick={handleOpenCustomerDrawer}>
+              + Add Customer
             </button>
             <button type="button" className="crm-customers-logout-btn" onClick={handleLogout}>
               Logout
@@ -1164,6 +1197,24 @@ const CrmCustomers = () => {
             )}
           </aside>
         </section>
+
+        {customerToast ? (
+          <div className={`crm-customers-toast crm-customers-toast-${customerToast.tone || 'success'}`} role="status" aria-live="polite">
+            <p>{customerToast.title}</p>
+            <span>{customerToast.detail}</span>
+          </div>
+        ) : null}
+
+        <CustomerCreateDrawer
+          open={isCustomerDrawerOpen}
+          branches={branchOptions}
+          services={serviceOptions}
+          existingCustomers={customers}
+          defaultBranchId={defaultCustomerBranch.id}
+          defaultBranchName={defaultCustomerBranch.name}
+          onClose={() => setIsCustomerDrawerOpen(false)}
+          onCreated={handleCustomerCreated}
+        />
       </main>
     </CrmShell>
   );

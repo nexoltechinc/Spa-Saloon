@@ -1,0 +1,743 @@
+.crm-services-modern-shell {
+  background:
+    radial-gradient(circle at top left, rgba(221, 180, 126, 0.2), transparent 30%),
+    radial-gradient(circle at 92% 8%, rgba(111, 78, 48, 0.16), transparent 22%),
+    linear-gradient(180deg, #f8f1e8 0%, #f4eadf 100%);
+}
+
+.crm-services-modern-main {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2.5rem;
+  color: #231b14;
+}
+
+.crm-services-modern-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(340px, 420px);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.crm-services-modern-hero-copy,
+.crm-services-modern-actions,
+.crm-services-modern-stats,
+.crm-services-modern-filters,
+.crm-services-modern-list-panel,
+.crm-services-modern-detail-panel {
+  border: 1px solid rgba(94, 64, 39, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 50px rgba(58, 39, 20, 0.1);
+}
+
+.crm-services-modern-hero-copy {
+  padding: 1.9rem;
+}
+
+.crm-services-modern-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.72rem;
+  color: #8b5e34;
+  font-weight: 700;
+}
+
+.crm-services-modern-hero-copy h1 {
+  margin: 0.35rem 0 0.8rem;
+  font-size: clamp(2.3rem, 4.8vw, 4.2rem);
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+}
+
+.crm-services-modern-hero-copy p {
+  margin: 0;
+  color: rgba(35, 27, 20, 0.72);
+  max-width: 66ch;
+  line-height: 1.72;
+}
+
+.crm-services-modern-banner {
+  margin-top: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(163, 113, 65, 0.18);
+  background: rgba(255, 244, 224, 0.92);
+  color: #68431e;
+  padding: 0.9rem 1rem;
+}
+
+.crm-services-modern-actions {
+  padding: 1rem;
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+}
+
+.crm-services-modern-search {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 18px;
+  border: 1px solid rgba(94, 64, 39, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.9rem 1rem;
+}
+
+.crm-services-modern-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.crm-services-modern-ghost,
+.crm-services-modern-primary,
+.crm-services-modern-secondary,
+.crm-services-modern-icon-btn {
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+
+.crm-services-modern-ghost,
+.crm-services-modern-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  color: #2a1e14;
+  border: 1px solid rgba(94, 64, 39, 0.14);
+}
+
+.crm-services-modern-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 16px;
+  padding: 0.95rem 1.1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #3b2718, #8b5e34);
+  box-shadow: 0 16px 30px rgba(75, 48, 20, 0.24);
+}
+
+.crm-services-modern-ghost:hover,
+.crm-services-modern-secondary:hover,
+.crm-services-modern-primary:hover,
+.crm-services-modern-icon-btn:hover {
+  transform: translateY(-1px);
+}
+
+.crm-services-modern-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.crm-services-modern-stat-card {
+  padding: 1rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(246, 239, 231, 0.88));
+  border: 1px solid rgba(94, 64, 39, 0.1);
+}
+
+.crm-services-modern-stat-card p {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.68rem;
+  color: rgba(35, 27, 20, 0.58);
+}
+
+.crm-services-modern-stat-card strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.4rem;
+}
+
+.crm-services-modern-stat-card span {
+  display: block;
+  margin-top: 0.2rem;
+  color: rgba(35, 27, 20, 0.64);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.crm-services-modern-filters {
+  padding: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.crm-services-modern-filter-tabs {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.crm-services-modern-filter-tabs button {
+  border: 1px solid rgba(94, 64, 39, 0.14);
+  background: rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  padding: 0.75rem 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #2a1e14;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.crm-services-modern-filter-tabs button.is-active {
+  background: linear-gradient(135deg, #3b2718, #8b5e34);
+  color: #fff;
+  border-color: transparent;
+}
+
+.crm-services-modern-filter-tabs button span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: rgba(139, 94, 52, 0.1);
+  color: #8b5e34;
+  font-size: 0.78rem;
+}
+
+.crm-services-modern-filter-tabs button.is-active span {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.crm-services-modern-filters select,
+.crm-services-modern-editor input,
+.crm-services-modern-editor select,
+.crm-services-modern-editor textarea,
+.crm-services-modern-controls input,
+.crm-services-modern-controls select {
+  border: 1px solid rgba(94, 64, 39, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: inherit;
+  font: inherit;
+  padding: 0.85rem 0.95rem;
+  width: 100%;
+}
+
+.crm-services-modern-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.crm-services-modern-list-panel,
+.crm-services-modern-detail-panel {
+  padding: 1rem;
+}
+
+.crm-services-modern-list-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.crm-services-modern-list-head p,
+.crm-services-modern-section-title span,
+.crm-services-modern-editor-head p {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.68rem;
+  color: rgba(35, 27, 20, 0.56);
+}
+
+.crm-services-modern-list-head h2,
+.crm-services-modern-editor-head h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.4rem;
+}
+
+.crm-services-modern-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.crm-services-modern-empty {
+  display: grid;
+  place-items: center;
+  gap: 0.55rem;
+  text-align: center;
+  border: 1px dashed rgba(94, 64, 39, 0.18);
+  border-radius: 22px;
+  padding: 2rem 1.25rem;
+  color: rgba(35, 27, 20, 0.72);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.crm-services-modern-empty h3 {
+  margin: 0;
+}
+
+.crm-services-modern-empty p {
+  margin: 0;
+  max-width: 42ch;
+  line-height: 1.6;
+}
+
+.crm-services-modern-service-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) auto auto;
+  gap: 1rem;
+  align-items: center;
+  text-align: left;
+  border: 1px solid rgba(94, 64, 39, 0.12);
+  border-radius: 22px;
+  padding: 0.95rem;
+  background: rgba(255, 255, 255, 0.85);
+  color: inherit;
+  cursor: pointer;
+}
+
+.crm-services-modern-service-row:hover,
+.crm-services-modern-service-row.is-selected {
+  border-color: rgba(139, 94, 52, 0.34);
+  background: linear-gradient(180deg, rgba(139, 94, 52, 0.09), rgba(255, 255, 255, 0.9));
+  box-shadow: 0 14px 26px rgba(65, 43, 22, 0.08);
+}
+
+.crm-services-modern-service-main p,
+.crm-services-modern-editor-head span,
+.crm-services-modern-preview-head span,
+.crm-services-modern-meta span,
+.crm-services-modern-preview-grid span,
+.crm-services-modern-package-list small,
+.crm-services-modern-controls span,
+.crm-services-modern-addon-item small {
+  color: rgba(35, 27, 20, 0.66);
+}
+
+.crm-services-modern-service-title {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.crm-services-modern-service-main strong {
+  font-size: 1rem;
+}
+
+.crm-services-modern-service-main p {
+  margin: 0.35rem 0 0;
+}
+
+.crm-services-modern-service-meta {
+  text-align: right;
+}
+
+.crm-services-modern-service-meta span {
+  display: block;
+  font-weight: 700;
+}
+
+.crm-services-modern-service-meta small {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.crm-services-modern-service-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.crm-services-modern-service-tools button,
+.crm-services-modern-icon-btn {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 14px;
+  border: 1px solid rgba(94, 64, 39, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: #2a1e14;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.crm-services-modern-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.crm-services-modern-badge.tone-good {
+  background: rgba(71, 143, 96, 0.14);
+  color: #267046;
+}
+
+.crm-services-modern-badge.tone-alert {
+  background: rgba(206, 92, 67, 0.14);
+  color: #a2432f;
+}
+
+.crm-services-modern-badge.tone-neutral {
+  background: rgba(120, 120, 120, 0.12);
+  color: rgba(35, 27, 20, 0.72);
+}
+
+.crm-services-modern-detail-panel {
+  position: sticky;
+  top: 6.5rem;
+  align-self: start;
+}
+
+.crm-services-modern-editor,
+.crm-services-modern-preview {
+  display: grid;
+  gap: 1rem;
+}
+
+.crm-services-modern-editor-head,
+.crm-services-modern-preview-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.crm-services-modern-editor-head p {
+  margin-bottom: 0.25rem;
+}
+
+.crm-services-modern-error {
+  border-radius: 18px;
+  border: 1px solid rgba(163, 71, 48, 0.18);
+  background: rgba(255, 240, 236, 0.92);
+  color: #943523;
+  padding: 0.9rem 1rem;
+}
+
+.crm-services-modern-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.crm-services-modern-editor-grid label,
+.crm-services-modern-controls label {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.crm-services-modern-editor-grid label span,
+.crm-services-modern-controls label span,
+.crm-services-modern-addon-pills > span,
+.crm-services-modern-addon-selector .crm-services-modern-section-title span,
+.crm-services-modern-staff-grid .crm-services-modern-section-title span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(35, 27, 20, 0.58);
+}
+
+.crm-services-modern-editor-full {
+  grid-column: 1 / -1;
+}
+
+.crm-services-modern-editor-grid textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.crm-services-modern-addon-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.crm-services-modern-addon-pills button,
+.crm-services-modern-addon-list button {
+  border: 1px solid rgba(94, 64, 39, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: inherit;
+  border-radius: 18px;
+  padding: 0.72rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.crm-services-modern-addon-pills button.is-active,
+.crm-services-modern-addon-list button.is-active {
+  background: linear-gradient(135deg, #3b2718, #8b5e34);
+  color: #fff;
+  border-color: transparent;
+}
+
+.crm-services-modern-addon-pills small,
+.crm-services-modern-addon-list span {
+  color: inherit;
+  opacity: 0.84;
+}
+
+.crm-services-modern-editor-actions,
+.crm-services-modern-preview-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.crm-services-modern-preview-head p,
+.crm-services-modern-meta span,
+.crm-services-modern-section-title h3,
+.crm-services-modern-preview-grid span,
+.crm-services-modern-package-list small {
+  margin: 0;
+}
+
+.crm-services-modern-price-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid rgba(94, 64, 39, 0.12);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(139, 94, 52, 0.1), rgba(255, 255, 255, 0.9));
+  padding: 1rem 1.1rem;
+}
+
+.crm-services-modern-price-hero p {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.68rem;
+  color: rgba(35, 27, 20, 0.58);
+}
+
+.crm-services-modern-price-hero strong {
+  display: block;
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  margin-top: 0.3rem;
+}
+
+.crm-services-modern-preview-grid,
+.crm-services-modern-meta,
+.crm-services-modern-staff-chips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.crm-services-modern-preview-grid > div,
+.crm-services-modern-meta > div,
+.crm-services-modern-staff-chip,
+.crm-services-modern-package-list,
+.crm-services-modern-controls,
+.crm-services-modern-addon-selector,
+.crm-services-modern-staff-grid {
+  border: 1px solid rgba(94, 64, 39, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 0.95rem;
+}
+
+.crm-services-modern-preview-grid strong,
+.crm-services-modern-meta strong,
+.crm-services-modern-staff-chip strong {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.crm-services-modern-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.crm-services-modern-addon-selector,
+.crm-services-modern-staff-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.crm-services-modern-addon-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.crm-services-modern-addon-list button {
+  justify-content: space-between;
+  text-align: left;
+}
+
+.crm-services-modern-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.crm-services-modern-section-title h3 {
+  font-size: 1.05rem;
+}
+
+.crm-services-modern-package-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.crm-services-modern-package-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(94, 64, 39, 0.08);
+  padding: 0.7rem 0.85rem;
+}
+
+.crm-services-modern-staff-chips {
+  margin-top: 0.25rem;
+}
+
+.crm-services-modern-staff-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.crm-services-modern-staff-chip span {
+  color: #8b5e34;
+  font-weight: 700;
+}
+
+.crm-services-modern-meta {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.crm-services-modern-meta > div span {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  color: rgba(35, 27, 20, 0.58);
+}
+
+.crm-services-modern-section-title.compact h3 {
+  font-size: 0.98rem;
+}
+
+.crm-services-modern-staff-grid .crm-services-modern-section-title,
+.crm-services-modern-addon-selector .crm-services-modern-section-title {
+  margin: 0;
+}
+
+.crm-services-modern-preview-actions .crm-services-modern-primary,
+.crm-services-modern-preview-actions .crm-services-modern-secondary {
+  flex: 1 1 180px;
+}
+
+@media (max-width: 1200px) {
+  .crm-services-modern-stats,
+  .crm-services-modern-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crm-services-modern-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-services-modern-detail-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 860px) {
+  .crm-services-modern-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-services-modern-service-row,
+  .crm-services-modern-editor-grid,
+  .crm-services-modern-controls,
+  .crm-services-modern-addon-list,
+  .crm-services-modern-preview-grid,
+  .crm-services-modern-staff-chips {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-services-modern-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crm-services-modern-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-services-modern-service-row {
+    align-items: start;
+  }
+}
+
+@media (max-width: 620px) {
+  .crm-services-modern-main {
+    padding-inline: 0.75rem;
+  }
+
+  .crm-services-modern-hero-copy,
+  .crm-services-modern-actions,
+  .crm-services-modern-list-panel,
+  .crm-services-modern-detail-panel {
+    border-radius: 22px;
+  }
+
+  .crm-services-modern-stats,
+  .crm-services-modern-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-services-modern-service-row {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-services-modern-service-meta {
+    text-align: left;
+  }
+
+  .crm-services-modern-filter-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0.25rem;
+  }
+}

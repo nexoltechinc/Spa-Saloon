@@ -193,6 +193,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
     name: customerName,
     email: `customer-${Date.now()}@example.com`,
     phone: '+1 555 010 2300',
+    branchName: 'West Hollywood',
     segment: 'Repeat Customer',
     status: 'Active',
     acquisitionSource: 'Website Form',
@@ -255,10 +256,30 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
     ],
     membership: 'None',
     preferences: ['Signature Facial'],
+    tags: ['VIP', 'New'],
   });
 
   assert.ok(customer.id, 'Customer should have an id.');
   assert.equal(customer.fullName, customerName);
+  assert.ok(Array.isArray(customer.tags) && customer.tags.includes('VIP'), 'Customer tags should persist on create.');
+  assert.ok(Array.isArray(customer.preferences) && customer.preferences.includes('Signature Facial'), 'Customer preferences should persist on create.');
+
+  const duplicateCustomer = await harness.create('customers', {
+    id: `CUS-SMOKE-DUP-${Date.now()}`,
+    fullName: `${customerName} Duplicate`,
+    name: `${customerName} Duplicate`,
+    email: `customer-dup-${Date.now()}@example.com`,
+    phone: '+1 555 010 2300',
+    branchName: 'West Hollywood',
+    segment: 'New Customer',
+    status: 'Active',
+    acquisitionSource: 'Website Form',
+    notes: 'Duplicate phone smoke test.',
+    tags: ['New'],
+    preferences: ['Signature Facial'],
+  });
+
+  assert.ok(duplicateCustomer.duplicateWarning, 'Duplicate phone should surface a warning.');
 
   const customerList = await harness.list('customers');
   assertArrayContains(customerList, (row) => row.id === customer.id, 'Customer should appear in list results.');
@@ -267,6 +288,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   assert.equal(customerFetched.fullName, customerName);
   assert.equal(customerFetched.upcomingAppointment?.service, 'Signature Facial');
   assert.ok(Array.isArray(customerFetched.paymentHistory) && customerFetched.paymentHistory.length > 0);
+  assert.ok(Array.isArray(customerFetched.tags) && customerFetched.tags.includes('VIP'));
 
   const customerUpdated = await harness.update('customers', customer.id, {
     ...customerFetched,
@@ -444,6 +466,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   assert.equal(customerAfterRestart.segment, 'VIP');
   assert.equal(customerAfterRestart.upcomingAppointment?.service, 'Signature Facial');
   assert.ok(Array.isArray(customerAfterRestart.notes) && customerAfterRestart.notes.length > 0);
+  assert.ok(Array.isArray(customerAfterRestart.tags) && customerAfterRestart.tags.includes('VIP'));
 
   const websiteCustomerAfterRestart = await harness.get('customers', websiteBooking.customer.id);
   assert.equal(websiteCustomerAfterRestart.fullName, websiteCustomerName);
@@ -466,6 +489,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   await harness.remove('appointments', websiteBooking.appointment.id);
   await harness.remove('public-bookings', websiteBooking.publicBooking.id);
   await harness.remove('customers', websiteBooking.customer.id);
+  await harness.remove('customers', duplicateCustomer.id);
   await harness.remove('customers', customer.id);
   await harness.remove('branches', branch.id);
   await harness.remove('leads', lead.id);

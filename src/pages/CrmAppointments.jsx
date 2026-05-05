@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmDelete, crmList, crmUpdate } from '../config/crmApi';
+import { SERVICE_SEED } from '../config/serviceCatalog';
 import CrmShell from '../components/CrmShell';
 import {
   daysBetween,
@@ -174,6 +175,17 @@ const buildPayload = (draft) => {
   };
 };
 
+const normalizeServiceOption = (service = {}, index = 0) => ({
+  id: String(service.id || service.serviceId || `service-${index + 1}`),
+  name: String(service.name || service.serviceName || service.title || 'Service'),
+  price: Math.max(0, Math.round(normalizeNumber(service.price ?? service.amount ?? 0, 0))),
+  durationMinutes: Math.max(0, Math.round(normalizeNumber(service.durationMinutes ?? service.duration ?? 60, 60))),
+  durationLabel: String(service.durationLabel || ''),
+  category: String(service.category || service.serviceCategory || ''),
+  status: String(service.status || (service.active === false ? 'Inactive' : 'Active')),
+  active: service.active !== false && String(service.status || 'Active') !== 'Inactive',
+});
+
 const isPastDue = (appointment) =>
   daysBetween(appointment.appointmentAt, new Date()) > 0 &&
   !['Completed', 'Cancelled', 'No Show'].includes(appointment.status);
@@ -192,6 +204,7 @@ const CrmAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [availableBranches, setAvailableBranches] = useState([]);
   const [availableStaff, setAvailableStaff] = useState([]);
+  const [availableServices, setAvailableServices] = useState([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const [mode, setMode] = useState('create');
   const [draft, setDraft] = useState(() => emptyDraft());
@@ -216,15 +229,19 @@ const CrmAppointments = () => {
       setLoadError('');
 
       try {
-        const [appointmentsResult, branchesResult, staffResult] = await Promise.allSettled([
+        const [appointmentsResult, branchesResult, staffResult, servicesResult] = await Promise.allSettled([
           crmList('appointments'),
           crmList('branches'),
           crmList('staff'),
+          crmList('services'),
         ]);
         if (!mounted) return;
         const normalized = appointmentsResult.status === 'fulfilled' && Array.isArray(appointmentsResult.value)
           ? appointmentsResult.value.map(normalizeAppointment)
           : [];
+        const normalizedServices = servicesResult.status === 'fulfilled' && Array.isArray(servicesResult.value) && servicesResult.value.length
+          ? servicesResult.value.map(normalizeServiceOption)
+          : SERVICE_SEED.map(normalizeServiceOption);
         const branchNames = new Set();
         const staffNames = new Set();
         const syncIssues = [];
@@ -251,9 +268,14 @@ const CrmAppointments = () => {
           syncIssues.push(`staff: ${staffResult.reason?.message || 'unavailable'}`);
         }
 
+        if (servicesResult.status === 'rejected') {
+          syncIssues.push(`services: ${servicesResult.reason?.message || 'unavailable'}`);
+        }
+
         setAppointments(normalized);
         setAvailableBranches(Array.from(branchNames));
         setAvailableStaff(Array.from(staffNames));
+        setAvailableServices(normalizedServices);
         const firstId = normalized[0]?.id || '';
         setSelectedAppointmentId((current) => (normalized.some((item) => item.id === current) ? current : firstId));
         setMode(normalized.length ? 'edit' : 'create');
@@ -270,6 +292,7 @@ const CrmAppointments = () => {
         setAppointments([]);
         setAvailableBranches([]);
         setAvailableStaff([]);
+        setAvailableServices(SERVICE_SEED.map(normalizeServiceOption));
         setSelectedAppointmentId('');
         setMode('create');
         setDraft(emptyDraft());
@@ -307,6 +330,11 @@ const CrmAppointments = () => {
     });
     return Array.from(values);
   }, [appointments, availableStaff]);
+
+  const serviceOptions = useMemo(
+    () => availableServices.filter((service) => service.active !== false).sort((left, right) => left.category.localeCompare(right.category) || left.name.localeCompare(right.name)),
+    [availableServices],
+  );
 
   const filteredAppointments = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
@@ -402,6 +430,21 @@ const CrmAppointments = () => {
     [appointments, selectedAppointmentId],
   );
 
+  const resolvedDraftService = useMemo(
+    () => serviceOptions.find(
+      (service) =>
+        service.id === draft.serviceId ||
+        service.name.toLowerCase() === String(draft.serviceName || '').toLowerCase(),
+    ) || null,
+    [draft.serviceId, draft.serviceName, serviceOptions],
+  );
+
+  const draftServiceSelectValue = resolvedDraftService
+    ? resolvedDraftService.id
+    : draft.serviceName
+      ? `legacy:${draft.serviceName}`
+      : '';
+
   const summaryCards = useMemo(() => {
     const total = appointments.length;
     const todayKey = toDateKey(new Date());
@@ -433,6 +476,39 @@ const CrmAppointments = () => {
     setSelectedAppointmentId(appointment.id);
     setMode('edit');
     setDraft(emptyDraft(appointment));
+    setFormError('');
+  };
+
+  const handleServiceSelection = (serviceId) => {
+    if (String(serviceId || '').startsWith('legacy:')) {
+      const legacyServiceName = String(serviceId).slice('legacy:'.length).trim();
+      setDraft((current) => ({
+        ...current,
+        serviceId: '',
+        serviceName: legacyServiceName,
+      }));
+      setFormError('');
+      return;
+    }
+
+    const selected = serviceOptions.find((service) => service.id === serviceId);
+    if (!selected) {
+      setDraft((current) => ({
+        ...current,
+        serviceId: '',
+        serviceName: '',
+      }));
+      setFormError('');
+      return;
+    }
+
+    setDraft((current) => ({
+      ...current,
+      serviceId: selected.id,
+      serviceName: selected.name,
+      durationMinutes: String(selected.durationMinutes || current.durationMinutes || 60),
+      amountDue: String(selected.price || current.amountDue || 0),
+    }));
     setFormError('');
   };
 
@@ -773,13 +849,21 @@ const CrmAppointments = () => {
                 </label>
                 <label className="crm-workspace-field">
                   <span>Service</span>
-                  <input
-                    type="text"
-                    value={draft.serviceName}
-                    onChange={(event) => setDraft((current) => ({ ...current, serviceName: event.target.value }))}
-                    placeholder="Signature Facial"
+                  <select
+                    value={draftServiceSelectValue}
+                    onChange={(event) => handleServiceSelection(event.target.value)}
                     required
-                  />
+                  >
+                    <option value="">Select a service</option>
+                    {!resolvedDraftService && draft.serviceName ? (
+                      <option value={`legacy:${draft.serviceName}`}>{draft.serviceName} (Legacy)</option>
+                    ) : null}
+                    {serviceOptions.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} | {formatMoney(service.price)} | {service.durationLabel || `${service.durationMinutes} min`}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="crm-workspace-field">
                   <span>Staff</span>

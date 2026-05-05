@@ -1,167 +1,320 @@
-import React from 'react';
-import './Booking.css';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, BadgePercent, CalendarDays, Sparkles } from 'lucide-react';
+import {
+  SERVICE_ADDONS,
+  SERVICE_CATEGORIES,
+  SERVICE_SEED,
+  STAFF_PRICING_RULES,
+  calculateServicePricing,
+  formatDuration,
+  formatPkr,
+  getAddonsForService,
+  getCategoryCountMap,
+  getPackageItemsForService,
+} from '../config/serviceCatalog';
+import './ServiceCatalogPages.css';
 
 const Booking = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedServiceId, setSelectedServiceId] = useState(SERVICE_SEED[0]?.id || '');
+  const [selectedAddonIds, setSelectedAddonIds] = useState(() => SERVICE_SEED[0]?.defaultAddonIds || []);
+  const [staffLevel, setStaffLevel] = useState(STAFF_PRICING_RULES[0]?.label || 'Junior Staff');
+  const [discountAmount, setDiscountAmount] = useState('0');
+  const [taxRatePercent, setTaxRatePercent] = useState('0');
+
+  const activeServices = useMemo(
+    () => SERVICE_SEED.filter((service) => service.status !== 'Inactive' && service.active !== false),
+    [],
+  );
+
+  const categoryCountMap = useMemo(() => getCategoryCountMap(activeServices), [activeServices]);
+
+  const filteredServices = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    return activeServices.filter((service) => {
+      const matchesCategory = selectedCategory === 'all' || service.categoryId === selectedCategory;
+      const matchesSearch =
+        !search ||
+        `${service.name} ${service.category} ${service.description} ${service.price}`.toLowerCase().includes(search);
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeServices, searchTerm, selectedCategory]);
+
+  const selectedService = useMemo(
+    () => activeServices.find((service) => service.id === selectedServiceId) || null,
+    [activeServices, selectedServiceId],
+  );
+
+  const availableAddons = useMemo(() => getAddonsForService(selectedService, SERVICE_ADDONS), [selectedService]);
+
+  const pricingQuote = useMemo(() => {
+    if (!selectedService) return null;
+
+    return calculateServicePricing(selectedService, {
+      selectedAddonIds,
+      staffLevel,
+      discountAmount,
+      taxRatePercent,
+      addonCatalog: SERVICE_ADDONS,
+      staffRules: STAFF_PRICING_RULES,
+    });
+  }, [discountAmount, selectedAddonIds, selectedService, staffLevel, taxRatePercent]);
+
+  const selectedCategoryName = selectedCategory === 'all'
+    ? 'All Treatments'
+    : SERVICE_CATEGORIES.find((category) => category.id === selectedCategory)?.name || 'All Treatments';
+
+  const selectedPackageItems = selectedService ? getPackageItemsForService(selectedService.id) : [];
+
+  const selectService = (service) => {
+    setSelectedServiceId(service.id);
+    setSelectedCategory(service.categoryId);
+    setSelectedAddonIds(service.defaultAddonIds || []);
+  };
+
+  const heroStats = [
+    { label: 'Live treatments', value: activeServices.length },
+    { label: 'Categories', value: SERVICE_CATEGORIES.length },
+    { label: 'Add-ons', value: SERVICE_ADDONS.length },
+    { label: 'Staff tiers', value: STAFF_PRICING_RULES.length },
+  ];
+
   return (
-    <div className="booking-page">
-      <div className="booking-header section-padding text-center">
-        <h1>Schedule Your Escape</h1>
-        <p className="booking-subtitle">
-          Begin your personalized journey into stillness. Our therapists await to curate an<br/>
-          experience that honors your body's unique rhythm.
-        </p>
-      </div>
+    <div className="service-booking-page">
+      <section className="service-booking-hero">
+        <div className="service-booking-hero-copy">
+          <p className="service-booking-kicker">Booking / Treatment Flow</p>
+          <h1>Choose a service, tune the price, and prepare the visit.</h1>
+          <p>
+            The booking view now pulls from the same catalog as the CRM, with active treatments only, live add-ons,
+            and staff-based pricing previews.
+          </p>
 
-      <section className="booking-section container">
-        <div className="booking-widget">
-          {/* Progress Steps */}
-          <div className="booking-steps">
-            <div className="step active">
-              <div className="step-circle">1</div>
-              <span>SELECT SERVICE</span>
-            </div>
-            <div className="step-line"></div>
-            <div className="step">
-              <div className="step-circle">2</div>
-              <span>CHOOSE DATE</span>
-            </div>
-            <div className="step-line"></div>
-            <div className="step">
-              <div className="step-circle">3</div>
-              <span>GUEST DETAILS</span>
-            </div>
-            <div className="step-line"></div>
-            <div className="step">
-              <div className="step-circle">4</div>
-              <span>CONFIRMATION</span>
-            </div>
+          <div className="service-booking-actions">
+            <label className="service-booking-search">
+              <Sparkles size={16} />
+              <input
+                type="search"
+                placeholder="Search services by name or category..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </label>
+            <Link to="/services" className="service-booking-secondary-link">
+              Browse Services
+              <ArrowRight size={16} />
+            </Link>
           </div>
+        </div>
 
-          <div className="booking-grid">
-            {/* Left Column - Service Selection */}
-            <div className="booking-left">
-              <h3 className="booking-heading">Curated Treatments</h3>
-              <p className="booking-desc">Select the healing modality that resonates with your current state of being.</p>
-              
-              <div className="service-options">
-                <label className="service-radio active">
-                  <div className="radio-content">
-                    <h4>Signature Massage</h4>
-                    <p>A bespoke blend of Swedish and deep tissue techniques using warming botanical oils.</p>
-                    <div className="service-meta">
-                      <span>90 MINUTES</span>
-                      <span>$240</span>
-                    </div>
-                  </div>
-                  <div className="radio-circle checked"></div>
-                </label>
-
-                <label className="service-radio">
-                  <div className="radio-content">
-                    <h4>Botanical Facial</h4>
-                    <p>Organic herbal infusions and facial reflexology to restore your natural luminosity.</p>
-                    <div className="service-meta">
-                      <span>60 MINUTES</span>
-                      <span>$185</span>
-                    </div>
-                  </div>
-                  <div className="radio-circle"></div>
-                </label>
-
-                <label className="service-radio">
-                  <div className="radio-content">
-                    <h4>Himalayan Salt Scrub</h4>
-                    <p>Detoxifying mineral salts combined with citrus essences for full-body renewal.</p>
-                    <div className="service-meta">
-                      <span>75 MINUTES</span>
-                      <span>$210</span>
-                    </div>
-                  </div>
-                  <div className="radio-circle"></div>
-                </label>
-              </div>
-            </div>
-
-            {/* Right Column - Date/Time & Summary */}
-            <div className="booking-right">
-              <h3 className="booking-heading">Select a Window of Peace</h3>
-              <div className="calendar-placeholder">
-                <div className="calendar-mockup">
-                  <div className="calendar-header">
-                    <span>&lt;</span>
-                    <strong>November 2024</strong>
-                    <span>&gt;</span>
-                  </div>
-                  <div className="calendar-days">
-                    <span>SU</span><span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span>
-                  </div>
-                  <div className="calendar-dates">
-                    <span className="fade">29</span><span className="fade">30</span><span className="fade">31</span>
-                    <span>1</span><span>2</span><span>3</span><span>4</span>
-                    <span>5</span><span>6</span><span>7</span><span>8</span><span className="selected">9</span><span>10</span><span>11</span>
-                  </div>
-                </div>
-                
-                <div className="time-slots">
-                  <span className="time-heading">AVAILABLE TIMES</span>
-                  <div className="slots">
-                    <button className="slot">09:00 AM</button>
-                    <button className="slot active">11:30 AM</button>
-                    <button className="slot">02:00 PM</button>
-                    <button className="slot">04:30 PM</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Summary Card */}
-              <div className="booking-summary">
-                <h4 className="summary-title">Booking Summary</h4>
-                <div className="summary-row">
-                  <span>Signature Massage</span>
-                  <span>$240.00</span>
-                </div>
-                <div className="summary-row">
-                  <span>Saturday, Nov 9</span>
-                  <span>11:30 AM</span>
-                </div>
-                <div className="summary-total">
-                  <span>Total</span>
-                  <span className="total-price">$240.00</span>
-                </div>
-                <button className="btn btn-primary w-100">CONTINUE TO GUEST DETAILS</button>
-                <div className="trust-badges">
-                  <span>SECURE BOOKING</span>
-                  <span>EXPERT THERAPISTS</span>
-                </div>
-              </div>
-            </div>
+        <div className="service-booking-hero-panel">
+          <div className="service-booking-price-card">
+            <span>Final Preview</span>
+            <strong>{pricingQuote ? formatPkr(pricingQuote.finalPrice) : formatPkr(0)}</strong>
+            <p>{selectedService?.name || 'Select a service to preview pricing.'}</p>
+          </div>
+          <div className="service-booking-stat-grid">
+            {heroStats.map((stat) => (
+              <article key={stat.label}>
+                <span>{stat.label}</span>
+                <strong>{stat.value}</strong>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Philosophy Area */}
-      <section className="booking-philosophy container section-padding">
-        <div className="booking-philosophy-grid">
-          <div className="philosophy-img bg-placeholder-interior"></div>
-          <div className="philosophy-text-content">
-            <h2>A Sanctuary Designed<br/>Around Your Breath</h2>
-            <p>
-              In the heart of the city, we have built a haven where time
-              dissolves. Each booking is a commitment to yourself, a promise
-              of restoration, and a step toward effortless clarity.
-            </p>
-            <div className="stats-grid">
-              <div className="stat">
-                <h3>98%</h3>
-                <span>RENEWAL SUCCESS RATE</span>
-              </div>
-              <div className="stat">
-                <h3>Exclusive</h3>
-                <span>PRIVATE SUITE ACCESS</span>
-              </div>
+      <section className="service-booking-nav">
+        <button type="button" className={selectedCategory === 'all' ? 'is-active' : ''} onClick={() => setSelectedCategory('all')}>
+          All <span>{activeServices.length}</span>
+        </button>
+        {SERVICE_CATEGORIES.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            className={selectedCategory === category.id ? 'is-active' : ''}
+            onClick={() => setSelectedCategory(category.id)}
+          >
+            {category.name} <span>{categoryCountMap.get(category.id) || 0}</span>
+          </button>
+        ))}
+      </section>
+
+      <section className="service-booking-layout">
+        <div className="service-booking-catalog">
+          <div className="service-booking-section-head">
+            <div>
+              <p>Available Treatments</p>
+              <h2>{selectedCategoryName}</h2>
             </div>
+            <span>{filteredServices.length} active services</span>
+          </div>
+
+          <div className="service-booking-grid">
+            {filteredServices.map((service) => {
+              const isSelected = service.id === selectedServiceId;
+              const packageItems = getPackageItemsForService(service.id);
+
+              return (
+                <button
+                  key={service.id}
+                  type="button"
+                  className={`service-booking-card${isSelected ? ' is-selected' : ''}`}
+                  onClick={() => selectService(service)}
+                >
+                  <div className="service-booking-card-top">
+                    <div>
+                      <span className="service-booking-badge">{service.category}</span>
+                      <h3>{service.name}</h3>
+                    </div>
+                    <strong>{formatPkr(service.price)}</strong>
+                  </div>
+
+                  <p>{service.description}</p>
+
+                  <div className="service-booking-metadata">
+                    <span>
+                      <CalendarDays size={14} />
+                      {service.durationLabel || formatDuration(service)}
+                    </span>
+                    <span>
+                      <BadgePercent size={14} />
+                      Staff pricing ready
+                    </span>
+                  </div>
+
+                  {packageItems.length ? (
+                    <div className="service-booking-package-mini">
+                      {packageItems.slice(0, 3).map((item) => (
+                        <span key={`${service.id}-${item.itemName}`}>{item.itemName}</span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <span className="service-booking-card-link">
+                    {isSelected ? 'Selected' : 'Select service'}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        <aside className="service-booking-summary">
+          <article className="service-booking-summary-card">
+            <p className="service-booking-summary-kicker">Pricing Preview</p>
+            <h2>{selectedService?.name || 'No service selected'}</h2>
+            <p>{selectedService?.description || 'Choose a treatment from the catalog to preview pricing.'}</p>
+
+            {selectedService ? (
+              <>
+                <div className="service-booking-summary-pricing">
+                  <div>
+                    <span>Base Price</span>
+                    <strong>{formatPkr(pricingQuote?.basePrice ?? selectedService.price)}</strong>
+                  </div>
+                  <div>
+                    <span>Add-ons</span>
+                    <strong>{formatPkr(pricingQuote?.addonTotal ?? 0)}</strong>
+                  </div>
+                  <div>
+                    <span>Staff Uplift</span>
+                    <strong>{formatPkr(pricingQuote?.staffAdjustmentAmount ?? 0)}</strong>
+                  </div>
+                  <div>
+                    <span>Tax</span>
+                    <strong>{formatPkr(pricingQuote?.taxAmount ?? 0)}</strong>
+                  </div>
+                </div>
+
+                <div className="service-booking-controls">
+                  <label>
+                    <span>Staff Level</span>
+                    <select value={staffLevel} onChange={(event) => setStaffLevel(event.target.value)}>
+                      {STAFF_PRICING_RULES.map((rule) => (
+                        <option key={rule.id} value={rule.label}>
+                          {rule.label} (+{rule.adjustmentPercent}%)
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Discount (PKR)</span>
+                    <input type="number" min="0" step="1" value={discountAmount} onChange={(event) => setDiscountAmount(event.target.value)} />
+                  </label>
+                  <label>
+                    <span>Tax (%)</span>
+                    <input type="number" min="0" step="1" value={taxRatePercent} onChange={(event) => setTaxRatePercent(event.target.value)} />
+                  </label>
+                </div>
+
+                <div className="service-booking-addon-panel">
+                  <div className="service-booking-section-head compact">
+                    <h3>Add-ons</h3>
+                    <span>{availableAddons.length} available</span>
+                  </div>
+                  <div className="service-booking-addon-list">
+                    {availableAddons.map((addon) => {
+                      const checked = selectedAddonIds.includes(addon.id);
+
+                      return (
+                        <button
+                          key={addon.id}
+                          type="button"
+                          className={checked ? 'is-active' : ''}
+                          onClick={() => {
+                            setSelectedAddonIds((current) =>
+                              current.includes(addon.id)
+                                ? current.filter((value) => value !== addon.id)
+                                : [...current, addon.id],
+                            );
+                          }}
+                        >
+                          <strong>{addon.name}</strong>
+                          <span>{formatPkr(addon.pricePkr)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {selectedPackageItems.length ? (
+                  <div className="service-booking-package-panel">
+                    <div className="service-booking-section-head compact">
+                      <h3>Package Items</h3>
+                      <span>{selectedPackageItems.length} included</span>
+                    </div>
+                    <ul>
+                      {selectedPackageItems.map((item) => (
+                        <li key={`${selectedService.id}-${item.itemName}`}>
+                          <span>{item.itemName}</span>
+                          <small>{item.included ? 'Included' : 'Optional'}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div className="service-booking-total">
+                  <span>Final Price</span>
+                  <strong>{pricingQuote ? formatPkr(pricingQuote.finalPrice) : formatPkr(selectedService.price)}</strong>
+                </div>
+
+                <Link to="/crm/appointments" className="service-booking-primary-link">
+                  Send to Appointment Booking
+                  <ArrowRight size={16} />
+                </Link>
+              </>
+            ) : (
+              <div className="service-booking-empty">
+                Select a service to preview the booking quote.
+              </div>
+            )}
+          </article>
+        </aside>
       </section>
     </div>
   );

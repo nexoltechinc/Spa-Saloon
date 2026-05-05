@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
 import { fetchReceiptSettings, loadReceiptSettings } from '../config/receiptSettings';
+import { SERVICE_SEED } from '../config/serviceCatalog';
 import CrmShell from '../components/CrmShell';
 import ReceiptPreviewPanel from '../components/ReceiptPreviewPanel';
 import AwaitingCheckoutQueue from '../components/payments/AwaitingCheckoutQueue';
@@ -100,16 +101,11 @@ const methodOptions = [
   { label: 'Bank Transfer (Future-ready)', value: 'Bank Transfer' },
 ];
 const dateOptions = ['Today', 'Last 7 Days', 'This Month'];
-const SERVICE_CATALOG_SEED = [
-  { id: 'SRV-101', name: 'Signature Facial', price: 120 },
-  { id: 'SRV-102', name: 'Deep Tissue Massage', price: 150 },
-  { id: 'SRV-103', name: 'Aromatherapy Session', price: 135 },
-  { id: 'SRV-104', name: 'Hot Stone Therapy', price: 160 },
-  { id: 'SRV-105', name: 'Scalp Renewal Ritual', price: 95 },
-  { id: 'SRV-106', name: 'Hydra Glow Infusion', price: 185 },
-  { id: 'SRV-107', name: 'Aromatherapy Steam Escape', price: 225 },
-  { id: 'SRV-108', name: 'Wellness Intake Consultation', price: 55 },
-];
+const SERVICE_CATALOG_SEED = SERVICE_SEED.map((service) => ({
+  id: service.id,
+  name: service.name,
+  price: Number(service.price || 0),
+}));
 
 const describeLoadFailure = (reason) => {
   if (reason instanceof Error) return reason.message;
@@ -118,7 +114,11 @@ const describeLoadFailure = (reason) => {
 };
 
 const buildServiceCatalog = (servicesData = [], paymentsData = [], appointmentsData = []) => {
-  const catalog = [];
+  const catalog = SERVICE_SEED.map((service) => ({
+    id: service.id,
+    name: service.name,
+    price: Number(service.price || 0),
+  }));
   const addEntry = (entry, index, prefix) => {
     const name = String(entry?.name || entry?.serviceName || entry?.service || entry?.treatment || '').trim();
     if (!name) return;
@@ -149,7 +149,7 @@ const parseMoney = (value) => {
   return 0;
 };
 
-const formatMoney = (value) => `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatMoney = (value) => `Rs. ${Number(value || 0).toLocaleString('en-PK', { maximumFractionDigits: 0 })}`;
 const formatDateTime = (value) => new Date(value).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 const toDateKey = (value = new Date()) => {
   const date = value instanceof Date ? value : new Date(value);
