@@ -1,0 +1,11 @@
+export const SALON_NAME = 'Hazel Beauty Saloon';
+export const CRM_NAME = `${SALON_NAME} CRM`;
+export const BRAND_TAGLINE = 'Where Beauty Meets Perfection';
+export const SALON_INITIALS = 'HB';
+export const BRAND_DOMAIN = 'hazelbeautysaloon.com';
+export const BRAND_CONTACT_EMAIL = `hello@${BRAND_DOMAIN}`;
+export const BRAND_BOOKING_EMAIL = `bookings@${BRAND_DOMAIN}`;
+export const BRAND_OPERATIONS_EMAIL = `operations@${BRAND_DOMAIN}`;
+export const BRAND_FRONTDESK_EMAIL = `frontdesk@${BRAND_DOMAIN}`;
+export const BRAND_WEBSITE = `www.${BRAND_DOMAIN}`;
+export const BRAND_BOOKING_URL = `${BRAND_WEBSITE}/book`;

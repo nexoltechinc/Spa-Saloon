@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { clearCrmToken } from '../config/crm';
 import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
+import { SALON_NAME } from '../config/brand';
 import { fetchReceiptSettings, loadReceiptSettings } from '../config/receiptSettings';
 import { SERVICE_SEED } from '../config/serviceCatalog';
 import CrmShell from '../components/CrmShell';
@@ -295,7 +296,7 @@ const buildAwaitingQueue = (appointments, payments) => {
 const buildReceiptBranding = (settings = loadReceiptSettings()) => {
   const profile = settings.profile || {};
   return {
-    tenantName: profile.businessName || 'Aura Spa & Wellness',
+    tenantName: profile.businessName || SALON_NAME,
     tenantTagline: 'Premium Guest Receipt',
     receiptQuote: settings.receiptQuote || '',
   };

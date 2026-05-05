@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Services from './pages/Services';
 import Booking from './pages/Booking';
 import Contact from './pages/Contact';
+import { CRM_NAME } from './config/brand';
 
 const CrmLogin = lazy(() => import('./pages/CrmLogin'));
 const CrmDashboard = lazy(() => import('./pages/CrmDashboard'));
@@ -29,7 +30,7 @@ const RouteFallback = ({ label }) => (
   <div style={{ minHeight: '42vh', display: 'grid', placeItems: 'center', padding: '6rem 1rem', textAlign: 'center' }}>
     <div>
       <p style={{ margin: 0, letterSpacing: '0.24em', textTransform: 'uppercase', fontSize: '0.72rem', color: '#8f7451' }}>
-        Spa Saloon CRM
+        {CRM_NAME}
       </p>
       <h2 style={{ margin: '0.45rem 0 0', fontFamily: 'var(--font-editorial)', fontSize: '2rem', color: '#2b241c' }}>
         {label}

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { clearCrmToken, getCrmSession } from '../config/crm';
 import { crmHealthCheck } from '../config/crmApi';
+import { SALON_NAME } from '../config/brand';
 import { fetchReceiptSettings, loadReceiptSettings, saveReceiptSettings } from '../config/receiptSettings';
 import CrmShell from '../components/CrmShell';
 import {
@@ -1224,7 +1225,7 @@ const CrmSettings = () => {
         </section>
 
         <footer className="crm-settings-footer">
-          <span>(c) 2026 Aura Wellness Ecosystem</span>
+          <span>(c) 2026 {SALON_NAME}</span>
           <div className="crm-settings-footer-links">
             <button type="button" onClick={() => setActivePanel('privacy')}>Privacy</button>
             <button type="button" onClick={() => setActivePanel('terms')}>Terms</button>

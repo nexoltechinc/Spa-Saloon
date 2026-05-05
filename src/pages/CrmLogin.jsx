@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { CRM_AUTH_ENDPOINT, CRM_AUTH_ENDPOINT_IS_DEFAULT, getCrmSession, setCrmToken } from '../config/crm';
+import { BRAND_TAGLINE, CRM_NAME, SALON_INITIALS, SALON_NAME } from '../config/brand';
 import { crmHealthCheck, crmLogin } from '../config/crmApi';
 import './CrmLogin.css';
 
@@ -253,11 +254,20 @@ const CrmLogin = () => {
       <div className="container crm-login-container">
         <div className="crm-login-layout">
           <aside className="crm-login-story">
+            <div className="crm-login-brand-mark" aria-label={CRM_NAME}>
+              <div className="crm-login-brand-emblem" aria-hidden="true">
+                <span>{SALON_INITIALS}</span>
+              </div>
+              <div className="crm-login-brand-copy">
+                <strong>{SALON_NAME}</strong>
+                <span>{BRAND_TAGLINE}</span>
+              </div>
+            </div>
             <p className="crm-login-kicker">CRM Access</p>
-            <h1>Access the Spa Saloon CRM with calm, secure precision.</h1>
+            <h1>Access the Hazel Beauty Saloon CRM with calm, secure precision.</h1>
             <p className="crm-login-intro">
               Sign in to manage bookings, leads, payments, and guest follow-up from a polished
-              operations workspace designed for premium salon teams.
+              operations workspace designed for Hazel Beauty Saloon.
             </p>
 
             <ul className="crm-login-benefits" aria-label="CRM access benefits">
@@ -313,7 +323,7 @@ const CrmLogin = () => {
             </div>
 
             <p className="crm-login-panel-copy">
-              Use your admin email to reach live CRM records, workflows, and operational reporting.
+              Use your admin email to reach live Hazel Beauty Saloon CRM records, workflows, and operational reporting.
             </p>
 
             <form className="crm-login-form" onSubmit={handleSubmit}>

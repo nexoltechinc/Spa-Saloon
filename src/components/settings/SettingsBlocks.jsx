@@ -18,6 +18,7 @@ import {
   Trash2,
   UserRound,
 } from 'lucide-react';
+import { SALON_NAME } from '../../config/brand';
 
 const formatSavedAt = (value) => {
   if (!value) return 'Not saved yet';
@@ -46,7 +47,7 @@ const buildPreviewVariant = ({
   bookingRules = {},
   communication = {},
 }) => {
-  const businessName = profile.businessName || 'Aura Spa & Wellness';
+  const businessName = profile.businessName || SALON_NAME;
   const receiptName = profile.receiptDisplayName || businessName;
   const branchName = profile.branchName || 'West Hollywood';
   const address = profile.address || 'West Hollywood, CA';

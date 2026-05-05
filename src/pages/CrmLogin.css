@@ -76,6 +76,68 @@
   padding: 0.5rem 0;
 }
 
+.crm-login-brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  max-width: 26rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(123, 99, 20, 0.12);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(22, 16, 12, 0.96) 0%, rgba(39, 28, 20, 0.96) 100%);
+  box-shadow: 0 16px 38px rgba(34, 27, 12, 0.14);
+}
+
+.crm-login-brand-emblem {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #e3c35f 0%, #9a7114 100%);
+  color: #1b130d;
+  font-family: var(--font-editorial);
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 10px 22px rgba(122, 92, 22, 0.2);
+}
+
+.crm-login-brand-emblem span {
+  transform: translateY(0.04rem);
+}
+
+.crm-login-brand-copy {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+}
+
+.crm-login-brand-copy strong {
+  color: #fff3d8;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.crm-login-brand-copy span {
+  color: rgba(245, 226, 182, 0.82);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
 .crm-login-kicker,
 .crm-login-panel-kicker {
   margin: 0;
@@ -94,7 +156,7 @@
   line-height: 0.98;
   letter-spacing: -0.04em;
   color: #1d1b18;
-  max-width: 12ch;
+  max-width: 14ch;
 }
 
 .crm-login-intro {

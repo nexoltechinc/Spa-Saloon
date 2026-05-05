@@ -1,4 +1,14 @@
 import { crmGetSettings, crmSaveSettings } from './crmApi.js';
+import {
+  BRAND_BOOKING_EMAIL,
+  BRAND_BOOKING_URL,
+  BRAND_CONTACT_EMAIL,
+  BRAND_FRONTDESK_EMAIL,
+  BRAND_OPERATIONS_EMAIL,
+  BRAND_TAGLINE,
+  BRAND_WEBSITE,
+  SALON_NAME,
+} from './brand.js';
 
 const defaultOperatingHours = [
   { day: 'Monday', open: '09:00', close: '18:00', breakStart: '', breakEnd: '', enabled: true, guestBookingOpen: true, note: 'Guest bookings open all day.' },
@@ -24,25 +34,25 @@ const defaultSpecialHours = [
 ];
 
 const defaultBusinessProfile = {
-  businessName: 'Aura Spa & Wellness',
-  legalName: 'Aura Wellness Group LLC',
-  receiptDisplayName: 'Aura Spa & Wellness',
+  businessName: SALON_NAME,
+  legalName: SALON_NAME,
+  receiptDisplayName: SALON_NAME,
   branchName: 'West Hollywood',
-  contactEmail: 'hello@aurawellness.com',
+  contactEmail: BRAND_CONTACT_EMAIL,
   contactPhone: '(323) 555-0188',
-  publicBookingEmail: 'bookings@aurawellness.com',
+  publicBookingEmail: BRAND_BOOKING_EMAIL,
   publicBookingPhone: '(323) 555-0177',
   internalContactName: 'Isabella Rose',
-  internalContactEmail: 'operations@aurawellness.com',
+  internalContactEmail: BRAND_OPERATIONS_EMAIL,
   address: '8422 Melrose Ave, West Hollywood, CA 90069',
   mapLink: 'https://maps.google.com/?q=8422+Melrose+Ave+West+Hollywood+CA+90069',
-  website: 'www.aurawellness.com',
-  bookingPageUrl: 'www.aurawellness.com/book',
+  website: BRAND_WEBSITE,
+  bookingPageUrl: BRAND_BOOKING_URL,
   timezone: 'America/Los_Angeles',
   currency: 'USD',
   locale: 'en-US',
   taxId: '12-3456789',
-  brandMarkName: 'Aura Mark',
+  brandMarkName: SALON_NAME,
   brandMarkImage: '',
 };
 
@@ -78,9 +88,9 @@ const defaultBookingRules = {
 const defaultCommunicationSettings = {
   confirmationEmail: true,
   reminderEmail: true,
-  senderName: 'Aura Spa & Wellness',
-  senderEmail: 'hello@aurawellness.com',
-  replyToEmail: 'frontdesk@aurawellness.com',
+  senderName: SALON_NAME,
+  senderEmail: BRAND_CONTACT_EMAIL,
+  replyToEmail: BRAND_FRONTDESK_EMAIL,
   reminderCadence: '24 hours before',
   confirmationMessage:
     'Your appointment is confirmed. We are looking forward to welcoming you to a calm and polished visit.',
@@ -91,7 +101,7 @@ const defaultCommunicationSettings = {
 };
 
 const defaultBrandingSettings = {
-  receiptHeaderQuote: 'May your calm endure long after you leave.',
+  receiptHeaderQuote: BRAND_TAGLINE,
   receiptFooterText:
     'We appreciate your trust and look forward to welcoming you again soon.',
   receiptNumberPrefix: 'RCT-',
@@ -128,6 +138,27 @@ const normalizeText = (value, fallback = '') => {
   return trimmed || fallback;
 };
 
+const normalizeBrandValue = (value, fallback = '') => {
+  const text = normalizeText(value, '');
+  if (!text) return fallback;
+
+  const lowered = text.toLowerCase();
+  const legacyBrandTokens = [
+    'aura spa & wellness',
+    'aura wellness group llc',
+    'aura wellness ecosystem',
+    'aura mark',
+    'spa saloon',
+    'spa saloon crm',
+  ];
+
+  if (legacyBrandTokens.includes(lowered) || lowered.includes('aurawellness.com')) {
+    return fallback;
+  }
+
+  return text;
+};
+
 const normalizeBoolean = (value, fallback = false) => {
   if (typeof value === 'boolean') return value;
   return fallback;
@@ -136,25 +167,25 @@ const normalizeBoolean = (value, fallback = false) => {
 const normalizeProfile = (profile) => {
   const fallback = defaultBusinessProfile;
   return {
-    businessName: normalizeText(profile?.businessName, fallback.businessName),
-    legalName: normalizeText(profile?.legalName, fallback.legalName),
-    receiptDisplayName: normalizeText(profile?.receiptDisplayName, fallback.receiptDisplayName),
+    businessName: normalizeBrandValue(profile?.businessName, fallback.businessName),
+    legalName: normalizeBrandValue(profile?.legalName, fallback.legalName),
+    receiptDisplayName: normalizeBrandValue(profile?.receiptDisplayName, fallback.receiptDisplayName),
     branchName: normalizeText(profile?.branchName, fallback.branchName),
-    contactEmail: normalizeText(profile?.contactEmail, fallback.contactEmail),
+    contactEmail: normalizeBrandValue(profile?.contactEmail, fallback.contactEmail),
     contactPhone: normalizeText(profile?.contactPhone, fallback.contactPhone),
-    publicBookingEmail: normalizeText(profile?.publicBookingEmail, fallback.publicBookingEmail),
+    publicBookingEmail: normalizeBrandValue(profile?.publicBookingEmail, fallback.publicBookingEmail),
     publicBookingPhone: normalizeText(profile?.publicBookingPhone, fallback.publicBookingPhone),
     internalContactName: normalizeText(profile?.internalContactName, fallback.internalContactName),
-    internalContactEmail: normalizeText(profile?.internalContactEmail, fallback.internalContactEmail),
+    internalContactEmail: normalizeBrandValue(profile?.internalContactEmail, fallback.internalContactEmail),
     address: normalizeText(profile?.address, fallback.address),
     mapLink: normalizeText(profile?.mapLink, fallback.mapLink),
-    website: normalizeText(profile?.website, fallback.website),
-    bookingPageUrl: normalizeText(profile?.bookingPageUrl, fallback.bookingPageUrl),
+    website: normalizeBrandValue(profile?.website, fallback.website),
+    bookingPageUrl: normalizeBrandValue(profile?.bookingPageUrl, fallback.bookingPageUrl),
     timezone: normalizeText(profile?.timezone, fallback.timezone),
     currency: normalizeText(profile?.currency, fallback.currency),
     locale: normalizeText(profile?.locale, fallback.locale),
     taxId: normalizeText(profile?.taxId, fallback.taxId),
-    brandMarkName: normalizeText(profile?.brandMarkName, fallback.brandMarkName),
+    brandMarkName: normalizeBrandValue(profile?.brandMarkName, fallback.brandMarkName),
     brandMarkImage: normalizeText(profile?.brandMarkImage, fallback.brandMarkImage),
   };
 };
@@ -247,9 +278,9 @@ const normalizeCommunication = (communication) => {
   return {
     confirmationEmail: normalizeBoolean(communication?.confirmationEmail, fallback.confirmationEmail),
     reminderEmail: normalizeBoolean(communication?.reminderEmail, fallback.reminderEmail),
-    senderName: normalizeText(communication?.senderName, fallback.senderName),
-    senderEmail: normalizeText(communication?.senderEmail, fallback.senderEmail),
-    replyToEmail: normalizeText(communication?.replyToEmail, fallback.replyToEmail),
+    senderName: normalizeBrandValue(communication?.senderName, fallback.senderName),
+    senderEmail: normalizeBrandValue(communication?.senderEmail, fallback.senderEmail),
+    replyToEmail: normalizeBrandValue(communication?.replyToEmail, fallback.replyToEmail),
     reminderCadence: normalizeText(communication?.reminderCadence, fallback.reminderCadence),
     confirmationMessage: normalizeText(
       communication?.confirmationMessage,
