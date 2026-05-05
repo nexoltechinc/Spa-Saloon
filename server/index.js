@@ -513,6 +513,69 @@ const resolveBranchSelection = (branches = [], { branchId, branchName } = {}) =>
   }
 }
 
+const parseBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true
+    if (value === 0) return false
+  }
+  return fallback
+}
+
+const normalizeStaffPhoneKey = (value) => normalizeBookingText(value).replace(/\D/g, '')
+
+const buildStaffCreateFieldErrors = ({ fullName, phone, email, role, branchId, branchName, isMultiBranch }) => {
+  const fieldErrors = {}
+
+  if (!fullName) {
+    fieldErrors.full_name = 'Full name is required.'
+  }
+
+  const phoneDigits = normalizeStaffPhoneKey(phone)
+  if (!phoneDigits) {
+    fieldErrors.phone = 'Phone number is required.'
+  } else if (phoneDigits.length < 10) {
+    fieldErrors.phone = 'Enter a valid phone number.'
+  }
+
+  if (!role) {
+    fieldErrors.role = 'Role is required.'
+  }
+
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    fieldErrors.email = 'Enter a valid email address.'
+  }
+
+  if (isMultiBranch && !branchId && !branchName) {
+    fieldErrors.branch_id = 'Choose a branch for this staff member.'
+  }
+
+  return fieldErrors
+}
+
+const findStaffDuplicateMatches = async (phone, email, excludeId = '') => {
+  const targetPhone = normalizeStaffPhoneKey(phone)
+  const targetEmail = normalizeBookingText(email).toLowerCase()
+  if (!targetPhone && !targetEmail) return []
+
+  const staff = await listRecords('staff').catch(() => [])
+  return staff.filter((member) => {
+    const memberId = normalizeBookingText(member?.id)
+    if (excludeId && memberId && memberId === normalizeBookingText(excludeId)) {
+      return false
+    }
+
+    const memberPhone = normalizeStaffPhoneKey(member?.phone)
+    const memberEmail = normalizeBookingText(member?.email).toLowerCase()
+    return (targetPhone && memberPhone === targetPhone) || (targetEmail && memberEmail === targetEmail)
+  })
+}
+
 app.post(
   '/api/crm/customers',
   asyncHandler(async (req, res) => {
@@ -720,6 +783,229 @@ app.patch(
       actorUserId: req.crmSession?.userId || null,
     })
     res.json(settings)
+  }),
+)
+
+app.post(
+  '/api/crm/staff',
+  asyncHandler(async (req, res) => {
+    const body = req.body || {}
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return res.status(400).json({
+        code: 'CRM_STAFF_VALIDATION',
+        message: 'Request body must be a JSON object.',
+        fieldErrors: {
+          _form: 'Request body must be a JSON object.',
+        },
+      })
+    }
+
+    const branchList = await listRecords('branches').catch(() => [])
+    const isMultiBranch = Array.isArray(branchList) && branchList.length > 1
+    const branchSelection = resolveBranchSelection(branchList, {
+      branchId: body.branch_id ?? body.branchId,
+      branchName: body.branch_name ?? body.branchName,
+    })
+
+    const fullName = normalizeBookingText(body.full_name ?? body.fullName ?? body.name)
+    const phone = normalizeBookingText(body.phone ?? body.contactPhone ?? body.contactNumber ?? body.phoneNumber)
+    const email = normalizeBookingText(body.email ?? body.contactEmail ?? body.staffEmail).toLowerCase()
+    const role = normalizeBookingText(body.role)
+    const employmentType = normalizeBookingText(body.employment_type ?? body.employmentType, 'Full-time')
+    const shiftLabel = normalizeBookingText(body.shift_label ?? body.shiftLabel, 'Morning')
+    const workingHours = normalizeBookingText(body.working_hours ?? body.workingHours, '9:00 AM - 5:00 PM')
+    const onDuty = parseBoolean(body.on_duty ?? body.onDuty, true)
+    const bio = normalizeBookingText(body.bio ?? body.notes)
+    const profileImage = normalizeBookingText(body.profileImage ?? body.profile_image)
+    const services = Array.isArray(body.services)
+      ? body.services
+      : Array.isArray(body.assignedServices)
+        ? body.assignedServices
+        : []
+    const fieldErrors = buildStaffCreateFieldErrors({
+      fullName,
+      phone,
+      email,
+      role,
+      branchId: branchSelection.branchId,
+      branchName: branchSelection.branchName,
+      isMultiBranch,
+    })
+
+    if (Object.keys(fieldErrors).length) {
+      return res.status(400).json({
+        code: 'CRM_STAFF_VALIDATION',
+        message: 'Please correct the highlighted staff fields.',
+        fieldErrors,
+      })
+    }
+
+    const duplicateMatches = await findStaffDuplicateMatches(phone, email)
+    const duplicateWarning = duplicateMatches.length
+      ? `A staff member with this phone or email already exists${duplicateMatches[0]?.fullName ? `: ${duplicateMatches[0].fullName}` : ''}.`
+      : ''
+
+    const record = await createRecord(
+      'staff',
+      {
+        full_name: fullName,
+        fullName,
+        name: fullName,
+        phone,
+        email,
+        role,
+        branch_id: branchSelection.branchId,
+        branchId: branchSelection.branchId,
+        branch_name: branchSelection.branchName,
+        branchName: branchSelection.branchName,
+        employment_type: employmentType,
+        employmentType,
+        shift_label: shiftLabel,
+        shiftLabel,
+        working_hours: workingHours,
+        workingHours,
+        on_duty: onDuty,
+        onDuty,
+        bio,
+        notes: bio,
+        profileImage,
+        services,
+        assignedServices: services,
+      },
+      buildRequestContext(req),
+    )
+
+    return res.status(201).json({
+      ...record,
+      duplicateWarning,
+      duplicateCount: duplicateMatches.length,
+      duplicateMatch: duplicateMatches[0]
+        ? {
+            id: duplicateMatches[0].id || null,
+            fullName: duplicateMatches[0].fullName || duplicateMatches[0].name || '',
+            phone: duplicateMatches[0].phone || '',
+            email: duplicateMatches[0].email || '',
+            branchId: duplicateMatches[0].branchId || null,
+            branchName: duplicateMatches[0].branchName || '',
+          }
+        : null,
+    })
+  }),
+)
+
+app.patch(
+  '/api/crm/staff/:id',
+  asyncHandler(async (req, res) => {
+    const body = req.body || {}
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return res.status(400).json({
+        code: 'CRM_STAFF_VALIDATION',
+        message: 'Request body must be a JSON object.',
+        fieldErrors: {
+          _form: 'Request body must be a JSON object.',
+        },
+      })
+    }
+
+    const current = await getRecord('staff', req.params.id, buildRequestContext(req))
+    if (!current) {
+      return res.status(404).json({ message: 'Staff record not found.' })
+    }
+
+    const branchList = await listRecords('branches').catch(() => [])
+    const isMultiBranch = Array.isArray(branchList) && branchList.length > 1
+    const branchSelection = resolveBranchSelection(branchList, {
+      branchId: body.branch_id ?? body.branchId ?? current.branchId,
+      branchName: body.branch_name ?? body.branchName ?? current.branchName,
+    })
+
+    const fullName = normalizeBookingText(body.full_name ?? body.fullName ?? body.name ?? current.fullName)
+    const phone = normalizeBookingText(body.phone ?? body.contactPhone ?? body.contactNumber ?? body.phoneNumber ?? current.phone)
+    const email = normalizeBookingText(body.email ?? body.contactEmail ?? body.staffEmail ?? current.email).toLowerCase()
+    const role = normalizeBookingText(body.role ?? current.role)
+    const employmentType = normalizeBookingText(body.employment_type ?? body.employmentType ?? current.employmentType, 'Full-time')
+    const shiftLabel = normalizeBookingText(body.shift_label ?? body.shiftLabel ?? current.shiftLabel, current.shiftLabel || 'Morning')
+    const workingHours = normalizeBookingText(body.working_hours ?? body.workingHours ?? current.workingHours, current.workingHours || '9:00 AM - 5:00 PM')
+    const onDuty = parseBoolean(body.on_duty ?? body.onDuty ?? current.onDuty, Boolean(current.onDuty))
+    const bio = normalizeBookingText(body.bio ?? body.notes ?? current.bio ?? current.notes)
+    const profileImage = normalizeBookingText(body.profileImage ?? body.profile_image ?? current.profileImage)
+    const services = Array.isArray(body.services)
+      ? body.services
+      : Array.isArray(body.assignedServices)
+        ? body.assignedServices
+        : Array.isArray(current.services)
+          ? current.services
+          : []
+    const fieldErrors = buildStaffCreateFieldErrors({
+      fullName,
+      phone,
+      email,
+      role,
+      branchId: branchSelection.branchId,
+      branchName: branchSelection.branchName,
+      isMultiBranch,
+    })
+
+    if (Object.keys(fieldErrors).length) {
+      return res.status(400).json({
+        code: 'CRM_STAFF_VALIDATION',
+        message: 'Please correct the highlighted staff fields.',
+        fieldErrors,
+      })
+    }
+
+    const duplicateMatches = await findStaffDuplicateMatches(phone, email, current.id)
+    const record = await updateRecord(
+      'staff',
+      req.params.id,
+      {
+        ...body,
+        full_name: fullName,
+        fullName,
+        name: fullName,
+        phone,
+        email,
+        role,
+        branch_id: branchSelection.branchId,
+        branchId: branchSelection.branchId,
+        branch_name: branchSelection.branchName,
+        branchName: branchSelection.branchName,
+        employment_type: employmentType,
+        employmentType,
+        shift_label: shiftLabel,
+        shiftLabel,
+        working_hours: workingHours,
+        workingHours,
+        on_duty: onDuty,
+        onDuty,
+        bio,
+        notes: bio,
+        profileImage,
+        services,
+        assignedServices: services,
+      },
+      buildRequestContext(req),
+    )
+
+    return res.json({
+      ...record,
+      duplicateWarning: duplicateMatches.length
+        ? `A staff member with this phone or email already exists${duplicateMatches[0]?.fullName ? `: ${duplicateMatches[0].fullName}` : ''}.`
+        : '',
+      duplicateCount: duplicateMatches.length,
+      duplicateMatch: duplicateMatches[0]
+        ? {
+            id: duplicateMatches[0].id || null,
+            fullName: duplicateMatches[0].fullName || duplicateMatches[0].name || '',
+            phone: duplicateMatches[0].phone || '',
+            email: duplicateMatches[0].email || '',
+            branchId: duplicateMatches[0].branchId || null,
+            branchName: duplicateMatches[0].branchName || '',
+          }
+        : null,
+    })
   }),
 )
 

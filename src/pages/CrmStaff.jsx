@@ -4,8 +4,9 @@ import CrmShell from '../components/CrmShell';
 import StaffDetailPanel from '../components/staff/StaffDetailPanel';
 import StaffOperationsWorkspace from '../components/staff/StaffOperationsWorkspace';
 import StaffRow from '../components/staff/StaffRow';
+import StaffMemberDrawer from '../components/staff/StaffMemberDrawer';
 import { clearCrmToken, getCrmSession } from '../config/crm';
-import { crmCreate, crmList, crmUpdate } from '../config/crmApi';
+import { crmList, crmUpdate } from '../config/crmApi';
 import { collectOptionValues } from './crmWorkspaceUtils';
 import './CrmStaff.css';
 
@@ -305,10 +306,17 @@ const normalizeStaff = (staff, index = 0) => {
   return {
     id: staff.id || staff._id || staff.staffId || `staff-${index + 1}`,
     name: staff.name || staff.fullName || staff.displayName || 'Untitled Staff',
+    fullName: staff.fullName || staff.name || staff.displayName || 'Untitled Staff',
     role: staff.role || staff.title || staff.position || 'Staff Member',
     phone: staff.phone || staff.contactNumber || '',
     email: staff.email || staff.contactEmail || '',
+    branchId: staff.branchId || staff.branch_id || '',
     branchName: staff.branchName || staff.branch || staff.locationName || '',
+    employmentType: staff.employmentType || staff.employment_type || 'Full-time',
+    shiftLabel: staff.shiftLabel || staff.shift_label || '',
+    bio: staff.bio || '',
+    profileImage: staff.profileImage || staff.avatar || staff.photo || '',
+    onDuty: Boolean(staff.onDuty ?? staff.on_duty ?? (shiftStatus !== 'Off Duty')),
     services: Array.isArray(staff.services)
       ? staff.services
       : Array.isArray(staff.assignedServices)
@@ -523,7 +531,12 @@ const CrmStaff = () => {
   const [activeRole] = useState(() => getCrmSession()?.role || defaultRole);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [branchCatalog, setBranchCatalog] = useState([]);
+  const [serviceCatalog, setServiceCatalog] = useState([]);
+  const [staffDrawer, setStaffDrawer] = useState({ open: false, mode: 'create', staff: null });
+  const [toast, setToast] = useState(null);
   const isMountedRef = useRef(true);
+  const toastTimerRef = useRef(null);
 
   const loadStaff = useCallback(async () => {
     setIsLoading(true);
@@ -546,13 +559,45 @@ const CrmStaff = () => {
     }
   }, []);
 
+  const loadReferenceData = useCallback(async () => {
+    const [branchesResult, servicesResult] = await Promise.allSettled([
+      crmList('branches').catch(() => []),
+      crmList('services').catch(() => []),
+    ]);
+
+    if (!isMountedRef.current) return;
+
+    setBranchCatalog(Array.isArray(branchesResult.value) ? branchesResult.value : []);
+    setServiceCatalog(Array.isArray(servicesResult.value) ? servicesResult.value : []);
+  }, []);
+
   useEffect(() => {
     isMountedRef.current = true;
     void loadStaff();
+    void loadReferenceData();
     return () => {
       isMountedRef.current = false;
     };
-  }, [loadStaff]);
+  }, [loadReferenceData, loadStaff]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 3800);
+
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+    };
+  }, [toast]);
 
   const permissions = roleCapabilities[activeRole] || roleCapabilities.manager;
 
@@ -633,6 +678,38 @@ const CrmStaff = () => {
     onDutyOnly ||
     fullyBookedOnly;
 
+  const openStaffDrawer = useCallback((mode = 'create', targetStaff = null) => {
+    if (!permissions.manageStaff) return;
+    setStaffDrawer({
+      open: true,
+      mode,
+      staff: targetStaff,
+    });
+  }, [permissions.manageStaff]);
+
+  const closeStaffDrawer = useCallback(() => {
+    setStaffDrawer((current) => ({
+      ...current,
+      open: false,
+    }));
+  }, []);
+
+  const handleStaffSaved = useCallback((record, meta = {}) => {
+    const normalized = normalizeStaff(record, 0);
+    setStaffList((current) => {
+      const filtered = current.filter((item) => item.id !== normalized.id);
+      return [normalized, ...filtered];
+    });
+    setSelectedStaffId(normalized.id);
+    setDetailTab('overview');
+    setToast({
+      tone: meta.duplicateWarning ? 'warning' : 'success',
+      title: meta.mode === 'edit' ? 'Staff member updated successfully' : 'Staff member added successfully',
+      message: meta.duplicateWarning || 'The staff profile was saved and synced to the CRM.',
+    });
+    void loadStaff();
+  }, [loadStaff]);
+
   const syncCompatibleFields = (updates) => {
     const next = { ...updates };
 
@@ -677,42 +754,8 @@ const CrmStaff = () => {
     });
   };
 
-  const handleQuickCreateStaff = async () => {
-    const name = window.prompt('Staff name');
-    if (!name) return;
-
-    const role = window.prompt('Role', 'Therapist') || 'Therapist';
-    const services = window.prompt('Services (comma separated)', 'Deep Tissue') || '';
-    const workingHours = window.prompt('Working hours', '9:00 AM - 5:00 PM') || '9:00 AM - 5:00 PM';
-
-    const payload = normalizeStaff({
-      name,
-      role,
-      phone: '',
-      email: '',
-      services: services.split(',').map((value) => value.trim()).filter(Boolean),
-      workingHours,
-      employmentStatus: 'Active',
-      shiftStatus: 'Available',
-      leaveStatus: 'None',
-      appointmentsToday: 0,
-      capacityToday: 4,
-      appointmentsCompletedWeek: 0,
-      notes: 'Created from CRM quick add',
-      clientHandlingNotes: '',
-      weeklyAvailability: WEEK_DAYS.slice(0, 5).map((day) => ({ day, start: '09:00', end: '17:00', off: false })),
-      todaySchedule: [],
-    }, staffList.length);
-
-    try {
-      const created = await crmCreate('staff', payload);
-      const normalized = normalizeStaff(created, staffList.length);
-      setStaffList((current) => [normalized, ...current]);
-      setSelectedStaffId(normalized.id);
-      setDetailTab('overview');
-    } catch (error) {
-      setLoadError(error.message || 'Staff creation failed.');
-    }
+  const handleQuickCreateStaff = () => {
+    openStaffDrawer('create');
   };
 
   const handleExportStaff = () => {
@@ -736,81 +779,45 @@ const CrmStaff = () => {
 
   const handleManageRoles = () => {
     if (!selectedStaff) return;
-    const nextRole = window.prompt('Role', selectedStaff.role) || selectedStaff.role;
-    updateStaff(selectedStaff.id, { role: nextRole });
+    openStaffDrawer('edit', selectedStaff);
   };
 
   const handleAssignServices = () => {
     if (!selectedStaff) return;
-    const services = window.prompt('Services (comma separated)', selectedStaff.services.join(', ')) || '';
-    updateStaff(selectedStaff.id, { services: services.split(',').map((value) => value.trim()).filter(Boolean) });
+    openStaffDrawer('edit', selectedStaff);
   };
 
   const handleUpdateAvailability = () => {
     if (!selectedStaff) return;
-
-    const employmentStatus = window.prompt('Employment status (Active, Inactive)', selectedStaff.employmentStatus) || selectedStaff.employmentStatus;
-    const shiftStatus = window.prompt('Shift status (Available, Busy, On Break, Off Duty, On Leave)', selectedStaff.shiftStatus) || selectedStaff.shiftStatus;
-    const leaveStatus = window.prompt('Leave status', selectedStaff.leaveStatus) || selectedStaff.leaveStatus;
-
-    updateStaff(selectedStaff.id, { employmentStatus, shiftStatus, leaveStatus });
+    openStaffDrawer('edit', selectedStaff);
   };
 
   const handleViewSchedule = () => {
     if (!selectedStaff) return;
-
-    const lines = selectedStaff.todaySchedule
-      .filter((slot) => slot.type !== 'gap')
-      .map((slot) => `${slot.time} - ${slot.customer} (${slot.service})`)
-      .join('\n');
-
-    window.alert(`${selectedStaff.name} - Today\n\n${lines || 'No schedule today.'}`);
+    setSelectedStaffId(selectedStaff.id);
+    setDetailTab('schedule');
   };
 
   const handleViewTodayAppointments = () => {
     if (!selectedStaff) return;
-
-    const lines = selectedStaff.todaySchedule
-      .filter((slot) => slot.type !== 'gap' && ['next', 'upcoming', 'current'].includes(slot.state))
-      .map((slot) => `${slot.time} - ${slot.customer} (${slot.service})`)
-      .join('\n');
-
-    window.alert(`${selectedStaff.name}\nUpcoming Appointments\n\n${lines || 'No upcoming appointments.'}`);
+    setSelectedStaffId(selectedStaff.id);
+    setDetailTab('schedule');
   };
 
   const handleReassignAppointments = () => {
     if (!selectedStaff) return;
-
-    const candidates = enrichedStaff
-      .filter((member) => member.id !== selectedStaff.id)
-      .filter((member) => member.reassignmentReady)
-      .filter((member) => member.services.some((service) => selectedStaff.services.includes(service)))
-      .map((member) => member.name);
-
-    window.alert(
-      candidates.length > 0
-        ? `Potential reassignment candidates:\n\n${candidates.join('\n')}`
-        : 'No ready reassignment candidates currently available.',
-    );
+    setOperationTab('coverage');
   };
 
   const handleViewCoverageImpact = () => {
     if (!selectedStaff) return;
-
-    const warnings = selectedStaff.coverageWarnings.map((item) => `- ${item.label}`).join('\n');
-    window.alert(warnings ? `Coverage impact for ${selectedStaff.name}:\n\n${warnings}` : `${selectedStaff.name} currently has stable coverage signals.`);
+    setSelectedStaffId(selectedStaff.id);
+    setDetailTab('services');
   };
 
   const handleEditProfile = () => {
     if (!selectedStaff) return;
-
-    const name = window.prompt('Name', selectedStaff.name) || selectedStaff.name;
-    const phone = window.prompt('Phone', selectedStaff.phone) || selectedStaff.phone;
-    const email = window.prompt('Email', selectedStaff.email) || selectedStaff.email;
-    const notes = window.prompt('Internal notes', selectedStaff.notes) || selectedStaff.notes;
-    const clientHandlingNotes = window.prompt('Client handling notes', selectedStaff.clientHandlingNotes) || selectedStaff.clientHandlingNotes;
-
-    updateStaff(selectedStaff.id, { name, phone, email, notes, clientHandlingNotes });
+    openStaffDrawer('edit', selectedStaff);
   };
 
   const clearFilters = () => {
@@ -869,9 +876,9 @@ const CrmStaff = () => {
             {hasActiveFilters ? (
               <button type="button" className="crm-staff-ghost-btn" onClick={clearFilters}>Clear Filters</button>
             ) : null}
-            <button type="button" className="crm-staff-ghost-btn" onClick={handleManageRoles}>Manage Roles</button>
+            <button type="button" className="crm-staff-ghost-btn" onClick={handleManageRoles} disabled={!permissions.manageStaff}>Manage Roles</button>
             <button type="button" className="crm-staff-ghost-btn" onClick={handleExportStaff}>Export</button>
-            <button type="button" className="crm-staff-primary-btn" onClick={handleQuickCreateStaff}>Add Staff Member</button>
+            <button type="button" className="crm-staff-primary-btn" onClick={handleQuickCreateStaff} disabled={!permissions.manageStaff}>+ Add Staff</button>
             <button type="button" className="crm-staff-logout-btn" onClick={handleLogout}>Logout</button>
           </div>
         </header>
@@ -988,6 +995,22 @@ const CrmStaff = () => {
             />
           </aside>
         </section>
+        <StaffMemberDrawer
+          open={staffDrawer.open}
+          mode={staffDrawer.mode}
+          staff={staffDrawer.staff}
+          branches={branchCatalog}
+          services={serviceCatalog}
+          existingStaff={staffList}
+          onClose={closeStaffDrawer}
+          onSaved={handleStaffSaved}
+        />
+        {toast ? (
+          <div className={`crm-staff-toast crm-staff-toast-${toast.tone || 'success'}`} role="status" aria-live="polite">
+            <p>{toast.title}</p>
+            <span>{toast.message}</span>
+          </div>
+        ) : null}
       </main>
     </CrmShell>
   );
