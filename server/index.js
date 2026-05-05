@@ -130,6 +130,23 @@ const runtimeUnavailableResponse = (res, { statusCode = 503, code, message } = {
   })
 }
 
+const BRANCH_SCOPED_API_RESOURCES = new Set([
+  'appointments',
+  'customers',
+  'leads',
+  'payments',
+  'public-bookings',
+  'receipts',
+  'services',
+  'staff',
+])
+
+const buildRequestContext = (req) => ({
+  actorUserId: req.crmSession?.userId || null,
+  actorRole: req.crmSession?.role || null,
+  branchId: req.crmSession?.branchId || null,
+})
+
 const normalizeBookingText = (value, fallback = '') => {
   if (value === null || value === undefined) return fallback
   const text = String(value).trim()
@@ -173,6 +190,14 @@ const findExistingCustomerForBooking = async ({ customerId, customerName, custom
 }
 
 const createPublicBooking = async (req, res) => {
+  if (runtime.bootState !== 'ready') {
+    return runtimeUnavailableResponse(res, {
+      statusCode: 503,
+      code: 'CRM_PUBLIC_BOOKING_UNAVAILABLE',
+      message: 'Public booking is temporarily unavailable while the CRM database starts.',
+    })
+  }
+
   const body = req.body || {}
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return res.status(400).json({ message: 'Request body must be a JSON object.' })
@@ -208,6 +233,32 @@ const createPublicBooking = async (req, res) => {
   const now = new Date().toISOString()
   const existingCustomer = await findExistingCustomerForBooking({ customerId, customerName, customerEmail, phone })
   const resolvedCustomerId = normalizeBookingText(existingCustomer?.id || customerId, createBookingId('CUS'))
+  const requestedDate = appointmentAt.slice(0, 10)
+  const requestedTime = appointmentAt.slice(11, 19)
+  const publicBookingPayload = {
+    id: createBookingId('PBK'),
+    branchName,
+    fullName: customerName,
+    name: customerName,
+    phone,
+    email: customerEmail,
+    requestedServiceName: serviceName,
+    requestedServiceId: normalizeBookingText(body.serviceId ?? body.treatmentId),
+    requestedDate,
+    requestedTime,
+    notes: bookingNoteText,
+    status: 'Received',
+    bookingSource: source,
+    referenceCode: createBookingId('PBK'),
+    metadata: {
+      bookingChannel: 'Website',
+      bookingSource: source,
+      staffName,
+      amountDue,
+      amountPaid,
+      balanceRemaining,
+    },
+  }
   const appointmentPayload = {
     id: createBookingId('APT'),
     customerId: resolvedCustomerId,
@@ -231,6 +282,7 @@ const createPublicBooking = async (req, res) => {
     checkInAt: '',
     completedAt: '',
     cancelledAt: '',
+    publicBookingReference: publicBookingPayload.referenceCode,
     metadata: {
       bookingSource: source,
       bookingChannel: 'Website',
@@ -238,8 +290,11 @@ const createPublicBooking = async (req, res) => {
   }
 
   let createdAppointment = null
+  let publicBooking = null
+  let savedCustomer = null
 
   try {
+    publicBooking = await createRecord('public-bookings', publicBookingPayload)
     createdAppointment = await createRecord('appointments', appointmentPayload)
 
     const appointmentSummary = {
@@ -310,17 +365,37 @@ const createPublicBooking = async (req, res) => {
       },
     }
 
-    const savedCustomer = existingCustomer
+    savedCustomer = existingCustomer
       ? await updateRecord('customers', existingCustomer.id, customerPayload)
       : await createRecord('customers', customerPayload)
 
+    const convertedPublicBooking = await updateRecord('public-bookings', publicBooking.id, {
+      ...publicBooking,
+      status: 'Converted',
+      convertedCustomerId: savedCustomer.id,
+      convertedAppointmentId: createdAppointment.id,
+      branchName: createdAppointment.branchName,
+      branchId: createdAppointment.branchId,
+      bookingSource: source,
+      notes: bookingNoteText,
+    })
+
     return res.status(201).json({
+      publicBooking: convertedPublicBooking,
       customer: savedCustomer,
       appointment: createdAppointment,
     })
   } catch (error) {
     if (createdAppointment?.id) {
       await deleteRecord('appointments', createdAppointment.id).catch(() => {})
+    }
+
+    if (savedCustomer?.id && !existingCustomer) {
+      await deleteRecord('customers', savedCustomer.id).catch(() => {})
+    }
+
+    if (publicBooking?.id) {
+      await deleteRecord('public-bookings', publicBooking.id).catch(() => {})
     }
 
     throw error
@@ -397,6 +472,7 @@ app.post(
 
 app.post('/api/bookings', asyncHandler(createPublicBooking))
 app.post('/api/public/bookings', asyncHandler(createPublicBooking))
+app.post('/api/public/booking', asyncHandler(createPublicBooking))
 
 app.use('/api/crm', blockWhileBooting)
 app.use('/api/crm', authMiddleware)
@@ -404,7 +480,9 @@ app.use('/api/crm', authMiddleware)
 app.get(
   '/api/crm/settings',
   asyncHandler(async (req, res) => {
-    const settings = await getSettings()
+    const settings = await getSettings({
+      branchId: req.query.branchId || req.crmSession?.branchId || null,
+    })
     res.json(settings)
   }),
 )
@@ -412,7 +490,14 @@ app.get(
 app.put(
   '/api/crm/settings',
   asyncHandler(async (req, res) => {
-    const settings = await saveSettings(req.body)
+    if ((req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for settings changes.' })
+    }
+
+    const settings = await saveSettings(req.body, {
+      branchId: req.body?.branchId || req.query.branchId || req.crmSession?.branchId || null,
+      actorUserId: req.crmSession?.userId || null,
+    })
     res.json(settings)
   }),
 )
@@ -420,7 +505,14 @@ app.put(
 app.patch(
   '/api/crm/settings',
   asyncHandler(async (req, res) => {
-    const settings = await saveSettings(req.body)
+    if ((req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for settings changes.' })
+    }
+
+    const settings = await saveSettings(req.body, {
+      branchId: req.body?.branchId || req.query.branchId || req.crmSession?.branchId || null,
+      actorUserId: req.crmSession?.userId || null,
+    })
     res.json(settings)
   }),
 )
@@ -428,7 +520,23 @@ app.patch(
 app.get(
   '/api/crm/:resource',
   asyncHandler(async (req, res) => {
-    const records = await listRecords(req.params.resource, req.query)
+    const resource = String(req.params.resource || '').toLowerCase()
+    if (resource === 'users' && (req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for users.' })
+    }
+
+    const query = { ...req.query }
+    if (
+      req.crmSession?.branchId &&
+      BRANCH_SCOPED_API_RESOURCES.has(resource) &&
+      query.branchId === undefined &&
+      query.branch_id === undefined &&
+      (req.crmSession?.role || '') !== 'admin'
+    ) {
+      query.branchId = req.crmSession.branchId
+    }
+
+    const records = await listRecords(resource, query, buildRequestContext(req))
     res.json(records)
   }),
 )
@@ -436,7 +544,12 @@ app.get(
 app.get(
   '/api/crm/:resource/:id',
   asyncHandler(async (req, res) => {
-    const record = await getRecord(req.params.resource, req.params.id)
+    const resource = String(req.params.resource || '').toLowerCase()
+    if (resource === 'users' && (req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for users.' })
+    }
+
+    const record = await getRecord(resource, req.params.id, buildRequestContext(req))
     if (!record) {
       return res.status(404).json({ message: `${req.params.resource} record not found.` })
     }
@@ -448,7 +561,12 @@ app.get(
 app.post(
   '/api/crm/:resource',
   asyncHandler(async (req, res) => {
-    const record = await createRecord(req.params.resource, req.body)
+    const resource = String(req.params.resource || '').toLowerCase()
+    if (resource === 'users' && (req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for users.' })
+    }
+
+    const record = await createRecord(resource, req.body, buildRequestContext(req))
     res.status(201).json(record)
   }),
 )
@@ -456,7 +574,12 @@ app.post(
 app.patch(
   '/api/crm/:resource/:id',
   asyncHandler(async (req, res) => {
-    const record = await updateRecord(req.params.resource, req.params.id, req.body)
+    const resource = String(req.params.resource || '').toLowerCase()
+    if (resource === 'users' && (req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for users.' })
+    }
+
+    const record = await updateRecord(resource, req.params.id, req.body, buildRequestContext(req))
     res.json(record)
   }),
 )
@@ -464,7 +587,12 @@ app.patch(
 app.delete(
   '/api/crm/:resource/:id',
   asyncHandler(async (req, res) => {
-    await deleteRecord(req.params.resource, req.params.id)
+    const resource = String(req.params.resource || '').toLowerCase()
+    if (resource === 'users' && (req.crmSession?.role || '') !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required for users.' })
+    }
+
+    await deleteRecord(resource, req.params.id, buildRequestContext(req))
     res.status(204).end()
   }),
 )

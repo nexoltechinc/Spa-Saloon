@@ -39,11 +39,10 @@ const statusTone = (value) => {
 
 const buildPreviewVariant = ({
   activeSectionId,
+  previewMode = 'booking',
   profile,
   branding,
   regionalDefaults,
-  operatingHours = [],
-  specialHours = [],
   bookingRules = {},
   communication = {},
 }) => {
@@ -54,60 +53,105 @@ const buildPreviewVariant = ({
   const timezone = regionalDefaults.timezone || 'America/Los_Angeles';
   const currency = regionalDefaults.currency || 'USD';
   const locale = regionalDefaults.locale || 'en-US';
-  const openDays = operatingHours.filter((entry) => entry.enabled).length;
-  const guestBookingDays = operatingHours.filter((entry) => entry.guestBookingOpen).length;
-  const specialWindows = specialHours.length;
   const receiptPrefix = branding.receiptNumberPrefix || 'RCT-';
 
+  const previewModeVariants = {
+    booking: {
+      focusTitle: 'Guest booking page',
+      focusDescription: 'A guest-facing booking surface that reflects the active configuration in the workspace.',
+      documentKicker: 'Booking surface',
+      documentTitle: businessName,
+      documentBadge: 'Desktop',
+      noteTitle: 'Booking preview is live',
+      noteDescription: 'Use this mode to check how the public booking experience reads on desktop.',
+    },
+    receipt: {
+      focusTitle: 'Receipt preview',
+      focusDescription: 'A branded guest receipt showing how the current typography and spacing will land in print or email.',
+      documentKicker: 'Receipt preview',
+      documentTitle: receiptName,
+      documentBadge: 'Thermal',
+      noteTitle: 'Receipt preview is live',
+      noteDescription: 'Use this mode to validate footer copy, numbering, and receipt-brand presentation.',
+    },
+    message: {
+      focusTitle: 'Guest notification',
+      focusDescription: 'A concise reminder or confirmation draft that reflects the current brand voice.',
+      documentKicker: 'Notification preview',
+      documentTitle: 'Confirmation message',
+      documentBadge: 'Email / SMS',
+      noteTitle: 'Notification preview is live',
+      noteDescription: 'Use this mode to review reminder cadence and sender presentation without leaving settings.',
+    },
+  };
+
+  const previewModeVariant = previewModeVariants[previewMode] || previewModeVariants.booking;
+
   const common = {
-    focusTitle: 'Workspace preview',
-    focusDescription: 'A live readout of how the active settings area will present itself to guests and staff.',
+    focusTitle: previewModeVariant.focusTitle,
+    focusDescription: previewModeVariant.focusDescription,
     previewTitle: receiptName,
     previewSubtitle: `${branchName} - ${address}`,
     previewMark: branding.logoPlacement === 'left' ? <Sparkles size={20} /> : <span>{receiptName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase().slice(0, 2) || 'AS'}</span>,
-    meta: [
-      { label: 'Timezone', value: timezone },
-      { label: 'Locale', value: locale },
-      { label: 'Currency', value: currency },
-    ],
-    documentKicker: 'Guest-facing workspace',
-    documentTitle: businessName,
-    documentBadge: 'Live',
-    lines: [
-      { label: 'Primary contact', value: profile.contactEmail || profile.publicBookingEmail || 'Not set' },
-      { label: 'Branch phone', value: profile.contactPhone || profile.publicBookingPhone || 'Not set' },
-      { label: 'Website', value: profile.website || 'Not set' },
-    ],
-    footerTitle: `Configuration stays branded for ${businessName}.`,
-    footerBody: 'The current section is mirrored in the preview so QA can see the live effect without guessing the downstream output.',
-    noteTitle: 'Preview updates with the active section',
-    noteDescription: 'The contextual summary changes with each settings area so the right rail feels connected to the work in focus.',
+    meta:
+      previewMode === 'receipt'
+        ? [
+            { label: 'Receipt prefix', value: receiptPrefix },
+            { label: 'Tax display', value: branding.taxDisplayMode || 'Included' },
+            { label: 'Logo placement', value: branding.logoPlacement || 'Centered' },
+          ]
+        : previewMode === 'message'
+          ? [
+              { label: 'Sender', value: communication.senderName || businessName },
+              { label: 'Reply-to', value: communication.replyToEmail || profile.contactEmail || 'Not set' },
+              { label: 'Reminder', value: communication.reminderCadence || '24 hours before' },
+            ]
+          : [
+              { label: 'Timezone', value: timezone },
+              { label: 'Locale', value: locale },
+              { label: 'Currency', value: currency },
+            ],
+    documentKicker: previewModeVariant.documentKicker,
+    documentTitle: previewModeVariant.documentTitle,
+    documentBadge: previewModeVariant.documentBadge,
+    lines:
+      previewMode === 'receipt'
+        ? [
+            { label: 'Signature Facial', value: '$120.00' },
+            { label: 'Aromatherapy Add-on', value: '$30.00' },
+            { label: 'Cash received', value: '$150.00' },
+          ]
+        : previewMode === 'message'
+          ? [
+              { label: 'Subject', value: 'Appointment confirmation' },
+              { label: 'Reminder', value: communication.reminderCadence || '24 hours before' },
+              { label: 'Channel', value: 'Email and SMS' },
+            ]
+          : [
+              { label: 'Primary contact', value: profile.contactEmail || profile.publicBookingEmail || 'Not set' },
+              { label: 'Branch phone', value: profile.contactPhone || profile.publicBookingPhone || 'Not set' },
+              { label: 'Website', value: profile.website || 'Not set' },
+            ],
+    footerTitle:
+      previewMode === 'receipt'
+        ? `Thank you for visiting ${businessName}.`
+        : previewMode === 'message'
+          ? `Your appointment with ${businessName} is confirmed.`
+          : `Configuration stays branded for ${businessName}.`,
+    footerBody:
+      previewMode === 'receipt'
+        ? branding.receiptFooterText || 'We appreciate your trust and look forward to welcoming you again soon.'
+        : previewMode === 'message'
+          ? communication.confirmationMessage ||
+            'Your appointment is confirmed. We are looking forward to welcoming you to a calm and polished visit.'
+          : 'The current section is mirrored in the preview so QA can see the live effect without guessing the downstream output.',
+    noteTitle: previewModeVariant.noteTitle,
+    noteDescription: previewModeVariant.noteDescription,
   };
 
   switch (activeSectionId) {
     case 'business-profile':
-      return {
-        ...common,
-        focusTitle: 'Guest identity',
-        focusDescription: 'The public name and branch identity that appear across booking, payment, and confirmation touchpoints.',
-        previewTitle: receiptName,
-        previewSubtitle: `${branchName} - ${address}`,
-        meta: [
-          { label: 'Business name', value: businessName },
-          { label: 'Branch', value: branchName },
-          { label: 'Visibility', value: 'Live' },
-        ],
-        documentKicker: 'Identity summary',
-        documentTitle: 'Guest-facing profile',
-        documentBadge: 'Profile',
-        lines: [
-          { label: 'Contact email', value: profile.contactEmail || 'Not set' },
-          { label: 'Public phone', value: profile.publicBookingPhone || profile.contactPhone || 'Not set' },
-          { label: 'Website', value: profile.website || 'Not set' },
-        ],
-        footerTitle: 'Identity stays consistent everywhere.',
-        footerBody: 'Business name, branch label, and public contact details flow through the CRM and guest touchpoints.',
-      };
+      return common;
     case 'regional-defaults':
       return {
         ...common,
@@ -130,26 +174,7 @@ const buildPreviewVariant = ({
         footerBody: 'Timezone, currency, date format, and locale remain consistent across the CRM and guest-facing documents.',
       };
     case 'operating-hours':
-      return {
-        ...common,
-        focusTitle: 'Operating rhythm',
-        focusDescription: 'The weekly booking rhythm guests can depend on before they reserve a visit.',
-        meta: [
-          { label: 'Open days', value: String(openDays) },
-          { label: 'Guest-booking days', value: String(guestBookingDays) },
-          { label: 'Special windows', value: String(specialWindows) },
-        ],
-        documentKicker: 'Schedule summary',
-        documentTitle: 'Availability',
-        documentBadge: 'Hours',
-        lines: [
-          { label: 'Default slot interval', value: bookingRules.slotInterval || '30 min' },
-          { label: 'Buffer time', value: `${bookingRules.bufferTime || '0'} min` },
-          { label: 'Advance window', value: bookingRules.maxAdvanceBooking || 'Not set' },
-        ],
-        footerTitle: 'Hours stay predictable.',
-        footerBody: 'Open days, seasonal windows, and guest-booking availability stay synchronized with the working rhythm.',
-      };
+      return common;
     case 'booking-rules':
       return {
         ...common,
@@ -193,32 +218,13 @@ const buildPreviewVariant = ({
         footerBody: 'Sender identity, reminder cadence, and confirmation language stay aligned with the guest experience.',
       };
     case 'branding-receipts':
-      return {
-        ...common,
-        focusTitle: 'Branding and receipts',
-        focusDescription: 'The final guest-facing presentation, including receipt identity, legal details, and footer treatment.',
-        meta: [
-          { label: 'Receipt prefix', value: receiptPrefix },
-          { label: 'Tax display', value: branding.taxDisplayMode || 'Included' },
-          { label: 'Logo placement', value: branding.logoPlacement || 'Centered' },
-        ],
-        documentKicker: 'Receipt summary',
-        documentTitle: receiptName,
-        documentBadge: branding.taxDisplayMode || 'Included',
-        lines: [
-          { label: 'Signature Facial', value: '$120.00' },
-          { label: 'Aromatherapy Add-on', value: '$30.00' },
-          { label: 'Cash received', value: '$150.00' },
-        ],
-        footerTitle: `Thank you for visiting ${businessName}.`,
-        footerBody: branding.receiptFooterText || 'We appreciate your trust and look forward to welcoming you again soon.',
-      };
+      return common;
     default:
       return common;
   }
 };
 
-const FieldShell = ({ label, hint, full, icon: Icon, children, className = '' }) => (
+const FieldShell = ({ label, hint, error, full, icon: Icon, children, className = '' }) => (
   <label className={`crm-settings-field${full ? ' crm-settings-field-full' : ''} ${className}`.trim()}>
     <span>{label}</span>
     {Icon ? (
@@ -230,6 +236,7 @@ const FieldShell = ({ label, hint, full, icon: Icon, children, className = '' })
       children
     )}
     {hint ? <em className="crm-settings-field-hint">{hint}</em> : null}
+    {error ? <em className="crm-settings-field-error">{error}</em> : null}
   </label>
 );
 
@@ -245,9 +252,9 @@ const ToggleButton = ({ active, onClick, label }) => (
   </button>
 );
 
-const SettingsFieldSelect = ({ label, hint, value, options, onChange, full }) => (
-  <FieldShell label={label} hint={hint} full={full}>
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
+const SettingsFieldSelect = ({ label, hint, value, options, onChange, full, error }) => (
+  <FieldShell label={label} hint={hint} error={error} full={full}>
+    <select value={value} aria-invalid={Boolean(error)} onChange={(event) => onChange(event.target.value)}>
       {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
@@ -257,23 +264,25 @@ const SettingsFieldSelect = ({ label, hint, value, options, onChange, full }) =>
   </FieldShell>
 );
 
-const SettingsFieldInput = ({ label, hint, value, onChange, full, icon: Icon, type = 'text', placeholder }) => (
-  <FieldShell label={label} hint={hint} full={full} icon={Icon}>
+const SettingsFieldInput = ({ label, hint, value, onChange, full, icon: Icon, type = 'text', placeholder, error }) => (
+  <FieldShell label={label} hint={hint} error={error} full={full} icon={Icon}>
     <input
       type={type}
       value={value}
       placeholder={placeholder}
+      aria-invalid={Boolean(error)}
       onChange={(event) => onChange(event.target.value)}
     />
   </FieldShell>
 );
 
-const SettingsFieldTextarea = ({ label, hint, value, onChange, full, rows = 4, placeholder }) => (
-  <FieldShell label={label} hint={hint} full={full}>
+const SettingsFieldTextarea = ({ label, hint, value, onChange, full, rows = 4, placeholder, error }) => (
+  <FieldShell label={label} hint={hint} error={error} full={full}>
     <textarea
       rows={rows}
       value={value}
       placeholder={placeholder}
+      aria-invalid={Boolean(error)}
       onChange={(event) => onChange(event.target.value)}
     />
   </FieldShell>
@@ -358,6 +367,8 @@ export const SettingsSaveState = ({
   lastSavedAt,
   onSave,
   onResetAll,
+  saveIssue = null,
+  backendReady = true,
 }) => {
   const tone =
     saveState === 'error'
@@ -370,19 +381,29 @@ export const SettingsSaveState = ({
 
   const statusLabel =
     saveState === 'saving'
-      ? 'Saving'
+      ? 'Saving changes'
       : saveState === 'error'
-        ? 'Error Saving'
+        ? saveIssue === 'validation'
+          ? 'Review required'
+          : 'Failed'
         : dirty
           ? 'Unsaved Changes'
           : 'Saved';
 
   const helperLabel =
-    validationCount > 0
-      ? `${validationCount} validation issue${validationCount === 1 ? '' : 's'} to review`
-      : dirty
-        ? 'Changes are ready to be saved'
-        : 'Configuration is synced across the CRM';
+    saveState === 'saving'
+      ? 'Writing updates to the CRM workspace...'
+      : saveState === 'error'
+        ? saveIssue === 'validation'
+          ? `${validationCount} validation issue${validationCount === 1 ? '' : 's'} to review`
+          : backendReady
+            ? 'The CRM could not confirm this save. Try again in a moment.'
+            : 'CRM backend is offline. Start the API or database, then save again.'
+        : validationCount > 0
+          ? `${validationCount} validation issue${validationCount === 1 ? '' : 's'} to review`
+          : dirty
+            ? 'Changes are ready to be saved'
+            : 'Configuration is synced across the CRM';
 
   return (
     <div className="crm-settings-save-state">
@@ -433,6 +454,7 @@ export const BusinessProfileForm = ({
   brandMarkLabel,
   brandMarkPreview,
   onPickBrandMark,
+  errors = {},
 }) => (
   <div className="crm-settings-profile-block">
     <div className="crm-settings-brand-row">
@@ -488,6 +510,7 @@ export const BusinessProfileForm = ({
             label="Business Name"
             value={profile.businessName}
             onChange={(value) => onChange('businessName', value)}
+            error={errors.businessName}
           />
           <SettingsFieldInput
             label="Branch Name"
@@ -549,6 +572,7 @@ export const BusinessProfileForm = ({
             full
             value={profile.address}
             onChange={(value) => onChange('address', value)}
+            error={errors.address}
           />
           <SettingsFieldInput
             label="Map Link"
@@ -567,6 +591,7 @@ export const BusinessProfileForm = ({
             icon={Mail}
             value={profile.contactEmail}
             onChange={(value) => onChange('contactEmail', value)}
+            error={errors.contactEmail}
           />
           <SettingsFieldInput
             label="Main Contact Phone"
@@ -976,11 +1001,14 @@ export const ReceiptBrandingPreview = ({
   bookingRules,
   communication,
   activeSectionId,
+  previewMode,
+  onPreviewModeChange,
   activeSectionLabel,
   activeSectionMeta,
 }) => {
   const preview = buildPreviewVariant({
     activeSectionId,
+    previewMode,
     profile,
     branding,
     regionalDefaults,
@@ -1000,6 +1028,27 @@ export const ReceiptBrandingPreview = ({
         statusTone="good"
       />
 
+      {onPreviewModeChange ? (
+        <div className="crm-settings-preview-modes" role="tablist" aria-label="Preview mode">
+          {[
+            ['booking', 'Guest booking'],
+            ['receipt', 'Receipt'],
+            ['message', 'Notification'],
+          ].map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              role="tab"
+              aria-selected={previewMode === mode}
+              className={`crm-settings-preview-mode${previewMode === mode ? ' crm-settings-preview-mode-active' : ''}`}
+              onClick={() => onPreviewModeChange(mode)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="crm-settings-preview-focus">
         <div>
           <span>Current focus</span>
@@ -1009,7 +1058,7 @@ export const ReceiptBrandingPreview = ({
           <span>Group</span>
           <strong>{activeSectionMeta?.groupTitle || 'Core Business'}</strong>
         </div>
-        <p>{activeSectionLabel || preview.focusDescription}</p>
+        <p>{activeSectionMeta?.sectionSummary || activeSectionLabel || preview.focusDescription}</p>
       </div>
 
       <div className="crm-settings-preview-shell">

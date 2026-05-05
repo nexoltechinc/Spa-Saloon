@@ -14,6 +14,7 @@ export const CRM_API_RESOURCES = {
   services: '/services',
   staff: '/staff',
   payments: '/payments',
+  'public-bookings': '/public-bookings',
   reports: '/reports',
 };
 

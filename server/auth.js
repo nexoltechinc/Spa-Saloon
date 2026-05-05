@@ -1,26 +1,9 @@
-import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHmac } from 'node:crypto'
 import { config } from './config.js'
 import { findUserByEmail, upsertUser } from './db.js'
+import { hashPassword, verifyPassword } from './passwords.js'
 
 const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7
-
-const hashPassword = (password, salt = randomBytes(16).toString('hex')) => {
-  const digest = pbkdf2Sync(String(password || ''), salt, 120000, 32, 'sha256').toString('hex')
-  return `${salt}:${digest}`
-}
-
-const verifyPassword = (password, storedHash) => {
-  const [salt, digest] = String(storedHash || '').split(':')
-  if (!salt || !digest) return false
-
-  const attempted = pbkdf2Sync(String(password || ''), salt, 120000, 32, 'sha256').toString('hex')
-  const digestBuffer = Buffer.from(digest, 'hex')
-  const attemptedBuffer = Buffer.from(attempted, 'hex')
-
-  if (digestBuffer.length !== attemptedBuffer.length) return false
-
-  return timingSafeEqual(digestBuffer, attemptedBuffer)
-}
 
 export const createSessionToken = (payload) => {
   const issuedAt = new Date().toISOString()
@@ -55,9 +38,12 @@ export const decodeSessionToken = (token) => {
 
 export const seedAdminAccount = async () => {
   await upsertUser({
+    id: 'USR-ADMIN',
+    fullName: 'CRM Admin',
     email: config.adminEmail,
     passwordHash: hashPassword(config.adminPassword),
     role: 'admin',
+    isActive: true,
   })
 }
 
@@ -82,15 +68,37 @@ export const loginWithCredentials = async ({ email, password }) => {
     throw error
   }
 
+  const refreshedUser = await upsertUser({
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    passwordHash: user.passwordHash,
+    role: user.role,
+    phone: user.phone,
+    branchId: user.branchId,
+    isActive: user.isActive,
+    lastLoginAt: new Date().toISOString(),
+    metadata: user.metadata,
+  })
+
   return {
     token: createSessionToken({
+      userId: refreshedUser.id,
       sub: user.email,
       email: user.email,
       role: user.role,
+      fullName: user.fullName,
+      branchId: user.branchId || null,
+      branchName: user.branchName || null,
+      isActive: user.isActive,
     }),
     user: {
+      id: refreshedUser.id,
+      fullName: refreshedUser.fullName,
       email: user.email,
       role: user.role,
+      branchId: refreshedUser.branchId || null,
+      branchName: user.branchName || null,
     },
   }
 }
@@ -110,11 +118,16 @@ export const loginWithDegradedFallback = ({ email, password }) => {
 
   return {
     token: createSessionToken({
+      userId: 'degraded-admin',
       sub: normalizedAdmin,
       email: normalizedAdmin,
       role: 'admin',
+      fullName: 'CRM Admin',
+      isActive: true,
     }),
     user: {
+      id: 'degraded-admin',
+      fullName: 'CRM Admin',
       email: normalizedAdmin,
       role: 'admin',
     },

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { config } from './config.js';
+import { hashPassword } from './passwords.js';
 
 export const RESOURCE_NAMES = [
   'appointments',
@@ -8,6 +9,7 @@ export const RESOURCE_NAMES = [
   'customers',
   'leads',
   'payments',
+  'public-bookings',
   'receipts',
   'reports',
   'services',
@@ -1131,7 +1133,7 @@ const _normalizeUserInput = (payload, existing = {}) => {
     fullName,
     name: fullName,
     email,
-    passwordHash: passwordHash || (password ? password : ''),
+    passwordHash: passwordHash || (password ? hashPassword(password) : ''),
     password,
     role: normalizeText(source.role, existing.role || 'staff'),
     phone: normalizeText(source.phone, existing.phone || ''),
@@ -1467,9 +1469,10 @@ const _lookupUserByEmailOrId = async (client, { id, userId, email } = {}) => {
   if (resolvedId) {
     const { rows } = await client.query(
       `
-        SELECT id, full_name, email, role, phone, branch_id, is_active, last_login_at, created_at, updated_at
-        FROM crm_users
-        WHERE id = $1
+        SELECT u.id, u.full_name, u.email, u.role, u.phone, u.branch_id, b.name AS branch_name, u.is_active, u.last_login_at, u.metadata, u.created_at, u.updated_at
+        FROM crm_users u
+        LEFT JOIN crm_branches b ON b.id = u.branch_id
+        WHERE u.id = $1
         LIMIT 1
       `,
       [resolvedId],
@@ -1482,9 +1485,10 @@ const _lookupUserByEmailOrId = async (client, { id, userId, email } = {}) => {
 
   const { rows } = await client.query(
     `
-      SELECT id, full_name, email, role, phone, branch_id, is_active, last_login_at, created_at, updated_at
-      FROM crm_users
-      WHERE LOWER(email) = LOWER($1)
+      SELECT u.id, u.full_name, u.email, u.role, u.phone, u.branch_id, b.name AS branch_name, u.is_active, u.last_login_at, u.metadata, u.created_at, u.updated_at
+      FROM crm_users u
+      LEFT JOIN crm_branches b ON b.id = u.branch_id
+      WHERE LOWER(u.email) = LOWER($1)
       LIMIT 1
     `,
     [resolvedEmail],
@@ -1942,8 +1946,10 @@ const userRowToView = (row) => ({
   role: row.role,
   phone: row.phone,
   branchId: row.branch_id,
+  branchName: row.branch_name,
   isActive: row.is_active,
   lastLoginAt: toIso(row.last_login_at),
+  metadata: toObject(row.metadata),
   createdAt: toIso(row.created_at),
   updatedAt: toIso(row.updated_at),
 });
@@ -2016,18 +2022,6 @@ const _settingsDocumentToRows = (payload, branchId = null) => {
     is_active: true,
   }));
 };
-
-const settingsRowToView = (row) => ({
-  ...normalizeSettingsDocument(row.data || row.settings_value_json || {}),
-  id: row.id,
-  branchId: row.branch_id,
-  settingsKey: row.settings_key,
-  settingsGroup: row.settings_group,
-  settingsValueJson: normalizeJsonObject(row.settings_value_json || row.data || {}),
-  resource: 'settings',
-  updatedAt: toIso(row.updated_at),
-  createdAt: toIso(row.created_at),
-});
 
 const loadStaffServiceNames = async (staffIds = []) => {
   const ids = uniqueBy(staffIds.map((value) => normalizeText(value)));
@@ -2167,7 +2161,32 @@ const structuredFilterKeys = {
   payments: ['customerName', 'serviceName', 'branchName', 'status', 'paymentStatus', 'receiptStatus', 'method', 'recordedBy'],
   receipts: ['receiptNumber', 'customerName', 'serviceName', 'branchName', 'receiptStatus', 'paymentStatus', 'deliveryMethod'],
   users: ['fullName', 'name', 'email', 'role', 'branchId'],
+  'public-bookings': ['fullName', 'customerName', 'email', 'phone', 'branchName', 'status', 'bookingSource', 'referenceCode', 'requestedServiceName'],
 };
+
+const STRUCTURED_RESOURCES = new Set([
+  'appointments',
+  'branches',
+  'customers',
+  'leads',
+  'payments',
+  'public-bookings',
+  'receipts',
+  'services',
+  'staff',
+  'users',
+]);
+
+const BRANCH_SCOPED_RESOURCES = new Set([
+  'appointments',
+  'customers',
+  'leads',
+  'payments',
+  'public-bookings',
+  'receipts',
+  'services',
+  'staff',
+]);
 
 const listStructuredRows = async (resource, query = {}) => {
   if (resource === 'branches') {
@@ -2244,11 +2263,21 @@ const listStructuredRows = async (resource, query = {}) => {
     return applyQueryFilters(rows.map(receiptRowToView), query, structuredFilterKeys.receipts);
   }
 
+  if (resource === 'public-bookings') {
+    const { rows } = await pool.query(`
+      SELECT id, branch_id, branch_name, full_name, phone, email, requested_service_id, requested_service_name, requested_date, requested_time, notes, status, converted_customer_id, converted_appointment_id, booking_source, reference_code, metadata, created_at, updated_at
+      FROM crm_public_bookings
+      ORDER BY updated_at DESC, created_at DESC
+    `);
+    return applyQueryFilters(rows.map(_publicBookingRowToView), query, structuredFilterKeys['public-bookings']);
+  }
+
   if (resource === 'users') {
     const { rows } = await pool.query(`
-      SELECT id, full_name, email, role, phone, branch_id, is_active, last_login_at, created_at, updated_at
-      FROM crm_users
-      ORDER BY updated_at DESC, created_at DESC
+      SELECT u.id, u.full_name, u.email, u.role, u.phone, u.branch_id, b.name AS branch_name, u.is_active, u.last_login_at, u.metadata, u.created_at, u.updated_at
+      FROM crm_users u
+      LEFT JOIN crm_branches b ON b.id = u.branch_id
+      ORDER BY u.updated_at DESC, u.created_at DESC
     `);
     return applyQueryFilters(rows.map(userRowToView), query, structuredFilterKeys.users);
   }
@@ -2367,12 +2396,26 @@ const getStructuredRecord = async (resource, id) => {
     return rows[0] ? receiptRowToView(rows[0]) : null;
   }
 
+  if (resource === 'public-bookings') {
+    const { rows } = await pool.query(
+      `
+        SELECT id, branch_id, branch_name, full_name, phone, email, requested_service_id, requested_service_name, requested_date, requested_time, notes, status, converted_customer_id, converted_appointment_id, booking_source, reference_code, metadata, created_at, updated_at
+        FROM crm_public_bookings
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [id],
+    );
+    return rows[0] ? _publicBookingRowToView(rows[0]) : null;
+  }
+
   if (resource === 'users') {
     const { rows } = await pool.query(
       `
-        SELECT id, full_name, email, role, phone, branch_id, is_active, last_login_at, created_at, updated_at
-        FROM crm_users
-        WHERE id = $1
+        SELECT u.id, u.full_name, u.email, u.role, u.phone, u.branch_id, b.name AS branch_name, u.is_active, u.last_login_at, u.metadata, u.created_at, u.updated_at
+        FROM crm_users u
+        LEFT JOIN crm_branches b ON b.id = u.branch_id
+        WHERE u.id = $1
         LIMIT 1
       `,
       [id],
@@ -2512,7 +2555,14 @@ const upsertStructuredRecord = async (client, resource, payload, existing = null
 
   if (resource === 'appointments') {
     const normalized = normalizeAppointmentInput(payload, existing || {});
-    const branch = await ensureBranchRecord(client, normalized, { allowCreate: true });
+    const branch = await ensureBranchRecord(
+      client,
+      {
+        ...normalized,
+        branchName: normalized.branchName || 'Main Branch',
+      },
+      { allowCreate: true },
+    );
     const customer = await _ensureCustomerRecord(
       client,
       {
@@ -2979,16 +3029,14 @@ const upsertStructuredRecord = async (client, resource, payload, existing = null
       },
       { allowCreate: true },
     );
-    const branch = normalized.branchId || normalized.branchName || appointment?.branch_id || customer?.branch_id
-      ? await ensureBranchRecord(
-          client,
-          {
-            branchId: normalized.branchId || appointment?.branch_id || customer?.branch_id,
-            branchName: normalized.branchName || appointment?.branch_name || customer?.branch_name,
-          },
-          { allowCreate: true },
-        )
-      : null;
+    const branch = await ensureBranchRecord(
+      client,
+      {
+        branchId: normalized.branchId || appointment?.branch_id || customer?.branch_id,
+        branchName: normalized.branchName || appointment?.branch_name || customer?.branch_name || 'Main Branch',
+      },
+      { allowCreate: true },
+    );
     const paymentCustomerId = customer?.id || normalized.customerId || appointment?.customer_id || '';
     const paymentCustomerName = customer?.full_name || normalized.customerName || appointment?.customer_name || '';
     const paymentCustomerEmail = customer?.email || normalized.customerEmail || appointment?.customer_email || '';
@@ -3161,16 +3209,14 @@ const upsertStructuredRecord = async (client, resource, payload, existing = null
       },
       { allowCreate: true },
     );
-    const branch = normalized.branchId || normalized.branchName || payment?.branch_id || customer?.branch_id
-      ? await ensureBranchRecord(
-          client,
-          {
-            branchId: normalized.branchId || payment?.branch_id || customer?.branch_id,
-            branchName: normalized.branchName || payment?.branch_name || customer?.branch_name || 'Main Branch',
-          },
-          { allowCreate: true },
-        )
-      : null;
+    const branch = await ensureBranchRecord(
+      client,
+      {
+        branchId: normalized.branchId || payment?.branch_id || customer?.branch_id,
+        branchName: normalized.branchName || payment?.branch_name || customer?.branch_name || 'Main Branch',
+      },
+      { allowCreate: true },
+    );
     const receiptId = existingReceipt?.id || id;
     const receiptNumber = normalized.receiptNumber || existingReceipt?.receipt_number || payment?.receipt_number || `RCT-${randomUUID().slice(0, 8).toUpperCase()}`;
     const receiptCustomerId = customer?.id || normalized.customerId || payment?.customer_id || '';
@@ -3324,6 +3370,75 @@ const upsertStructuredRecord = async (client, resource, payload, existing = null
     return userRowToView(rows[0]);
   }
 
+  if (resource === 'public-bookings') {
+    const normalized = _normalizePublicBookingInput(payload, existing || {});
+    const branch = normalized.branchId || normalized.branchName
+      ? await ensureBranchRecord(
+          client,
+          {
+            branchId: normalized.branchId,
+            branchName: normalized.branchName || 'Main Branch',
+          },
+          { allowCreate: true },
+        )
+      : null;
+
+    const { rows } = await pool.query(
+      `
+        INSERT INTO crm_public_bookings (
+          id, branch_id, branch_name, full_name, phone, email, requested_service_id, requested_service_name, requested_date, requested_time,
+          notes, status, converted_customer_id, converted_appointment_id, booking_source, reference_code, metadata, created_at, updated_at
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, NULLIF($9, '')::date, NULLIF($10, '')::time,
+          $11, $12, NULLIF($13, ''), NULLIF($14, ''), $15, $16, $17::jsonb, $18, $19
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          branch_name = EXCLUDED.branch_name,
+          full_name = EXCLUDED.full_name,
+          phone = EXCLUDED.phone,
+          email = EXCLUDED.email,
+          requested_service_id = EXCLUDED.requested_service_id,
+          requested_service_name = EXCLUDED.requested_service_name,
+          requested_date = EXCLUDED.requested_date,
+          requested_time = EXCLUDED.requested_time,
+          notes = EXCLUDED.notes,
+          status = EXCLUDED.status,
+          converted_customer_id = EXCLUDED.converted_customer_id,
+          converted_appointment_id = EXCLUDED.converted_appointment_id,
+          booking_source = EXCLUDED.booking_source,
+          reference_code = EXCLUDED.reference_code,
+          metadata = EXCLUDED.metadata,
+          updated_at = EXCLUDED.updated_at
+        RETURNING id, branch_id, branch_name, full_name, phone, email, requested_service_id, requested_service_name, requested_date, requested_time, notes, status, converted_customer_id, converted_appointment_id, booking_source, reference_code, metadata, created_at, updated_at
+      `,
+      [
+        id,
+        branch?.id || normalized.branchId || null,
+        branch?.name || normalized.branchName || '',
+        normalized.fullName,
+        normalized.phone,
+        normalized.email,
+        normalized.requestedServiceId,
+        normalized.requestedServiceName,
+        normalized.requestedDate,
+        normalized.requestedTime,
+        normalized.notes,
+        normalized.status,
+        normalized.convertedCustomerId,
+        normalized.convertedAppointmentId,
+        normalized.bookingSource,
+        normalized.referenceCode,
+        JSON.stringify(normalized.metadata),
+        existing?.createdAt ? new Date(existing.createdAt) : now,
+        now,
+      ],
+    );
+
+    return _publicBookingRowToView(rows[0]);
+  }
+
   const error = new Error(`Unsupported structured resource: ${resource}`);
   error.statusCode = 404;
   throw error;
@@ -3347,6 +3462,36 @@ const deleteStructuredRecord = async (resource, id) => {
 
   if (resource === 'services') {
     const { rowCount } = await pool.query('DELETE FROM crm_services WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'customers') {
+    const { rowCount } = await pool.query('DELETE FROM crm_customers WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'staff') {
+    const { rowCount } = await pool.query('DELETE FROM crm_staff WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'payments') {
+    const { rowCount } = await pool.query('DELETE FROM crm_payments WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'receipts') {
+    const { rowCount } = await pool.query('DELETE FROM crm_receipts WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'users') {
+    const { rowCount } = await pool.query('DELETE FROM crm_users WHERE id = $1', [id]);
+    return rowCount;
+  }
+
+  if (resource === 'public-bookings') {
+    const { rowCount } = await pool.query('DELETE FROM crm_public_bookings WHERE id = $1', [id]);
     return rowCount;
   }
 
@@ -3512,6 +3657,380 @@ const migrateStructuredRecords = async (client) => {
     FROM crm_records
     WHERE resource = 'services'
     ON CONFLICT (id) DO NOTHING
+  `);
+};
+
+const migrateEnterpriseStructuredRecords = async (client) => {
+  await client.query(`
+    INSERT INTO crm_customers (
+      id, branch_id, branch_name, full_name, phone, email, gender, date_of_birth, customer_source, notes, notes_json, loyalty_points, total_spent, last_visit_at, is_active, segment, status, membership, visit_count, pending_balance, favorite_service, favorite_staff, preferred_times, preferred_channel, sensitivities, upcoming_appointment_json, appointment_history_json, payment_history_json, activity_timeline_json, preferences_json, metadata, created_at, updated_at
+    )
+    SELECT
+      id,
+      NULLIF(COALESCE(data->>'branchId', data->>'branch_id', ''), ''),
+      COALESCE(NULLIF(data->>'branchName', ''), NULLIF(data->>'branch', ''), ''),
+      COALESCE(NULLIF(data->>'fullName', ''), NULLIF(data->>'name', ''), NULLIF(data->>'customerName', ''), 'Untitled Customer'),
+      COALESCE(NULLIF(data->>'phone', ''), NULLIF(data->>'contactPhone', ''), ''),
+      COALESCE(NULLIF(data->>'email', ''), NULLIF(data->>'customerEmail', ''), ''),
+      COALESCE(NULLIF(data->>'gender', ''), ''),
+      NULLIF(COALESCE(data->>'dateOfBirth', data->>'date_of_birth', ''), '')::date,
+      COALESCE(NULLIF(data->>'customerSource', ''), NULLIF(data->>'source', ''), NULLIF(data->>'acquisitionSource', ''), 'Website Form'),
+      COALESCE(NULLIF(data->>'notes', ''), ''),
+      COALESCE(data->'notesJson', data->'notes_json', '[]'::jsonb),
+      COALESCE(NULLIF(data->>'loyaltyPoints', '')::integer, 0),
+      COALESCE(NULLIF(data->>'totalSpent', '')::numeric, NULLIF(data->>'totalSpend', '')::numeric, NULLIF(data->>'total_spent', '')::numeric, 0),
+      NULLIF(COALESCE(data->>'lastVisitAt', data->>'lastVisit', data->>'last_visit_at', ''), '')::timestamptz,
+      COALESCE((data->>'isActive')::boolean, (data->>'active')::boolean, true),
+      COALESCE(NULLIF(data->>'segment', ''), 'New Customer'),
+      COALESCE(NULLIF(data->>'status', ''), 'Active'),
+      COALESCE(NULLIF(data->>'membership', ''), 'None'),
+      COALESCE(NULLIF(data->>'visitCount', '')::integer, NULLIF(data->>'visit_count', '')::integer, 0),
+      COALESCE(NULLIF(data->>'pendingBalance', '')::numeric, NULLIF(data->>'balance', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'favoriteService', ''), NULLIF(data->>'favouriteService', ''), ''),
+      COALESCE(NULLIF(data->>'favoriteStaff', ''), NULLIF(data->>'favouriteStaff', ''), ''),
+      COALESCE(NULLIF(data->>'preferredTimes', ''), 'Flexible'),
+      COALESCE(NULLIF(data->>'preferredChannel', ''), 'Website'),
+      COALESCE(NULLIF(data->>'sensitivities', ''), 'None reported'),
+      COALESCE(data->'upcomingAppointment', data->'upcomingAppointmentJson', data->'upcoming_appointment_json', '{}'::jsonb),
+      COALESCE(data->'appointmentHistory', data->'appointmentHistoryJson', data->'appointment_history_json', '[]'::jsonb),
+      COALESCE(data->'paymentHistory', data->'paymentHistoryJson', data->'payment_history_json', '[]'::jsonb),
+      COALESCE(data->'activityTimeline', data->'activityTimelineJson', data->'activity_timeline_json', '[]'::jsonb),
+      COALESCE(data->'preferences', data->'preferencesJson', data->'preferences_json', '[]'::jsonb),
+      COALESCE(
+        data
+          - 'branchId' - 'branch_id' - 'branchName' - 'branch' - 'fullName' - 'name' - 'customerName' - 'phone'
+          - 'contactPhone' - 'email' - 'customerEmail' - 'gender' - 'dateOfBirth' - 'date_of_birth' - 'customerSource'
+          - 'source' - 'acquisitionSource' - 'notes' - 'notesJson' - 'notes_json' - 'loyaltyPoints' - 'totalSpent'
+          - 'totalSpend' - 'total_spent' - 'lastVisitAt' - 'lastVisit' - 'last_visit_at' - 'isActive' - 'active'
+          - 'segment' - 'status' - 'membership' - 'visitCount' - 'visit_count' - 'pendingBalance' - 'balance'
+          - 'favoriteService' - 'favouriteService' - 'favoriteStaff' - 'favouriteStaff' - 'preferredTimes'
+          - 'preferredChannel' - 'sensitivities' - 'upcomingAppointment' - 'upcomingAppointmentJson'
+          - 'upcoming_appointment_json' - 'appointmentHistory' - 'appointmentHistoryJson' - 'appointment_history_json'
+          - 'paymentHistory' - 'paymentHistoryJson' - 'payment_history_json' - 'activityTimeline' - 'activityTimelineJson'
+          - 'activity_timeline_json' - 'preferences' - 'preferencesJson' - 'preferences_json',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'customers'
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_staff (
+      id, branch_id, branch_name, full_name, role, phone, email, employment_type, shift_label, bio, is_active, on_duty, employment_status, shift_status, leave_status, working_hours, weekly_availability_json, today_schedule_json, next_appointment_json, appointments_today, capacity_today, appointments_completed_week, notes, metadata, created_at, updated_at
+    )
+    SELECT
+      id,
+      NULLIF(COALESCE(data->>'branchId', data->>'branch_id', ''), ''),
+      COALESCE(NULLIF(data->>'branchName', ''), NULLIF(data->>'branch', ''), ''),
+      COALESCE(NULLIF(data->>'fullName', ''), NULLIF(data->>'name', ''), NULLIF(data->>'staffName', ''), 'Untitled Staff'),
+      COALESCE(NULLIF(data->>'role', ''), 'Staff Member'),
+      COALESCE(NULLIF(data->>'phone', ''), ''),
+      COALESCE(NULLIF(data->>'email', ''), ''),
+      COALESCE(NULLIF(data->>'employmentType', ''), NULLIF(data->>'employment_type', ''), 'Full-time'),
+      COALESCE(NULLIF(data->>'shiftLabel', ''), NULLIF(data->>'shift_label', ''), ''),
+      COALESCE(NULLIF(data->>'bio', ''), ''),
+      COALESCE((data->>'isActive')::boolean, (data->>'active')::boolean, true),
+      COALESCE((data->>'onDuty')::boolean, (data->>'on_duty')::boolean, true),
+      COALESCE(NULLIF(data->>'employmentStatus', ''), NULLIF(data->>'employment_status', ''), 'Active'),
+      COALESCE(NULLIF(data->>'shiftStatus', ''), NULLIF(data->>'shift_status', ''), 'Available'),
+      COALESCE(NULLIF(data->>'leaveStatus', ''), NULLIF(data->>'leave_status', ''), 'None'),
+      COALESCE(NULLIF(data->>'workingHours', ''), NULLIF(data->>'working_hours', ''), '9:00 AM - 5:00 PM'),
+      COALESCE(data->'weeklyAvailability', data->'weeklyAvailabilityJson', data->'weekly_availability_json', '[]'::jsonb),
+      COALESCE(data->'todaySchedule', data->'todayScheduleJson', data->'today_schedule_json', '[]'::jsonb),
+      COALESCE(data->'nextAppointment', data->'nextAppointmentJson', data->'next_appointment_json', '{}'::jsonb),
+      COALESCE(NULLIF(data->>'appointmentsToday', '')::integer, NULLIF(data->>'appointments_today', '')::integer, 0),
+      COALESCE(NULLIF(data->>'capacityToday', '')::integer, NULLIF(data->>'capacity_today', '')::integer, 0),
+      COALESCE(NULLIF(data->>'appointmentsCompletedWeek', '')::integer, NULLIF(data->>'appointments_completed_week', '')::integer, 0),
+      COALESCE(NULLIF(data->>'notes', ''), ''),
+      COALESCE(
+        data
+          - 'branchId' - 'branch_id' - 'branchName' - 'branch' - 'fullName' - 'name' - 'staffName' - 'role' - 'phone'
+          - 'email' - 'employmentType' - 'employment_type' - 'shiftLabel' - 'shift_label' - 'bio' - 'isActive' - 'active'
+          - 'onDuty' - 'on_duty' - 'employmentStatus' - 'employment_status' - 'shiftStatus' - 'shift_status'
+          - 'leaveStatus' - 'leave_status' - 'workingHours' - 'working_hours' - 'weeklyAvailability'
+          - 'weeklyAvailabilityJson' - 'weekly_availability_json' - 'todaySchedule' - 'todayScheduleJson'
+          - 'today_schedule_json' - 'nextAppointment' - 'nextAppointmentJson' - 'next_appointment_json'
+          - 'appointmentsToday' - 'appointments_today' - 'capacityToday' - 'capacity_today'
+          - 'appointmentsCompletedWeek' - 'appointments_completed_week' - 'notes',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'staff'
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_payments (
+      id, branch_id, branch_name, appointment_id, customer_id, customer_name, customer_email, service_name, amount, amount_due, amount_paid, balance_remaining, payment_method, payment_status, payment_date, due_date, recorded_by_user_id, recorded_by_name, edited_by_name, notes, reference_number, receipt_status, receipt_id, receipt_number, receipt_generated_at, receipt_printed_at, receipt_downloaded_at, receipt_emailed_at, metadata, created_at, updated_at
+    )
+    SELECT
+      id,
+      NULLIF(COALESCE(data->>'branchId', data->>'branch_id', ''), ''),
+      COALESCE(NULLIF(data->>'branchName', ''), NULLIF(data->>'branch', ''), ''),
+      NULLIF(COALESCE(data->>'appointmentId', data->>'appointment_id', ''), ''),
+      NULLIF(COALESCE(data->>'customerId', data->>'customer_id', ''), ''),
+      COALESCE(NULLIF(data->>'customerName', ''), NULLIF(data->>'customer', ''), ''),
+      COALESCE(NULLIF(data->>'customerEmail', ''), NULLIF(data->>'email', ''), ''),
+      COALESCE(NULLIF(data->>'serviceName', ''), NULLIF(data->>'service', ''), ''),
+      COALESCE(NULLIF(data->>'amount', '')::numeric, NULLIF(data->>'total', '')::numeric, NULLIF(data->>'amountDue', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'amountDue', '')::numeric, NULLIF(data->>'totalDue', '')::numeric, NULLIF(data->>'amount', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'amountPaid', '')::numeric, NULLIF(data->>'paidAmount', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'balanceRemaining', '')::numeric, NULLIF(data->>'balance', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'paymentMethod', ''), NULLIF(data->>'method', ''), 'Cash'),
+      COALESCE(NULLIF(data->>'paymentStatus', ''), NULLIF(data->>'status', ''), 'Paid'),
+      NULLIF(COALESCE(data->>'paymentDate', data->>'payment_date', ''), '')::timestamptz,
+      NULLIF(COALESCE(data->>'dueDate', data->>'due_date', ''), '')::timestamptz,
+      NULLIF(COALESCE(data->>'recordedByUserId', data->>'recorded_by_user_id', ''), ''),
+      COALESCE(NULLIF(data->>'recordedByName', ''), NULLIF(data->>'recordedBy', ''), NULLIF(data->>'recorded_by_name', ''), ''),
+      COALESCE(NULLIF(data->>'editedByName', ''), NULLIF(data->>'editedBy', ''), NULLIF(data->>'edited_by_name', ''), ''),
+      COALESCE(NULLIF(data->>'notes', ''), ''),
+      COALESCE(NULLIF(data->>'referenceNumber', ''), NULLIF(data->>'reference_number', ''), ''),
+      COALESCE(NULLIF(data->>'receiptStatus', ''), NULLIF(data->>'receipt_status', ''), 'Not Issued'),
+      NULLIF(COALESCE(data->>'receiptId', data->>'receipt_id', ''), ''),
+      NULLIF(COALESCE(data->>'receiptNumber', data->>'receipt_number', ''), ''),
+      NULLIF(COALESCE(data->>'receiptGeneratedAt', data->>'receipt_generated_at', ''), '')::timestamptz,
+      NULLIF(COALESCE(data->>'receiptPrintedAt', data->>'receipt_printed_at', ''), '')::timestamptz,
+      NULLIF(COALESCE(data->>'receiptDownloadedAt', data->>'receipt_downloaded_at', ''), '')::timestamptz,
+      NULLIF(COALESCE(data->>'receiptEmailedAt', data->>'receipt_emailed_at', ''), '')::timestamptz,
+      COALESCE(
+        data
+          - 'branchId' - 'branch_id' - 'branchName' - 'branch' - 'appointmentId' - 'appointment_id' - 'customerId'
+          - 'customer_id' - 'customerName' - 'customer' - 'customerEmail' - 'email' - 'serviceName' - 'service'
+          - 'amount' - 'total' - 'amountDue' - 'totalDue' - 'amountPaid' - 'paidAmount' - 'balanceRemaining'
+          - 'balance' - 'paymentMethod' - 'method' - 'paymentStatus' - 'status' - 'paymentDate' - 'payment_date'
+          - 'dueDate' - 'due_date' - 'recordedByUserId' - 'recorded_by_user_id' - 'recordedByName' - 'recordedBy'
+          - 'recorded_by_name' - 'editedByName' - 'editedBy' - 'edited_by_name' - 'notes' - 'referenceNumber'
+          - 'reference_number' - 'receiptStatus' - 'receipt_status' - 'receiptId' - 'receipt_id' - 'receiptNumber'
+          - 'receipt_number' - 'receiptGeneratedAt' - 'receipt_generated_at' - 'receiptPrintedAt' - 'receipt_printed_at'
+          - 'receiptDownloadedAt' - 'receipt_downloaded_at' - 'receiptEmailedAt' - 'receipt_emailed_at',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'payments'
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_receipts (
+      id, branch_id, branch_name, payment_id, appointment_id, customer_id, issued_by_user_id, receipt_number, receipt_status, delivery_method, issued_at, subtotal, tax_amount, discount_amount, total_amount, customer_name, customer_email, customer_phone, service_name, payment_method, branding_snapshot_json, line_items_json, notes, metadata, created_at, updated_at
+    )
+    SELECT
+      id,
+      NULLIF(COALESCE(data->>'branchId', data->>'branch_id', ''), ''),
+      COALESCE(NULLIF(data->>'branchName', ''), NULLIF(data->>'branch', ''), ''),
+      NULLIF(COALESCE(data->>'paymentId', data->>'payment_id', ''), ''),
+      NULLIF(COALESCE(data->>'appointmentId', data->>'appointment_id', ''), ''),
+      NULLIF(COALESCE(data->>'customerId', data->>'customer_id', ''), ''),
+      NULLIF(COALESCE(data->>'issuedByUserId', data->>'issued_by_user_id', ''), ''),
+      COALESCE(NULLIF(data->>'receiptNumber', ''), NULLIF(data->>'receipt_number', ''), CONCAT('RCT-', upper(substr(md5(id), 1, 12)))),
+      COALESCE(NULLIF(data->>'receiptStatus', ''), NULLIF(data->>'receipt_status', ''), 'Issued'),
+      COALESCE(NULLIF(data->>'deliveryMethod', ''), NULLIF(data->>'delivery_method', ''), 'Printed'),
+      NULLIF(COALESCE(data->>'issuedAt', data->>'issued_at', ''), '')::timestamptz,
+      COALESCE(NULLIF(data->>'subtotal', '')::numeric, NULLIF(data->>'amountDue', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'taxAmount', '')::numeric, NULLIF(data->>'tax_amount', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'discountAmount', '')::numeric, NULLIF(data->>'discount_amount', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'totalAmount', '')::numeric, NULLIF(data->>'total_amount', '')::numeric, 0),
+      COALESCE(NULLIF(data->>'customerName', ''), NULLIF(data->>'customer', ''), ''),
+      COALESCE(NULLIF(data->>'customerEmail', ''), NULLIF(data->>'email', ''), ''),
+      COALESCE(NULLIF(data->>'customerPhone', ''), NULLIF(data->>'phone', ''), ''),
+      COALESCE(NULLIF(data->>'serviceName', ''), NULLIF(data->>'service', ''), ''),
+      COALESCE(NULLIF(data->>'paymentMethod', ''), NULLIF(data->>'method', ''), 'Cash'),
+      COALESCE(data->'brandingSnapshot', data->'branding_snapshot_json', '{}'::jsonb),
+      COALESCE(data->'lineItems', data->'line_items_json', '[]'::jsonb),
+      COALESCE(NULLIF(data->>'notes', ''), ''),
+      COALESCE(
+        data
+          - 'branchId' - 'branch_id' - 'branchName' - 'branch' - 'paymentId' - 'payment_id' - 'appointmentId'
+          - 'appointment_id' - 'customerId' - 'customer_id' - 'issuedByUserId' - 'issued_by_user_id' - 'receiptNumber'
+          - 'receipt_number' - 'receiptStatus' - 'receipt_status' - 'deliveryMethod' - 'delivery_method' - 'issuedAt'
+          - 'issued_at' - 'subtotal' - 'taxAmount' - 'tax_amount' - 'discountAmount' - 'discount_amount'
+          - 'totalAmount' - 'total_amount' - 'customerName' - 'customer' - 'customerEmail' - 'email' - 'customerPhone'
+          - 'phone' - 'serviceName' - 'service' - 'paymentMethod' - 'method' - 'brandingSnapshot' - 'branding_snapshot_json'
+          - 'lineItems' - 'line_items_json' - 'notes',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'receipts'
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_public_bookings (
+      id, branch_id, branch_name, full_name, phone, email, requested_service_id, requested_service_name, requested_date, requested_time, notes, status, converted_customer_id, converted_appointment_id, booking_source, reference_code, metadata, created_at, updated_at
+    )
+    SELECT
+      id,
+      NULLIF(COALESCE(data->>'branchId', data->>'branch_id', ''), ''),
+      COALESCE(NULLIF(data->>'branchName', ''), NULLIF(data->>'branch', ''), ''),
+      COALESCE(NULLIF(data->>'fullName', ''), NULLIF(data->>'name', ''), NULLIF(data->>'customerName', ''), 'Website Guest'),
+      COALESCE(NULLIF(data->>'phone', ''), NULLIF(data->>'contactNumber', ''), ''),
+      COALESCE(NULLIF(data->>'email', ''), NULLIF(data->>'customerEmail', ''), ''),
+      NULLIF(COALESCE(data->>'requestedServiceId', data->>'serviceId', data->>'treatmentId', ''), ''),
+      COALESCE(NULLIF(data->>'requestedServiceName', ''), NULLIF(data->>'serviceName', ''), NULLIF(data->>'service', ''), ''),
+      NULLIF(COALESCE(data->>'requestedDate', data->>'date', data->>'preferredDate', ''), '')::date,
+      NULLIF(COALESCE(data->>'requestedTime', data->>'time', data->>'preferredTime', ''), '')::time,
+      COALESCE(NULLIF(data->>'notes', ''), NULLIF(data->>'message', ''), ''),
+      COALESCE(NULLIF(data->>'status', ''), 'Received'),
+      NULLIF(COALESCE(data->>'convertedCustomerId', data->>'converted_customer_id', ''), ''),
+      NULLIF(COALESCE(data->>'convertedAppointmentId', data->>'converted_appointment_id', ''), ''),
+      COALESCE(NULLIF(data->>'bookingSource', ''), NULLIF(data->>'source', ''), 'Website'),
+      COALESCE(NULLIF(data->>'referenceCode', ''), NULLIF(data->>'reference_code', ''), CONCAT('PBK-', upper(substr(md5(id), 1, 12)))),
+      COALESCE(
+        data
+          - 'branchId' - 'branch_id' - 'branchName' - 'branch' - 'fullName' - 'name' - 'customerName' - 'phone'
+          - 'contactNumber' - 'email' - 'customerEmail' - 'requestedServiceId' - 'serviceId' - 'treatmentId'
+          - 'requestedServiceName' - 'serviceName' - 'service' - 'requestedDate' - 'date' - 'preferredDate'
+          - 'requestedTime' - 'time' - 'preferredTime' - 'notes' - 'message' - 'status' - 'convertedCustomerId'
+          - 'converted_customer_id' - 'convertedAppointmentId' - 'converted_appointment_id' - 'bookingSource'
+          - 'source' - 'referenceCode' - 'reference_code',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'public-bookings'
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_users (
+      id, full_name, email, password_hash, role, phone, branch_id, is_active, last_login_at, metadata, created_at, updated_at
+    )
+    SELECT
+      COALESCE(NULLIF(id, ''), 'USR-' || upper(substr(md5(COALESCE(NULLIF(data->>'email', ''), id, 'crm-user')), 1, 12))),
+      COALESCE(NULLIF(data->>'fullName', ''), NULLIF(data->>'name', ''), 'CRM User'),
+      LOWER(COALESCE(NULLIF(data->>'email', ''), id, 'admin@spa.local')),
+      COALESCE(NULLIF(data->>'passwordHash', ''), NULLIF(data->>'password_hash', '')),
+      COALESCE(NULLIF(data->>'role', ''), 'staff'),
+      COALESCE(NULLIF(data->>'phone', ''), ''),
+      NULLIF(COALESCE(data->>'branchId', data->>'branch_id', ''), ''),
+      COALESCE((data->>'isActive')::boolean, (data->>'active')::boolean, true),
+      NULLIF(COALESCE(data->>'lastLoginAt', data->>'last_login_at', ''), '')::timestamptz,
+      COALESCE(
+        data
+          - 'fullName' - 'name' - 'email' - 'passwordHash' - 'password_hash' - 'role' - 'phone' - 'branchId'
+          - 'branch_id' - 'isActive' - 'active' - 'lastLoginAt' - 'last_login_at',
+        '{}'::jsonb
+      ),
+      created_at,
+      updated_at
+    FROM crm_records
+    WHERE resource = 'users'
+      AND COALESCE(NULLIF(data->>'passwordHash', ''), NULLIF(data->>'password_hash', '')) IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM crm_users existing
+        WHERE LOWER(existing.email) = LOWER(COALESCE(NULLIF(data->>'email', ''), id, 'admin@spa.local'))
+      )
+    ON CONFLICT (id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_staff_services (id, staff_id, service_id, created_at)
+    SELECT
+      CONCAT('STS-', upper(substr(md5(srv.id || ':' || staff.id), 1, 12))),
+      staff.id,
+      srv.id,
+      NOW()
+    FROM crm_services srv
+    JOIN LATERAL jsonb_array_elements_text(COALESCE(srv.assigned_staff, '[]'::jsonb)) AS assigned(value) ON TRUE
+    JOIN crm_staff staff
+      ON LOWER(staff.full_name) = LOWER(assigned.value)
+      OR staff.id = assigned.value
+    ON CONFLICT (staff_id, service_id) DO NOTHING
+  `);
+
+  await client.query(`
+    INSERT INTO crm_settings (
+      id, branch_id, settings_key, settings_group, settings_value_json, data, is_active, created_at, updated_at
+    )
+    SELECT
+      CASE
+        WHEN COALESCE(NULLIF(legacy.branch_id, ''), '') = '' THEN CONCAT('global:', groups.settings_key)
+        ELSE CONCAT(legacy.branch_id, ':', groups.settings_key)
+      END,
+      legacy.branch_id,
+      groups.settings_key,
+      groups.settings_group,
+      COALESCE(
+        legacy.data -> groups.settings_group,
+        CASE WHEN groups.settings_key IN ('operatingHours', 'specialHours') THEN '[]'::jsonb ELSE '{}'::jsonb END
+      ),
+      COALESCE(
+        legacy.data -> groups.settings_group,
+        CASE WHEN groups.settings_key IN ('operatingHours', 'specialHours') THEN '[]'::jsonb ELSE '{}'::jsonb END
+      ),
+      true,
+      legacy.created_at,
+      legacy.updated_at
+    FROM crm_settings legacy
+    CROSS JOIN (
+      VALUES
+        ('profile', 'profile'),
+        ('regionalDefaults', 'regionalDefaults'),
+        ('operatingHours', 'operatingHours'),
+        ('specialHours', 'specialHours'),
+        ('bookingRules', 'bookingRules'),
+        ('communication', 'communication'),
+        ('branding', 'branding')
+    ) AS groups(settings_key, settings_group)
+    WHERE legacy.id = $1
+      AND (legacy.settings_key IS NULL OR legacy.settings_key = '')
+    ON CONFLICT (id) DO NOTHING
+  `, [SETTINGS_ROW_ID]);
+
+  await client.query(`
+    DELETE FROM crm_settings
+    WHERE id = $1
+      AND (settings_key IS NULL OR settings_key = '')
+  `, [SETTINGS_ROW_ID]);
+
+  await client.query(`
+    INSERT INTO crm_branches (
+      id, code, name, manager_name, city, address, state, phone, email, hours, status, active, is_active, rooms, team_size, notes, metadata, created_at, updated_at
+    )
+    SELECT
+      'BR-MAIN',
+      'MAIN',
+      'Main Branch',
+      'Unassigned',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'Open',
+      true,
+      true,
+      0,
+      0,
+      '',
+      '{}'::jsonb,
+      NOW(),
+      NOW()
+    WHERE NOT EXISTS (SELECT 1 FROM crm_branches)
+  `);
+
+  await client.query(`
+    UPDATE crm_users
+    SET id = COALESCE(NULLIF(id, ''), 'USR-' || upper(substr(md5(email), 1, 12))),
+        full_name = COALESCE(NULLIF(full_name, ''), 'CRM Admin'),
+        phone = COALESCE(phone, ''),
+        branch_id = NULLIF(branch_id, ''),
+        is_active = COALESCE(is_active, true),
+        metadata = COALESCE(metadata, '{}'::jsonb),
+        updated_at = NOW()
+    WHERE id IS NULL OR id = ''
   `);
 };
 
@@ -3763,6 +4282,620 @@ const MIGRATIONS = [
       await migrateStructuredRecords(client);
     },
   },
+  {
+    id: '005_enterprise_crm_schema',
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE crm_users
+          ADD COLUMN IF NOT EXISTS id text,
+          ADD COLUMN IF NOT EXISTS full_name text NOT NULL DEFAULT '',
+          ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '',
+          ADD COLUMN IF NOT EXISTS branch_id text,
+          ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true,
+          ADD COLUMN IF NOT EXISTS last_login_at timestamptz,
+          ADD COLUMN IF NOT EXISTS metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+      `);
+
+      await client.query(`
+        UPDATE crm_users
+        SET id = COALESCE(NULLIF(id, ''), 'USR-' || upper(substr(md5(email), 1, 12))),
+            full_name = COALESCE(NULLIF(full_name, ''), 'CRM Admin'),
+            phone = COALESCE(phone, ''),
+            branch_id = NULLIF(branch_id, ''),
+            is_active = COALESCE(is_active, true),
+            metadata = COALESCE(metadata, '{}'::jsonb),
+            updated_at = NOW()
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_users
+          ALTER COLUMN id SET NOT NULL,
+          ALTER COLUMN full_name SET NOT NULL,
+          ALTER COLUMN phone SET NOT NULL,
+          ALTER COLUMN is_active SET DEFAULT true,
+          ALTER COLUMN metadata SET DEFAULT '{}'::jsonb
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS crm_users_id_uidx
+        ON crm_users (id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_users_branch_idx
+        ON crm_users (branch_id)
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS crm_users_email_uidx
+        ON crm_users (LOWER(email))
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_branches
+          ADD COLUMN IF NOT EXISTS code text,
+          ADD COLUMN IF NOT EXISTS address text NOT NULL DEFAULT '',
+          ADD COLUMN IF NOT EXISTS opening_hours_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true
+      `);
+
+      await client.query(`
+        UPDATE crm_branches
+        SET code = COALESCE(NULLIF(code, ''), UPPER(regexp_replace(name, '[^A-Za-z0-9]+', '-', 'g')) || '-' || upper(substr(md5(id), 1, 4))),
+            address = COALESCE(address, ''),
+            opening_hours_json = COALESCE(opening_hours_json, '[]'::jsonb),
+            is_active = COALESCE(is_active, active, true),
+            updated_at = NOW()
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS crm_branches_code_uidx
+        ON crm_branches (code)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_branches_city_idx
+        ON crm_branches (city)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_branches_active_idx
+        ON crm_branches (is_active)
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_leads
+          ADD COLUMN IF NOT EXISTS branch_id text,
+          ADD COLUMN IF NOT EXISTS assigned_to_user_id text,
+          ADD COLUMN IF NOT EXISTS interested_service_id text,
+          ADD COLUMN IF NOT EXISTS interested_service_name text,
+          ADD COLUMN IF NOT EXISTS follow_up_at timestamptz
+      `);
+
+      await client.query(`
+        UPDATE crm_leads
+        SET follow_up_at = COALESCE(follow_up_at, next_follow_up_at),
+            updated_at = NOW()
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_leads_branch_idx
+        ON crm_leads (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_leads_owner_idx
+        ON crm_leads (assigned_to_user_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_leads_follow_up_idx
+        ON crm_leads (follow_up_at)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_leads_status_branch_idx
+        ON crm_leads (status, branch_id)
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_services
+          ADD COLUMN IF NOT EXISTS branch_id text,
+          ADD COLUMN IF NOT EXISTS branch_name text NOT NULL DEFAULT '',
+          ADD COLUMN IF NOT EXISTS discount_price numeric(12,2),
+          ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true,
+          ADD COLUMN IF NOT EXISTS is_bookable boolean NOT NULL DEFAULT true,
+          ADD COLUMN IF NOT EXISTS bookable boolean NOT NULL DEFAULT true
+      `);
+
+      await client.query(`
+        UPDATE crm_services
+        SET is_active = COALESCE(is_active, active, true),
+            is_bookable = COALESCE(is_bookable, booking_visible, true),
+            bookable = COALESCE(bookable, booking_visible, true),
+            updated_at = NOW()
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_branch_idx
+        ON crm_services (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_active_idx
+        ON crm_services (is_active)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_services_bookable_idx
+        ON crm_services (is_bookable)
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_appointments
+          ADD COLUMN IF NOT EXISTS branch_id text,
+          ADD COLUMN IF NOT EXISTS lead_id text,
+          ADD COLUMN IF NOT EXISTS booked_by_user_id text,
+          ADD COLUMN IF NOT EXISTS appointment_date date,
+          ADD COLUMN IF NOT EXISTS start_time time,
+          ADD COLUMN IF NOT EXISTS end_time time,
+          ADD COLUMN IF NOT EXISTS booking_source text NOT NULL DEFAULT 'CRM',
+          ADD COLUMN IF NOT EXISTS public_booking_reference text
+      `);
+
+      await client.query(`
+        UPDATE crm_appointments
+        SET appointment_date = COALESCE(appointment_date, appointment_at::date),
+            start_time = COALESCE(start_time, appointment_at::time),
+            end_time = COALESCE(end_time, (appointment_at + make_interval(mins => duration_minutes))::time),
+            booking_source = COALESCE(NULLIF(booking_source, ''), source, 'CRM'),
+            updated_at = NOW()
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_appointments_branch_idx
+        ON crm_appointments (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_appointments_customer_idx
+        ON crm_appointments (customer_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_appointments_service_idx
+        ON crm_appointments (service_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_appointments_staff_idx
+        ON crm_appointments (staff_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_appointments_date_idx
+        ON crm_appointments (appointment_date)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_appointments_status_payment_idx
+        ON crm_appointments (status, payment_status)
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_customers (
+          id text PRIMARY KEY,
+          branch_id text REFERENCES crm_branches (id) ON DELETE SET NULL,
+          branch_name text NOT NULL DEFAULT '',
+          full_name text NOT NULL,
+          phone text NOT NULL DEFAULT '',
+          email text NOT NULL DEFAULT '',
+          gender text NOT NULL DEFAULT '',
+          date_of_birth date NULL,
+          customer_source text NOT NULL DEFAULT 'Website Form',
+          notes text NOT NULL DEFAULT '',
+          notes_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          loyalty_points integer NOT NULL DEFAULT 0,
+          total_spent numeric(12,2) NOT NULL DEFAULT 0,
+          last_visit_at timestamptz NULL,
+          is_active boolean NOT NULL DEFAULT true,
+          segment text NOT NULL DEFAULT 'New Customer',
+          status text NOT NULL DEFAULT 'Active',
+          membership text NOT NULL DEFAULT 'None',
+          visit_count integer NOT NULL DEFAULT 0,
+          pending_balance numeric(12,2) NOT NULL DEFAULT 0,
+          favorite_service text NOT NULL DEFAULT '',
+          favorite_staff text NOT NULL DEFAULT '',
+          preferred_times text NOT NULL DEFAULT 'Flexible',
+          preferred_channel text NOT NULL DEFAULT 'Website',
+          sensitivities text NOT NULL DEFAULT 'None reported',
+          upcoming_appointment_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+          appointment_history_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          payment_history_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          activity_timeline_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          preferences_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_customers_branch_idx
+        ON crm_customers (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_customers_email_idx
+        ON crm_customers (LOWER(email))
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_customers_phone_idx
+        ON crm_customers (phone)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_customers_status_idx
+        ON crm_customers (status)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_customers_active_idx
+        ON crm_customers (is_active)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_customers_last_visit_idx
+        ON crm_customers (last_visit_at DESC)
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_staff (
+          id text PRIMARY KEY,
+          branch_id text REFERENCES crm_branches (id) ON DELETE SET NULL,
+          branch_name text NOT NULL DEFAULT '',
+          full_name text NOT NULL,
+          role text NOT NULL DEFAULT 'Staff Member',
+          phone text NOT NULL DEFAULT '',
+          email text NOT NULL DEFAULT '',
+          employment_type text NOT NULL DEFAULT 'Full-time',
+          shift_label text NOT NULL DEFAULT '',
+          bio text NOT NULL DEFAULT '',
+          is_active boolean NOT NULL DEFAULT true,
+          on_duty boolean NOT NULL DEFAULT true,
+          employment_status text NOT NULL DEFAULT 'Active',
+          shift_status text NOT NULL DEFAULT 'Available',
+          leave_status text NOT NULL DEFAULT 'None',
+          working_hours text NOT NULL DEFAULT '9:00 AM - 5:00 PM',
+          weekly_availability_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          today_schedule_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          next_appointment_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+          appointments_today integer NOT NULL DEFAULT 0,
+          capacity_today integer NOT NULL DEFAULT 0,
+          appointments_completed_week integer NOT NULL DEFAULT 0,
+          notes text NOT NULL DEFAULT '',
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_branch_idx
+        ON crm_staff (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_email_idx
+        ON crm_staff (LOWER(email))
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_phone_idx
+        ON crm_staff (phone)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_active_idx
+        ON crm_staff (is_active)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_duty_idx
+        ON crm_staff (on_duty)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_role_idx
+        ON crm_staff (role)
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_staff_services (
+          id text PRIMARY KEY,
+          staff_id text NOT NULL REFERENCES crm_staff (id) ON DELETE CASCADE,
+          service_id text NOT NULL REFERENCES crm_services (id) ON DELETE CASCADE,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          UNIQUE (staff_id, service_id)
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_services_staff_idx
+        ON crm_staff_services (staff_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_staff_services_service_idx
+        ON crm_staff_services (service_id)
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_payments (
+          id text PRIMARY KEY,
+          branch_id text REFERENCES crm_branches (id) ON DELETE SET NULL,
+          branch_name text NOT NULL DEFAULT '',
+          appointment_id text REFERENCES crm_appointments (id) ON DELETE SET NULL,
+          customer_id text REFERENCES crm_customers (id) ON DELETE SET NULL,
+          customer_name text NOT NULL DEFAULT '',
+          customer_email text NOT NULL DEFAULT '',
+          service_name text NOT NULL DEFAULT '',
+          amount numeric(12,2) NOT NULL DEFAULT 0,
+          amount_due numeric(12,2) NOT NULL DEFAULT 0,
+          amount_paid numeric(12,2) NOT NULL DEFAULT 0,
+          balance_remaining numeric(12,2) NOT NULL DEFAULT 0,
+          payment_method text NOT NULL DEFAULT 'Cash',
+          payment_status text NOT NULL DEFAULT 'Paid',
+          payment_date timestamptz NOT NULL DEFAULT NOW(),
+          due_date timestamptz NULL,
+          recorded_by_user_id text REFERENCES crm_users (id) ON DELETE SET NULL,
+          recorded_by_name text NOT NULL DEFAULT '',
+          edited_by_name text NOT NULL DEFAULT '',
+          notes text NOT NULL DEFAULT '',
+          reference_number text NOT NULL DEFAULT '',
+          receipt_status text NOT NULL DEFAULT 'Not Issued',
+          receipt_id text,
+          receipt_number text NOT NULL DEFAULT '',
+          receipt_generated_at timestamptz NULL,
+          receipt_printed_at timestamptz NULL,
+          receipt_downloaded_at timestamptz NULL,
+          receipt_emailed_at timestamptz NULL,
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_branch_idx
+        ON crm_payments (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_payment_date_idx
+        ON crm_payments (payment_date DESC)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_status_idx
+        ON crm_payments (payment_status)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_customer_idx
+        ON crm_payments (customer_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_appointment_idx
+        ON crm_payments (appointment_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_reference_idx
+        ON crm_payments (reference_number)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_payments_receipt_number_idx
+        ON crm_payments (receipt_number)
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_receipts (
+          id text PRIMARY KEY,
+          branch_id text REFERENCES crm_branches (id) ON DELETE SET NULL,
+          branch_name text NOT NULL DEFAULT '',
+          payment_id text REFERENCES crm_payments (id) ON DELETE SET NULL,
+          appointment_id text REFERENCES crm_appointments (id) ON DELETE SET NULL,
+          customer_id text REFERENCES crm_customers (id) ON DELETE SET NULL,
+          issued_by_user_id text REFERENCES crm_users (id) ON DELETE SET NULL,
+          receipt_number text NOT NULL,
+          receipt_status text NOT NULL DEFAULT 'Issued',
+          delivery_method text NOT NULL DEFAULT 'Printed',
+          issued_at timestamptz NOT NULL DEFAULT NOW(),
+          subtotal numeric(12,2) NOT NULL DEFAULT 0,
+          tax_amount numeric(12,2) NOT NULL DEFAULT 0,
+          discount_amount numeric(12,2) NOT NULL DEFAULT 0,
+          total_amount numeric(12,2) NOT NULL DEFAULT 0,
+          customer_name text NOT NULL DEFAULT '',
+          customer_email text NOT NULL DEFAULT '',
+          customer_phone text NOT NULL DEFAULT '',
+          service_name text NOT NULL DEFAULT '',
+          payment_method text NOT NULL DEFAULT 'Cash',
+          branding_snapshot_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+          line_items_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+          notes text NOT NULL DEFAULT '',
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS crm_receipts_number_uidx
+        ON crm_receipts (receipt_number)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_receipts_branch_idx
+        ON crm_receipts (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_receipts_issued_at_idx
+        ON crm_receipts (issued_at DESC)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_receipts_payment_idx
+        ON crm_receipts (payment_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_receipts_customer_idx
+        ON crm_receipts (customer_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_receipts_status_idx
+        ON crm_receipts (receipt_status)
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_payments
+          ADD CONSTRAINT crm_payments_receipt_fk
+          FOREIGN KEY (receipt_id) REFERENCES crm_receipts (id) ON DELETE SET NULL
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_public_bookings (
+          id text PRIMARY KEY,
+          branch_id text REFERENCES crm_branches (id) ON DELETE SET NULL,
+          branch_name text NOT NULL DEFAULT '',
+          full_name text NOT NULL,
+          phone text NOT NULL DEFAULT '',
+          email text NOT NULL DEFAULT '',
+          requested_service_id text REFERENCES crm_services (id) ON DELETE SET NULL,
+          requested_service_name text NOT NULL DEFAULT '',
+          requested_date date NULL,
+          requested_time time NULL,
+          notes text NOT NULL DEFAULT '',
+          status text NOT NULL DEFAULT 'Received',
+          converted_customer_id text REFERENCES crm_customers (id) ON DELETE SET NULL,
+          converted_appointment_id text REFERENCES crm_appointments (id) ON DELETE SET NULL,
+          booking_source text NOT NULL DEFAULT 'Website',
+          reference_code text NOT NULL,
+          metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT NOW(),
+          updated_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS crm_public_bookings_reference_uidx
+        ON crm_public_bookings (reference_code)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_public_bookings_branch_idx
+        ON crm_public_bookings (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_public_bookings_status_idx
+        ON crm_public_bookings (status)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_public_bookings_requested_date_idx
+        ON crm_public_bookings (requested_date)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_public_bookings_phone_idx
+        ON crm_public_bookings (phone)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_public_bookings_email_idx
+        ON crm_public_bookings (LOWER(email))
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS crm_audit_logs (
+          id text PRIMARY KEY,
+          actor_user_id text REFERENCES crm_users (id) ON DELETE SET NULL,
+          branch_id text REFERENCES crm_branches (id) ON DELETE SET NULL,
+          entity_type text NOT NULL,
+          entity_id text NOT NULL,
+          action text NOT NULL,
+          old_value_json jsonb NULL,
+          new_value_json jsonb NULL,
+          created_at timestamptz NOT NULL DEFAULT NOW()
+        )
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_audit_logs_entity_idx
+        ON crm_audit_logs (entity_type, entity_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_audit_logs_actor_idx
+        ON crm_audit_logs (actor_user_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_audit_logs_branch_idx
+        ON crm_audit_logs (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_audit_logs_created_idx
+        ON crm_audit_logs (created_at DESC)
+      `);
+
+      await client.query(`
+        ALTER TABLE crm_settings
+          ADD COLUMN IF NOT EXISTS branch_id text,
+          ADD COLUMN IF NOT EXISTS settings_key text,
+          ADD COLUMN IF NOT EXISTS settings_group text,
+          ADD COLUMN IF NOT EXISTS settings_value_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+          ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true
+      `);
+
+      await client.query(`
+        UPDATE crm_settings
+        SET branch_id = NULLIF(branch_id, ''),
+            settings_value_json = CASE
+              WHEN settings_value_json = '{}'::jsonb AND data IS NOT NULL THEN data
+              ELSE settings_value_json
+            END,
+            data = COALESCE(data, settings_value_json, '{}'::jsonb),
+            is_active = COALESCE(is_active, true),
+            updated_at = NOW()
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_settings_branch_idx
+        ON crm_settings (branch_id)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_settings_key_idx
+        ON crm_settings (settings_key)
+      `);
+
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS crm_settings_group_idx
+        ON crm_settings (settings_group)
+      `);
+
+      await migrateEnterpriseStructuredRecords(client);
+    },
+  },
 ];
 
 const runMigrations = async (client) => {
@@ -3806,8 +4939,32 @@ export const closeDatabase = async () => {
   await pool.end();
 };
 
-export const upsertUser = async ({ email, passwordHash, role = 'admin' }) => {
+export const upsertUser = async ({
+  id = '',
+  fullName = '',
+  email,
+  passwordHash = '',
+  password = '',
+  role = 'admin',
+  phone = '',
+  branchId = null,
+  isActive = true,
+  lastLoginAt = null,
+  metadata = {},
+} = {}) => {
   const normalizedEmail = normalizeText(email).toLowerCase();
+  const existing = normalizedEmail ? await findUserByEmail(normalizedEmail).catch(() => null) : null;
+  const resolvedId = normalizeText(id || existing?.id || `USR-${randomUUID().slice(0, 12).toUpperCase()}`);
+  const resolvedFullName = normalizeText(fullName || existing?.fullName || existing?.name || 'CRM User', 'CRM User');
+  const resolvedPasswordHash = normalizeText(passwordHash) || (password ? hashPassword(password) : normalizeText(existing?.passwordHash));
+  const resolvedPhone = normalizeText(phone || existing?.phone || '');
+  const resolvedBranchId = normalizeText(branchId || existing?.branchId || '');
+  const resolvedIsActive = typeof isActive === 'boolean' ? isActive : Boolean(existing?.isActive ?? true);
+  const resolvedLastLoginAt = normalizeDateString(lastLoginAt || existing?.lastLoginAt || '', existing?.lastLoginAt || '');
+  const resolvedMetadata = {
+    ...(toObject(existing?.metadata) || {}),
+    ...(toObject(metadata) || {}),
+  };
 
   if (!normalizedEmail) {
     const error = new Error('User email is required.');
@@ -3815,17 +4972,59 @@ export const upsertUser = async ({ email, passwordHash, role = 'admin' }) => {
     throw error;
   }
 
+  if (!resolvedPasswordHash) {
+    const error = new Error('User password hash is required.');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const { rows } = await pool.query(
     `
-      INSERT INTO crm_users (email, password_hash, role, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
-      ON CONFLICT (email) DO UPDATE
-        SET password_hash = EXCLUDED.password_hash,
+      INSERT INTO crm_users (
+        id, full_name, email, password_hash, role, phone, branch_id, is_active, last_login_at, metadata, created_at, updated_at
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, NULLIF($9, '')::timestamptz, $10::jsonb, $11, $12
+      )
+      ON CONFLICT (id) DO UPDATE
+        SET full_name = EXCLUDED.full_name,
+            email = EXCLUDED.email,
+            password_hash = EXCLUDED.password_hash,
             role = EXCLUDED.role,
+            phone = EXCLUDED.phone,
+            branch_id = EXCLUDED.branch_id,
+            is_active = EXCLUDED.is_active,
+            last_login_at = COALESCE(EXCLUDED.last_login_at, crm_users.last_login_at),
+            metadata = EXCLUDED.metadata,
             updated_at = EXCLUDED.updated_at
-      RETURNING email, password_hash AS "passwordHash", role, created_at AS "createdAt", updated_at AS "updatedAt"
+      RETURNING
+        id,
+        full_name AS "fullName",
+        email,
+        password_hash AS "passwordHash",
+        role,
+        phone,
+        branch_id AS "branchId",
+        is_active AS "isActive",
+        last_login_at AS "lastLoginAt",
+        metadata,
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
     `,
-    [normalizedEmail, passwordHash, role],
+    [
+      resolvedId,
+      resolvedFullName,
+      normalizedEmail,
+      resolvedPasswordHash,
+      role,
+      resolvedPhone,
+      resolvedBranchId,
+      resolvedIsActive,
+      resolvedLastLoginAt,
+      JSON.stringify(resolvedMetadata),
+      existing?.createdAt ? new Date(existing.createdAt) : new Date(),
+      new Date(),
+    ],
   );
 
   return rows[0];
@@ -3838,13 +5037,22 @@ export const findUserByEmail = async (email) => {
   const { rows } = await pool.query(
     `
       SELECT
-        email,
-        password_hash AS "passwordHash",
-        role,
-        created_at AS "createdAt",
-        updated_at AS "updatedAt"
-      FROM crm_users
-      WHERE email = $1
+        u.id,
+        u.full_name AS "fullName",
+        u.email,
+        u.password_hash AS "passwordHash",
+        u.role,
+        u.phone,
+        u.branch_id AS "branchId",
+        b.name AS "branchName",
+        u.is_active AS "isActive",
+        u.last_login_at AS "lastLoginAt",
+        u.metadata,
+        u.created_at AS "createdAt",
+        u.updated_at AS "updatedAt"
+      FROM crm_users u
+      LEFT JOIN crm_branches b ON b.id = u.branch_id
+      WHERE LOWER(u.email) = $1
       LIMIT 1
     `,
     [normalizedEmail],
@@ -3914,15 +5122,20 @@ const deleteGenericRecord = async (resource, id) => {
   return rowCount;
 };
 
-export const listRecords = async (resource, query = {}) => {
+export const listRecords = async (resource, query = {}, context = {}) => {
   const normalizedResource = normalizeText(resource).toLowerCase();
 
   if (normalizedResource === 'reports') {
     return buildReportRows();
   }
 
-  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
-    return listStructuredRows(normalizedResource, query);
+  const effectiveQuery =
+    context.branchId && BRANCH_SCOPED_RESOURCES.has(normalizedResource) && query.branchId === undefined && query.branch_id === undefined
+      ? { ...query, branchId: context.branchId }
+      : query;
+
+  if (STRUCTURED_RESOURCES.has(normalizedResource)) {
+    return listStructuredRows(normalizedResource, effectiveQuery);
   }
 
   if (!RESOURCE_NAMES.includes(normalizedResource)) {
@@ -3931,10 +5144,10 @@ export const listRecords = async (resource, query = {}) => {
     throw error;
   }
 
-  return listGenericRecords(normalizedResource, query);
+  return listGenericRecords(normalizedResource, effectiveQuery);
 };
 
-export const getRecord = async (resource, id) => {
+export const getRecord = async (resource, id, context = {}) => {
   const normalizedResource = normalizeText(resource).toLowerCase();
 
   if (normalizedResource === 'reports') {
@@ -3942,8 +5155,20 @@ export const getRecord = async (resource, id) => {
     return rows.find((row) => row.id === id) || null;
   }
 
-  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
-    return getStructuredRecord(normalizedResource, id);
+  if (STRUCTURED_RESOURCES.has(normalizedResource)) {
+    const record = await getStructuredRecord(normalizedResource, id);
+    if (
+      record &&
+      context.branchId &&
+      BRANCH_SCOPED_RESOURCES.has(normalizedResource) &&
+      record.branchId &&
+      normalizeText(record.branchId) !== normalizeText(context.branchId) &&
+      normalizeText(context.actorRole) !== 'admin'
+    ) {
+      return null;
+    }
+
+    return record;
   }
 
   if (!RESOURCE_NAMES.includes(normalizedResource)) {
@@ -3955,7 +5180,7 @@ export const getRecord = async (resource, id) => {
   return getGenericRecord(normalizedResource, id);
 };
 
-export const createRecord = async (resource, payload) => {
+export const createRecord = async (resource, payload, context = {}) => {
   const normalizedResource = normalizeText(resource).toLowerCase();
 
   if (!WRITABLE_RESOURCES.has(normalizedResource)) {
@@ -3964,14 +5189,23 @@ export const createRecord = async (resource, payload) => {
     throw error;
   }
 
-  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
-    return upsertStructuredRecord(pool, normalizedResource, payload);
-  }
+  const record = STRUCTURED_RESOURCES.has(normalizedResource)
+    ? await upsertStructuredRecord(pool, normalizedResource, payload)
+    : await upsertGenericRecord(normalizedResource, payload);
 
-  return upsertGenericRecord(normalizedResource, payload);
+  await _recordAuditLog(pool, {
+    actorUserId: context.actorUserId || null,
+    branchId: record?.branchId || context.branchId || null,
+    entityType: normalizedResource,
+    entityId: record?.id || null,
+    action: 'created',
+    newValue: record,
+  }).catch(() => {});
+
+  return record;
 };
 
-export const updateRecord = async (resource, id, patch) => {
+export const updateRecord = async (resource, id, patch, context = {}) => {
   const normalizedResource = normalizeText(resource).toLowerCase();
 
   if (!WRITABLE_RESOURCES.has(normalizedResource)) {
@@ -3980,32 +5214,46 @@ export const updateRecord = async (resource, id, patch) => {
     throw error;
   }
 
-  if (['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)) {
-    const current = await getStructuredRecord(normalizedResource, id);
-    if (!current) {
-      const error = new Error(`${normalizedResource} record not found.`);
-      error.statusCode = 404;
-      throw error;
-    }
-    return upsertStructuredRecord(pool, normalizedResource, { ...current, ...patch, id }, current);
-  }
+  const current = STRUCTURED_RESOURCES.has(normalizedResource)
+    ? await getStructuredRecord(normalizedResource, id)
+    : await getGenericRecord(normalizedResource, id);
 
-  const current = await getGenericRecord(normalizedResource, id);
   if (!current) {
     const error = new Error(`${normalizedResource} record not found.`);
     error.statusCode = 404;
     throw error;
   }
 
-  const merged = {
-    ...stripReservedFields(current),
-    ...stripReservedFields(patch),
-  };
+  if (
+    context.branchId &&
+    BRANCH_SCOPED_RESOURCES.has(normalizedResource) &&
+    current.branchId &&
+    normalizeText(current.branchId) !== normalizeText(context.branchId) &&
+    normalizeText(context.actorRole) !== 'admin'
+  ) {
+    const error = new Error(`${normalizedResource} record not found.`);
+    error.statusCode = 404;
+    throw error;
+  }
 
-  return upsertGenericRecord(normalizedResource, { ...merged, id }, current);
+  const record = STRUCTURED_RESOURCES.has(normalizedResource)
+    ? await upsertStructuredRecord(pool, normalizedResource, { ...current, ...patch, id }, current)
+    : await upsertGenericRecord(normalizedResource, { ...stripReservedFields(current), ...stripReservedFields(patch), id }, current);
+
+  await _recordAuditLog(pool, {
+    actorUserId: context.actorUserId || null,
+    branchId: record?.branchId || current?.branchId || context.branchId || null,
+    entityType: normalizedResource,
+    entityId: record?.id || id,
+    action: 'updated',
+    oldValue: current,
+    newValue: record,
+  }).catch(() => {});
+
+  return record;
 };
 
-export const deleteRecord = async (resource, id) => {
+export const deleteRecord = async (resource, id, context = {}) => {
   const normalizedResource = normalizeText(resource).toLowerCase();
 
   if (!WRITABLE_RESOURCES.has(normalizedResource)) {
@@ -4014,7 +5262,20 @@ export const deleteRecord = async (resource, id) => {
     throw error;
   }
 
-  const rowCount = ['appointments', 'branches', 'leads', 'services'].includes(normalizedResource)
+  const current = await getRecord(normalizedResource, id, {});
+  if (
+    current &&
+    context.branchId &&
+    BRANCH_SCOPED_RESOURCES.has(normalizedResource) &&
+    current.branchId &&
+    normalizeText(current.branchId) !== normalizeText(context.branchId) &&
+    normalizeText(context.actorRole) !== 'admin'
+  ) {
+    const error = new Error(`${normalizedResource} record not found.`);
+    error.statusCode = 404;
+    throw error;
+  }
+  const rowCount = STRUCTURED_RESOURCES.has(normalizedResource)
     ? await deleteStructuredRecord(normalizedResource, id)
     : await deleteGenericRecord(normalizedResource, id);
 
@@ -4023,49 +5284,91 @@ export const deleteRecord = async (resource, id) => {
     error.statusCode = 404;
     throw error;
   }
+
+  await _recordAuditLog(pool, {
+    actorUserId: context.actorUserId || null,
+    branchId: current?.branchId || context.branchId || null,
+    entityType: normalizedResource,
+    entityId: id,
+    action: 'deleted',
+    oldValue: current,
+  }).catch(() => {});
 };
 
-export const getSettings = async () => {
+export const getSettings = async (context = {}) => {
+  const branchId = normalizeText(context.branchId || '');
+  const params = branchId ? [branchId] : [];
   const { rows } = await pool.query(
     `
-      SELECT id, data, created_at, updated_at
+      SELECT id, branch_id, settings_key, settings_group, settings_value_json, data, is_active, created_at, updated_at
       FROM crm_settings
-      WHERE id = $1
-      LIMIT 1
+      WHERE is_active IS DISTINCT FROM false
+        AND ($1::text IS NULL OR branch_id = $1 OR branch_id IS NULL)
+      ORDER BY CASE WHEN branch_id IS NULL THEN 0 ELSE 1 END, updated_at DESC, created_at DESC
     `,
-    [SETTINGS_ROW_ID],
+    params.length ? params : [null],
   );
 
-  if (!rows[0]) {
-    return saveSettings({});
+  if (!rows.length) {
+    return saveSettings({}, context);
   }
 
-  return settingsRowToView(rows[0]);
+  return _settingsRowsToDocument(rows);
 };
 
-export const saveSettings = async (payload) => {
+export const saveSettings = async (payload, context = {}) => {
   const normalized = normalizeSettingsDocument(payload);
+  const branchId = normalizeText(context.branchId || payload?.branchId || payload?.branch_id || '');
   const now = new Date();
+  const rowsToPersist = _settingsDocumentToRows(normalized, branchId || null);
 
-  const { rows } = await pool.query(
-    `
-      INSERT INTO crm_settings (id, data, created_at, updated_at)
-      VALUES ($1, $2::jsonb, $3, $4)
-      ON CONFLICT (id) DO UPDATE
-        SET data = EXCLUDED.data,
-            updated_at = EXCLUDED.updated_at
-      RETURNING id, data, created_at, updated_at
-    `,
-    [SETTINGS_ROW_ID, JSON.stringify(normalized), now, now],
-  );
+  for (const row of rowsToPersist) {
+    await pool.query(
+      `
+        INSERT INTO crm_settings (
+          id, branch_id, settings_key, settings_group, settings_value_json, data, is_active, created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9)
+        ON CONFLICT (id) DO UPDATE SET
+          branch_id = EXCLUDED.branch_id,
+          settings_key = EXCLUDED.settings_key,
+          settings_group = EXCLUDED.settings_group,
+          settings_value_json = EXCLUDED.settings_value_json,
+          data = EXCLUDED.data,
+          is_active = EXCLUDED.is_active,
+          updated_at = EXCLUDED.updated_at
+      `,
+      [
+        row.id,
+        row.branch_id,
+        row.settings_key,
+        row.settings_group,
+        JSON.stringify(row.settings_value_json),
+        JSON.stringify(row.data),
+        row.is_active,
+        now,
+        now,
+      ],
+    );
+  }
 
-  return settingsRowToView(rows[0]);
+  await _recordAuditLog(pool, {
+    actorUserId: context.actorUserId || null,
+    branchId: branchId || null,
+    entityType: 'settings',
+    entityId: branchId || 'global',
+    action: 'updated',
+    newValue: normalized,
+  }).catch(() => {});
+
+  return normalized;
 };
 
 export const buildReportRows = async () => {
-  const [appointments, payments, customers, services, staff, leads, branches] = await Promise.all([
+  const [appointments, payments, receipts, customers, services, staff, leads, branches] = await Promise.all([
     listRecords('appointments'),
     listRecords('payments'),
+    listRecords('receipts'),
     listRecords('customers'),
     listRecords('services'),
     listRecords('staff'),
@@ -4073,7 +5376,7 @@ export const buildReportRows = async () => {
     listRecords('branches'),
   ]);
 
-    const totalSales = sumBy(payments, (payment) => payment.amountPaid ?? payment.totalPaid ?? payment.amountDue ?? payment.total ?? 0);
+  const totalSales = sumBy(payments, (payment) => payment.amountPaid ?? payment.totalPaid ?? payment.amountDue ?? payment.total ?? 0);
   const totalAppointments = appointments.length;
   const completedAppointments = appointments.filter((appointment) => asLower(appointment.status) === 'completed').length;
   const cancelledAppointments = appointments.filter((appointment) => asLower(appointment.status).includes('cancel')).length;
@@ -4087,7 +5390,7 @@ export const buildReportRows = async () => {
     : 0;
   const repeatCustomers = customers.length
     ? Math.round(
-        (customers.filter((customer) => Number(customer.totalVisits ?? customer.visits ?? 0) > 1).length / customers.length) * 100,
+        (customers.filter((customer) => Number(customer.visitCount ?? customer.totalVisits ?? customer.visits ?? 0) > 1).length / customers.length) * 100,
       )
     : 0;
   const overduePayments = sumBy(
@@ -4097,12 +5400,12 @@ export const buildReportRows = async () => {
   const partialPayments = payments.filter(
     (payment) => asLower(payment.status) === 'partial' || (Number(payment.amountPaid ?? 0) > 0 && Number(payment.balanceRemaining ?? payment.balance ?? 0) > 0),
   ).length;
-  const receipts = payments.length;
+  const receiptCount = receipts.length;
   const serviceCount = services.length;
-  const newCustomers = customers.filter((customer) => Number(customer.totalVisits ?? customer.visits ?? 0) <= 1).length;
+  const newCustomers = customers.filter((customer) => Number(customer.visitCount ?? customer.totalVisits ?? customer.visits ?? 0) <= 1).length;
   const inactiveCustomers = customers.filter((customer) => {
     if (asLower(customer.status).includes('inactive')) return true;
-    return customer.active === false || Number(customer.totalVisits ?? customer.visits ?? 0) === 0;
+    return customer.isActive === false || customer.active === false || Number(customer.visitCount ?? customer.totalVisits ?? customer.visits ?? 0) === 0;
   }).length;
   const completionRate = totalAppointments ? Math.round((completedAppointments / totalAppointments) * 100) : 0;
 
@@ -4151,7 +5454,7 @@ export const buildReportRows = async () => {
     { id: 'report-inactive-customers', label: 'Inactive Customers', value: inactiveCustomers, count: inactiveCustomers },
     { id: 'report-overdue-payments', label: 'Overdue Payments', value: overduePayments, amount: overduePayments },
     { id: 'report-partial-payments', label: 'Partial Payments', value: partialPayments, count: partialPayments },
-    { id: 'report-receipts', label: 'Receipts', value: receipts, count: receipts },
+    { id: 'report-receipts', label: 'Receipts', value: receiptCount, count: receiptCount },
     { id: 'report-service-count', label: 'Service Count', value: serviceCount, count: serviceCount },
     { id: 'report-completion-rate', label: 'Completion Rate', value: completionRate, count: completionRate },
     { id: 'report-active-branches', label: 'Active Branches', value: activeBranches, count: activeBranches },

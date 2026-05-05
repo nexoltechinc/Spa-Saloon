@@ -108,6 +108,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
     '002_seed_settings',
     '003_backfill_structured_resources',
     '004_services_structured',
+    '005_enterprise_crm_schema',
   ]);
 
   logger('Checking auth gate');
@@ -409,6 +410,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
 
   assert.ok(websiteBooking.customer?.id, 'Website booking should return a customer record.');
   assert.ok(websiteBooking.appointment?.id, 'Website booking should return an appointment record.');
+  assert.ok(websiteBooking.publicBooking?.id, 'Website booking should return a public booking record.');
   assert.equal(websiteBooking.customer.fullName, websiteCustomerName);
   assert.equal(websiteBooking.appointment.customerId, websiteBooking.customer.id);
   assert.equal(websiteBooking.appointment.source, 'Website');
@@ -462,6 +464,7 @@ export const runOperationalReadinessCheck = async (harness, { logger = () => {} 
   logger('Cleaning up smoke data');
   await harness.remove('appointments', appointment.id);
   await harness.remove('appointments', websiteBooking.appointment.id);
+  await harness.remove('public-bookings', websiteBooking.publicBooking.id);
   await harness.remove('customers', websiteBooking.customer.id);
   await harness.remove('customers', customer.id);
   await harness.remove('branches', branch.id);
