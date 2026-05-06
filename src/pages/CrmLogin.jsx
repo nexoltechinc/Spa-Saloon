@@ -120,6 +120,15 @@ const classifySubmitError = (error) => {
     };
   }
 
+  if (status === 404 || status === 405) {
+    return {
+      tone: 'warning',
+      title: 'CRM auth route unavailable',
+      message:
+        'The CRM login request reached a page that does not serve the auth endpoint. Verify the API base URL or proxy configuration.',
+    };
+  }
+
   return {
     tone: 'offline',
     title: 'Unable to sign in',
@@ -187,6 +196,16 @@ const CrmLogin = () => {
           key: 'offline',
           checkedAt: now,
           message: statusCopy.offline.detail,
+        });
+        return;
+      }
+
+      if (result.status === 404 || result.status === 405) {
+        setConnectionState({
+          key: 'warning',
+          checkedAt: now,
+          message:
+            'The CRM health route was not found. Check the CRM API base URL or proxy configuration.',
         });
         return;
       }

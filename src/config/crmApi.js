@@ -1,8 +1,9 @@
 import { CRM_AUTH_ENDPOINT, getCrmToken } from './crm.js';
 
 const runtimeEnv = import.meta.env ?? {};
+const isDev = Boolean(runtimeEnv.DEV);
 
-export const CRM_API_BASE_URL = runtimeEnv.VITE_CRM_API_BASE_URL || '';
+export const CRM_API_BASE_URL = runtimeEnv.VITE_CRM_API_BASE_URL || (isDev ? 'http://localhost:3001' : '');
 export const CRM_API_PREFIX = runtimeEnv.VITE_CRM_API_PREFIX || '/api/crm';
 
 export const CRM_API_RESOURCES = {
@@ -112,7 +113,7 @@ const buildAuthUrl = () => {
     return endpoint;
   }
 
-  const origin = globalThis?.window?.location?.origin || 'http://127.0.0.1';
+  const origin = CRM_API_BASE_URL || globalThis?.window?.location?.origin || 'http://127.0.0.1';
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return new URL(normalizedEndpoint, origin).toString();
 };
