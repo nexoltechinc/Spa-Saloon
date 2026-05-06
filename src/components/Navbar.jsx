@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { KeyRound, Menu, X } from 'lucide-react';
 import { SALON_NAME } from '../config/brand';
 import './Navbar.css';
 
@@ -93,6 +93,10 @@ const Navbar = () => {
           </ul>
         </nav>
         <div className="nav-actions">
+          <Link to="/crm-login" className="btn btn-secondary nav-staff-link">
+            <KeyRound size={14} />
+            <span>Staff Login</span>
+          </Link>
           <button
             type="button"
             className="nav-menu-toggle"
@@ -145,6 +149,10 @@ const Navbar = () => {
           </nav>
 
           <div className="nav-mobile-footer">
+            <Link to="/crm-login" className="btn btn-secondary nav-mobile-secondary-cta" onClick={closeMobileMenu}>
+              <KeyRound size={14} />
+              <span>Staff Login</span>
+            </Link>
             <Link to="/booking" className="btn btn-primary nav-mobile-cta" onClick={closeMobileMenu}>
               Reserve Now
             </Link>
