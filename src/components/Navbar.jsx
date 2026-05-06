@@ -1,4 +1,5 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { SALON_NAME } from '../config/brand';
 import './Navbar.css';
 
 const navItems = [
@@ -22,7 +23,7 @@ const Navbar = () => {
     <nav className={navClassName}>
       <div className="container nav-container">
         <Link to="/" className="nav-logo">
-          Ethereal Sanctuary
+          {SALON_NAME}
         </Link>
         <div className="nav-links">
           {navItems.map((item) => (

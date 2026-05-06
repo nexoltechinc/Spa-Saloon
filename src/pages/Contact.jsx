@@ -1,5 +1,6 @@
 import React from 'react';
 import { Camera, Mail, MapPin, MessageCircle, Phone, Users } from 'lucide-react';
+import { BRAND_ADDRESS, BRAND_CONTACT_EMAIL, BRAND_PHONE, BRAND_TAGLINE, SALON_NAME } from '../config/brand';
 import './Contact.css';
 
 const Contact = () => {
@@ -9,9 +10,9 @@ const Contact = () => {
       <section className="contact-hero">
         <div className="contact-hero-overlay"></div>
         <div className="container contact-hero-content text-center">
-          <h1 className="contact-hero-title">We're Here to Help</h1>
+          <h1 className="contact-hero-title">{SALON_NAME}</h1>
           <p className="contact-hero-subtitle">
-            <i>Begin your dialogue with stillness.</i>
+            <i>{BRAND_TAGLINE}</i>
           </p>
         </div>
       </section>
@@ -26,15 +27,15 @@ const Contact = () => {
               <span className="info-badge">LOCATION</span>
               <div className="info-item">
                 <MapPin size={18} className="icon" />
-                <p>1200 Serenity Path,<br/>Coastal Valley, CA 90210</p>
+                <p>{BRAND_ADDRESS}</p>
               </div>
               <div className="info-item">
                 <Phone size={18} className="icon" />
-                <p>+1 (800) 555-ETHEREAL</p>
+                <p>{BRAND_PHONE}</p>
               </div>
               <div className="info-item">
                 <Mail size={18} className="icon" />
-                <p>concierge@ethereal.spa</p>
+                <p>{BRAND_CONTACT_EMAIL}</p>
               </div>
             </div>
 
@@ -89,15 +90,15 @@ const Contact = () => {
       <section className="map-section">
         <div className="map-placeholder">
           {/* Mock Map Background */}
-          <div className="map-pin glass">
-            <div className="pin-icon">
+            <div className="map-pin glass">
+              <div className="pin-icon">
                <MapPin size={24} color="#D4AF37"/>
+              </div>
+              <div>
+                <h4>{SALON_NAME}</h4>
+                <span>{BRAND_TAGLINE}</span>
+              </div>
             </div>
-            <div>
-              <h4>Ethereal Sanctuary</h4>
-              <span>WELLNESS AWAITS</span>
-            </div>
-          </div>
         </div>
       </section>
     </div>

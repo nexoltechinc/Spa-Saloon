@@ -1,18 +1,20 @@
 import { Link } from 'react-router-dom';
 import { Globe, Mail, Send } from 'lucide-react';
+import { BRAND_ADDRESS, BRAND_CONTACT_EMAIL, BRAND_PHONE, SALON_NAME } from '../config/brand';
 import './Footer.css';
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="footer">
       <div className="container footer-container">
         <div className="footer-brand">
           <Link to="/" className="footer-logo">
-            Ethereal Sanctuary
+            {SALON_NAME}
           </Link>
           <p className="footer-desc">
-            Your destination for holistic rejuvenation and refined wellness
-            experiences since 1994.
+            Luxury beauty, salon, and wellness experiences curated with calm precision and polished care.
           </p>
           <div className="footer-socials">
             <a href="#" aria-label="Discover our world">
@@ -38,16 +40,14 @@ const Footer = () => {
         </div>
 
         <div className="footer-links-group footer-contact">
-          <h4 className="footer-heading">The Sanctuary</h4>
+          <h4 className="footer-heading">{SALON_NAME}</h4>
           <p>
-            1200 Serenity Path,
-            <br />
-            Coastal Valley, CA 90210
+            {BRAND_ADDRESS}
           </p>
-          <p>T: +1 (800) 555-ETHEREAL</p>
-          <p>E: concierge@ethereal.spa</p>
+          <p>T: {BRAND_PHONE}</p>
+          <p>E: {BRAND_CONTACT_EMAIL}</p>
           <p className="footer-copyright">
-            Copyright 2024 Ethereal Sanctuary. All rights reserved.
+            Copyright {currentYear} {SALON_NAME}. All rights reserved.
           </p>
         </div>
       </div>

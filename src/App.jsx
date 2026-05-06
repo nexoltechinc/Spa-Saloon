@@ -1,12 +1,12 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import RequireCrmAuth from './components/RequireCrmAuth';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import Booking from './pages/Booking';
 import Contact from './pages/Contact';
-import { CRM_NAME } from './config/brand';
+import { CRM_NAME, SALON_NAME } from './config/brand';
 
 const CrmLogin = lazy(() => import('./pages/CrmLogin'));
 const CrmDashboard = lazy(() => import('./pages/CrmDashboard'));
@@ -47,9 +47,20 @@ const withCrmSuspense = (element, label) => (
   </RequireCrmAuth>
 );
 
+const TitleManager = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    document.title = pathname.startsWith('/crm') || pathname === '/crm-login' ? CRM_NAME : SALON_NAME;
+  }, [pathname]);
+
+  return null;
+};
+
 function App() {
   return (
     <Router>
+      <TitleManager />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />

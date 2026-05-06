@@ -1,5 +1,6 @@
 import { ArrowRight, Quote, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BRAND_TAGLINE, SALON_NAME } from '../config/brand';
 import './Home.css';
 
 const heroImage =
@@ -73,15 +74,13 @@ const Home = () => {
         <div className="home-hero-overlay" />
         <div className="container home-hero-content">
           <div className="home-hero-copy">
-            <span className="home-eyebrow">Experience Transcendent Calm</span>
+            <span className="home-eyebrow">{SALON_NAME}</span>
             <h1 className="home-hero-title">
-              Sanctuary of
-              <br />
-              Serenity
+              {SALON_NAME}
             </h1>
             <p className="home-hero-subtitle">
-              A restorative journey designed to harmonize your inner landscape
-              through ancient wisdom and modern luxury.
+              {BRAND_TAGLINE}. A restorative journey designed to harmonize your inner landscape
+              through modern luxury and thoughtful care.
             </p>
             <Link to="/booking" className="home-primary-button">
               Book Your Escape
@@ -115,7 +114,7 @@ const Home = () => {
             </h2>
             <p className="home-section-text">
               Founded on the principle that true luxury is found in time and
-              space, Ethereal Sanctuary offers a curated environment where the
+              space, {SALON_NAME} offers a curated environment where the
               noise of the world dissolves into a whisper.
             </p>
             <p className="home-section-text">
