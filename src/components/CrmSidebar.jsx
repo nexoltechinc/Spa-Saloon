@@ -3,17 +3,19 @@ import './CrmSidebar.css';
 
 const CrmSidebar = () => {
   const { pathname } = useLocation();
-  const isActive = pathname === '/crm-login' || pathname.startsWith('/crm/');
-  const label = pathname.startsWith('/crm/') && pathname !== '/crm-login' ? 'Open CRM' : 'Login to my CRM';
-  const target = pathname.startsWith('/crm/') && pathname !== '/crm-login' ? '/crm/dashboard' : '/crm-login';
+  const isCrmWorkspace = pathname.startsWith('/crm/') && pathname !== '/crm-login';
+
+  if (!isCrmWorkspace) {
+    return null;
+  }
 
   return (
     <aside className="crm-sidebar-wrapper" aria-label="CRM quick access">
       <Link
-        to={target}
-        className={`crm-sidebar-link${isActive ? ' crm-sidebar-link-active' : ''}`}
+        to="/crm/dashboard"
+        className="crm-sidebar-link crm-sidebar-link-active"
       >
-        {label}
+        Open CRM
       </Link>
     </aside>
   );

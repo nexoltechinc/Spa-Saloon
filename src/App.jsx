@@ -21,8 +21,55 @@ const CrmReports = lazy(() => import('./pages/CrmReports'));
 const CrmSettings = lazy(() => import('./pages/CrmSettings'));
 
 const Placeholder = ({ title }) => (
-  <div style={{ paddingTop: '150px', textAlign: 'center', minHeight: '60vh' }}>
-    <h2>{title} Page Coming Soon</h2>
+  <div
+    style={{
+      minHeight: '60vh',
+      display: 'grid',
+      placeItems: 'center',
+      padding: '8rem 1rem',
+      textAlign: 'center',
+    }}
+  >
+    <div style={{ maxWidth: '40rem' }}>
+      <p
+        style={{
+          margin: 0,
+          color: '#6d5b11',
+          fontFamily: 'var(--font-accent)',
+          fontSize: '0.72rem',
+          fontWeight: 800,
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Coming soon
+      </p>
+      <h2
+        style={{
+          margin: '0.5rem 0 1rem',
+          color: '#1f221d',
+          fontFamily: 'var(--font-editorial)',
+          fontSize: 'clamp(2rem, 4vw, 3.2rem)',
+          fontStyle: 'italic',
+          fontWeight: 500,
+          letterSpacing: '-0.04em',
+        }}
+      >
+        {title}
+      </h2>
+      <p
+        style={{
+          color: '#5b6357',
+          fontFamily: 'var(--font-sans)',
+          fontSize: '1rem',
+          lineHeight: '1.85',
+          margin: 0,
+        }}
+      >
+        We’re refining this page to match the rest of the Hazel Beauty Saloon experience. For
+        now, the main services, booking, and contact paths are ready.
+      </p>
+    </div>
   </div>
 );
 
@@ -51,7 +98,9 @@ const TitleManager = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    document.title = pathname.startsWith('/crm') || pathname === '/crm-login' ? CRM_NAME : SALON_NAME;
+    document.title = pathname.startsWith('/crm') || pathname === '/crm-login'
+      ? CRM_NAME
+      : `${SALON_NAME} | Luxury Salon & Spa`;
   }, [pathname]);
 
   return null;
@@ -69,6 +118,10 @@ function App() {
           <Route path="/wellness" element={<Placeholder title="Wellness" />} />
           <Route path="/booking" element={<Booking />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy-policy" element={<Placeholder title="Privacy Policy" />} />
+          <Route path="/terms" element={<Placeholder title="Terms of Service" />} />
+          <Route path="/wellness-journal" element={<Placeholder title="Wellness Journal" />} />
+          <Route path="/careers" element={<Placeholder title="Careers" />} />
           <Route
             path="/crm-login"
             element={(

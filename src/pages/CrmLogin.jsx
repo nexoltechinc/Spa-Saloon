@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { CRM_AUTH_ENDPOINT, CRM_AUTH_ENDPOINT_IS_DEFAULT, getCrmSession, setCrmToken } from '../config/crm';
+import { CRM_AUTH_ENDPOINT_IS_DEFAULT, getCrmSession, setCrmToken } from '../config/crm';
 import { BRAND_TAGLINE, CRM_NAME, SALON_INITIALS, SALON_NAME } from '../config/brand';
-import { crmHealthCheck, crmLogin } from '../config/crmApi';
+import {
+  crmHealthCheck,
+  crmLogin,
+  getCrmResolvedApiOrigin,
+  getCrmResolvedAuthUrl,
+} from '../config/crmApi';
 import './CrmLogin.css';
 
 const HEALTH_REFRESH_MS = 15000;
@@ -75,7 +80,7 @@ const statusCopy = {
 
 const getReturnPath = (location) => location.state?.from?.pathname || '/crm/dashboard';
 
-const classifySubmitError = (error) => {
+const classifySubmitError = (error, resolvedAuthUrl) => {
   const status = Number(error?.status || 0);
   const code = String(error?.code || '');
   const payload = error?.payload || {};
@@ -125,7 +130,7 @@ const classifySubmitError = (error) => {
       tone: 'warning',
       title: 'CRM auth route unavailable',
       message:
-        'The CRM login request reached a page that does not serve the auth endpoint. Verify the API base URL or proxy configuration.',
+        `The CRM login request reached ${resolvedAuthUrl || 'the configured CRM auth route'} and the server did not serve the login endpoint. Verify the API base URL or proxy configuration.`,
     };
   }
 
@@ -155,10 +160,6 @@ const CrmLogin = () => {
 
   const session = getCrmSession();
   const returnPath = getReturnPath(location);
-  const authEndpointLabel = CRM_AUTH_ENDPOINT;
-  const authEndpointCopy = CRM_AUTH_ENDPOINT_IS_DEFAULT
-    ? 'Using the local CRM auth route by default. Set VITE_CRM_AUTH_ENDPOINT only when a deployment needs a custom sign-in URL.'
-    : 'Custom auth endpoint configured for production-grade sign-in.';
 
   useEffect(() => {
     let cancelled = false;
@@ -205,7 +206,7 @@ const CrmLogin = () => {
           key: 'warning',
           checkedAt: now,
           message:
-            'The CRM health route was not found. Check the CRM API base URL or proxy configuration.',
+            `The CRM health request reached ${getCrmResolvedApiOrigin()} and the route was not found. Check the CRM API base URL or proxy configuration.`,
         });
         return;
       }
@@ -252,7 +253,7 @@ const CrmLogin = () => {
 
       navigate(returnPath, { replace: true });
     } catch (error) {
-      setFeedback(classifySubmitError(error));
+      setFeedback(classifySubmitError(error, resolvedAuthUrl));
     } finally {
       setIsLoading(false);
     }
@@ -264,6 +265,11 @@ const CrmLogin = () => {
 
   const status = statusCopy[connectionState.key] || statusCopy.checking;
   const currentFeedback = feedback || null;
+  const resolvedApiOrigin = getCrmResolvedApiOrigin();
+  const resolvedAuthUrl = getCrmResolvedAuthUrl();
+  const authEndpointCopy = CRM_AUTH_ENDPOINT_IS_DEFAULT
+    ? `Using the local CRM auth route by default. Requests are sent to ${resolvedAuthUrl}. Set VITE_CRM_AUTH_ENDPOINT only when a deployment needs a custom sign-in URL.`
+    : `Custom auth endpoint configured for production-grade sign-in. Requests are sent to ${resolvedAuthUrl}.`;
 
   return (
     <section className="crm-login-page">
@@ -407,6 +413,12 @@ const CrmLogin = () => {
               </div>
             ) : null}
 
+            <article className="crm-login-meta-card crm-login-meta-card-host">
+              <span>Resolved API base</span>
+              <strong>{resolvedApiOrigin}</strong>
+              <p>{authEndpointCopy}</p>
+            </article>
+
             <div className="crm-login-meta-grid">
               <article className="crm-login-meta-card">
                 <span>Connection</span>
@@ -414,12 +426,6 @@ const CrmLogin = () => {
                 <p>
                   {status.detail} {connectionState.checkedAt ? `Last checked at ${connectionState.checkedAt}.` : ''}
                 </p>
-              </article>
-
-              <article className="crm-login-meta-card">
-                <span>Endpoint</span>
-                <strong>{authEndpointLabel}</strong>
-                <p>{authEndpointCopy}</p>
               </article>
             </div>
 

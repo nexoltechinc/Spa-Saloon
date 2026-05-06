@@ -29,6 +29,23 @@ const joinPath = (left, right) => {
   return `${left.replace(/\/$/, '')}/${right.replace(/^\//, '')}`;
 };
 
+export const getCrmResolvedApiOrigin = () => {
+  return CRM_API_BASE_URL || globalThis?.window?.location?.origin || 'http://127.0.0.1';
+};
+
+export const getCrmResolvedAuthUrl = () => {
+  const endpoint = String(CRM_AUTH_ENDPOINT || '').trim() || '/api/crm/auth/login';
+
+  if (/^https?:\/\//i.test(endpoint)) {
+    return endpoint;
+  }
+
+  const origin = getCrmResolvedApiOrigin();
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const base = joinPath(CRM_API_BASE_URL, normalizedEndpoint);
+  return new URL(base, origin).toString();
+};
+
 const buildUrl = (path, query) => {
   const base = joinPath(CRM_API_BASE_URL, joinPath(CRM_API_PREFIX, path));
   const origin = globalThis?.window?.location?.origin || 'http://127.0.0.1';
@@ -107,15 +124,7 @@ const normalizeErrorMessage = (value, fallback = 'CRM request failed.') => {
 };
 
 const buildAuthUrl = () => {
-  const endpoint = String(CRM_AUTH_ENDPOINT || '').trim() || '/api/crm/auth/login';
-
-  if (/^https?:\/\//i.test(endpoint)) {
-    return endpoint;
-  }
-
-  const origin = CRM_API_BASE_URL || globalThis?.window?.location?.origin || 'http://127.0.0.1';
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return new URL(normalizedEndpoint, origin).toString();
+  return getCrmResolvedAuthUrl();
 };
 
 const fetchJson = async (url, requestInit) => {

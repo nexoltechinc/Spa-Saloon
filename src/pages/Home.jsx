@@ -1,153 +1,359 @@
-import { ArrowRight, Quote, Star } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  Clock3,
+  Leaf,
+  MapPin,
+  Quote,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Waves,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BRAND_TAGLINE, SALON_NAME } from '../config/brand';
+import {
+  BRAND_ADDRESS,
+  BRAND_BOOKING_EMAIL,
+  BRAND_BOOKING_PHONE,
+  BRAND_CONTACT_EMAIL,
+  BRAND_PHONE,
+  BRAND_TAGLINE,
+  SALON_NAME,
+} from '../config/brand';
 import './Home.css';
 
-const heroImage =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAoG57Qd9WMg0H6lYPhWqMdnpjtg-kLLz5mA4qUC170imSRw4DrnNaYn_Wkfw-zV9-XgBHk2e3NSEK7byiXMxTcXckISlbnZz6LrJC1C5KMaNOk5o3YZ7TR_cJGbaX9u-YtXZycLUlYl5DG9edgpr8qJBzTBA1YlXHqrN4fdgYytIJuoBV_lYn_UvFfh5wgY3ES3OTDU7ugUoc_ghoyBILURzm7R4kbGgSyIOBTuRTeWW-ry4Ys8I9iK4MGd8fl6z7UzCPqd8BKNvQ';
+const heroImage = '/images/hero.png';
 
-const storyImage =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBlu8U8K30MpWwSwYDjv9L2_X5JFm7q869YjP9iyMIDW235ouaK-nloy8c0WpXxBzN26hBK2FiYIt3SqlJeEUXpQUuHUt_BIo2ZxrPU3wuBMCnPJ6ED7vdYBwrVpWdgJ6usGlQSTtIXJqEv7EQp1jG-z7HqQDXiVzn3mh1ybvhHgLHAEizxVNbpFbVmMbrdFIrAwUNW1pGtfc9D0_entPDFpZqlpLlatSsDm6Ozi5Q4SogIBGqucHX6jc4_K9no1qka0tVqdPO4CNM';
+const heroStats = [
+  {
+    icon: Clock3,
+    label: 'Open daily',
+    value: '9am - 9pm',
+  },
+  {
+    icon: MapPin,
+    label: 'West Hollywood',
+    value: '8422 Melrose Ave',
+  },
+  {
+    icon: Sparkles,
+    label: 'Booking style',
+    value: 'Private suites',
+  },
+];
 
-const ctaImage =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuC1YdowQvAvwuIYNuwLjdy1AAICHe0y6TG9yqIx68v5krz2T2pUfYERWEFs9ZmDzKcagvrhNnIwFKgydfGLbmJSAFGub3QtbPEYBcmNqS9xhAySt_ZNUdv1vuNTGGB2Fnl1J4VQKX0SKMWVGFaUopTbQlVnnh4H4tdZ-kE7qvXLmF97bvuFonLZS_jgpnZ7UBZ3crgUHb_G_QFmNpAytUsSoLsND6bMnOn3h0oPuSiITVSoS2SAiO9VISQXVu_q6qOEBZqvmct4a-Y';
+const philosophyCards = [
+  {
+    icon: Leaf,
+    title: 'Mindful arrival',
+    text:
+      'We start with a warm welcome, clear guidance, and a pace that immediately lowers the volume of the day.',
+  },
+  {
+    icon: Waves,
+    title: 'Tailored rituals',
+    text:
+      'Treatments are adapted to skin, body, and energy so the result feels personal rather than generic.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Thoughtful aftercare',
+    text:
+      'Every visit ends with practical follow-up advice, product direction, and a calm transition back out.',
+  },
+];
 
-const featuredServices = [
+const galleryTiles = [
+  {
+    title: 'Arrival Lounge',
+    caption: 'Warm light, textural finishes, and a first impression that slows the breath.',
+    className: 'home-gallery-tile-large',
+    position: 'center 24%',
+  },
+  {
+    title: 'Ritual Detail',
+    caption: 'Candles, botanicals, and the quiet precision behind every service.',
+    className: 'home-gallery-tile-tall',
+    position: 'center 56%',
+  },
+  {
+    title: 'Evening Reset',
+    caption: 'A serene finish designed to linger long after you leave.',
+    className: 'home-gallery-tile-wide',
+    position: 'center 76%',
+  },
+];
+
+const serviceTiles = [
   {
     title: 'Signature Massage',
+    badge: 'Body ritual',
     description:
-      'A deep tissue journey using volcanic stones and custom essential oils to release deep-seated tension.',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDcw1Hc6rua5lhJRlztqw0tT-5OaFXcr6WQKSWjaCrjr4ZIWRrAHI00BTSJ9Jk6WXFUof5mhOLTYG1dKIuoEu2X_lGkdXJpJVKq1YCNuBcmsHD8MzZhbahqPCHnNf9-BwxVYBji4T70u4QAP8-q63ViE16Mqm0jGGFjbhRsVWvJt1ABc4hUSHkqQdsuIfonOFMgAfWmzR0ZO3GYG8Ql-QkvBBu8njdkhYDJ5RUPyDIPCGZomrelvShyWvNxnEYZPXaFxqnb-2H5YhA',
-    alt: 'Signature massage with hot stones in a serene spa setting',
+      'Deep release with warm stones, layered pressure, and custom oils to unwind tension without rushing the body.',
+    duration: '75 min',
+    position: 'center 32%',
   },
   {
     title: 'Facial Renewal',
+    badge: 'Skin ritual',
     description:
-      "Advanced botanical skincare paired with lymphatic drainage to restore your skin's natural luminescence.",
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAHGqID-1Rxb7Hi1gjvYaPBzRdcDq4LdPJsicJ2EFNOUGgC2ozbDGLUSZyIm87uF6-5QRYpSX6NcaEx09WdP1QJixTInUg_d77r3qAn1zQsyG67n3WMnADky0xxb2WbOYBDrqmydmX1KPeKVe5xm9Y1a5OTtFCaIiu117wLfgx3s12dpYIjwRdClao5PN0GxC0QZeP1cgYYpBrhVgkQ3_fhdU7KkOVpz2SW8Ok3wYrN8mfB1BtoVMDsH2nMpBY1XfsmN83PHbGCDfA',
-    alt: 'Botanical facial treatment with calming spa textures',
+      'Botanical actives and lymphatic flow work together to restore luminosity and clarity.',
+    duration: '60 min',
+    position: 'center 52%',
   },
   {
     title: 'Aromatic Body Scrub',
+    badge: 'Glow ritual',
     description:
-      'A revitalizing exfoliation using Himalayan salts and organic nectar to polish and deeply nourish the body.',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBLwnmfeHa81oSJmBvdUa8h00caX_2XCfbAslIFemYYVYFbirK-9FOTAXOuBo8ltfg0DZgB46SSDIepXKOM9u22MZZNIqJgIrpmXhQh9_qbeG5kC6CiRFfDSohYFVPIhGRIzKjLiHdWnbT0BtUjYTQTaGlrwlIj6lHK0WIKwAVWJ5M-LxAW2rJWliBXnahkBDSWpAS7ZBFRjBPjle1ohFjgKWj2dVJ-8spF8DGHutm7oSX504mm66eEMcDWy7w5jkpMXntUVT6yaj8',
-    alt: 'Aromatic body scrub ingredients arranged in a spa ritual setting',
+      'A polishing exfoliation that leaves the skin smooth, hydrated, and beautifully renewed.',
+    duration: '45 min',
+    position: 'center 74%',
   },
 ];
 
 const testimonials = [
   {
     quote:
-      "The moment you step through the doors, the world simply stops. I haven't felt this grounded in years. The Signature Massage was transformative.",
-    name: 'Helena Montgomery',
-    title: 'Wellness Enthusiast',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuABjb4QYUq-UNfn1z9m0vqt8_1mP8gtvNlirVcphyWknk04IH4AMNVHB8SXtYhXOyC1mSFkn929CPDrl3cjrST-7nQvx8lx8ry9PwyM_It83PdrE5gEbE9IwjPRIpEXjU5mYkepnXlN8wm-t7lYjFWLHROqVh8myDueOKV7DRzx8EomvgOp8pJZnfb_V07i1Ocb4lh6lPk1EwpcASy_b59NQZn7ktFh1FDYH0A_6jDS7C24eJuENwcKthirSR9CbxxjOZv-6aQGjqU',
-    alt: 'Guest portrait of Helena Montgomery',
+      'The team made the appointment feel considered, calm, and beautifully paced from start to finish.',
+    name: 'Helena M.',
+    title: 'Returning guest',
+    initials: 'HM',
   },
   {
     quote:
-      'More than a spa, it is a spiritual retreat. The attention to detail is unmatched, from the organic tea blends to the therapeutic scents.',
-    name: 'Julian Thorne',
-    title: 'Global Traveler',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDIPc8U2Q8TVqeH3a-AOYymRp9Bhc2u-8HYdF_NEZvUsmKHOMrniLzBoybmIuxYUVw6EkXYnPopx5E5BMQ4Sh4WcDbaiESrVjnkG20kPnhrQ96hOUkFrU2wJ5buqzVPivN9XWcE8_9wezRK0Dooa_cwgPCfMgf6K47PYuX4NH6iNEuoZQTmKydWSd4M_H_gRnf-MAKwfETT98ZfOG13pbCQcMAwL3fXA83JIobhKumLNvLZMK68K3Wm-RIVWlEFgAjiWgykmBcE5G0',
-    alt: 'Guest portrait of Julian Thorne',
+      'It feels like a retreat, not just a salon visit. Every detail is warm, polished, and quietly luxurious.',
+    name: 'Julian T.',
+    title: 'Weekend regular',
+    initials: 'JT',
+  },
+  {
+    quote:
+      'I left feeling reset and looked after. The booking, the welcome, and the aftercare all felt effortless.',
+    name: 'Ava K.',
+    title: 'First-time guest',
+    initials: 'AK',
   },
 ];
+
+const bookingPhoneHref = `tel:${BRAND_BOOKING_PHONE.replace(/[^\d+]/g, '')}`;
+const phoneHref = `tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`;
+const bookingEmailHref = `mailto:${BRAND_BOOKING_EMAIL}`;
 
 const Home = () => {
   return (
     <div className="home-page">
       <section className="home-hero">
-        <div className="home-hero-media">
+        <div className="home-hero-backdrop" aria-hidden="true">
           <img
             src={heroImage}
-            alt="Luxury indoor spa pool with warm ambient lighting"
+            alt=""
             className="home-hero-image"
+            loading="eager"
           />
         </div>
-        <div className="home-hero-overlay" />
-        <div className="container home-hero-content">
+        <div className="home-hero-overlay" aria-hidden="true" />
+
+        <div className="container home-hero-grid">
           <div className="home-hero-copy">
-            <span className="home-eyebrow">{SALON_NAME}</span>
-            <h1 className="home-hero-title">
-              {SALON_NAME}
-            </h1>
-            <p className="home-hero-subtitle">
-              {BRAND_TAGLINE}. A restorative journey designed to harmonize your inner landscape
-              through modern luxury and thoughtful care.
+            <span className="home-eyebrow">Luxury salon & spa</span>
+            <h1>{SALON_NAME}</h1>
+            <p className="home-hero-intro">
+              {BRAND_TAGLINE}. A quiet West Hollywood retreat for facials, body rituals, and
+              beautifully paced care.
             </p>
-            <Link to="/booking" className="home-primary-button">
-              Book Your Escape
+
+            <div className="home-hero-actions">
+              <Link to="/booking" className="home-primary-button">
+                Reserve Now
+              </Link>
+              <Link to="/services" className="home-secondary-button">
+                Explore Services
+              </Link>
+            </div>
+
+            <p className="home-hero-note">
+              By reservation only · West Hollywood · Thoughtfully paced appointments
+            </p>
+
+            <div className="home-hero-contact">
+              <a href={phoneHref}>{BRAND_PHONE}</a>
+              <span>{BRAND_ADDRESS}</span>
+            </div>
+          </div>
+
+          <div className="home-hero-panel">
+            <div className="home-hero-image-shell">
+              <img
+                src={heroImage}
+                alt="Warm spa ritual bowl surrounded by candles and botanicals"
+                className="home-hero-panel-image"
+                loading="eager"
+              />
+              <span className="home-hero-ribbon">Bookings open</span>
+              <article className="home-hero-card">
+                <span>Private booking experience</span>
+                <strong>Calm from first hello to aftercare.</strong>
+                <p>
+                  Tailored rituals, a soft arrival, and a booking flow that respects your time.
+                </p>
+              </article>
+            </div>
+
+            <div className="home-hero-stats">
+              {heroStats.map((stat, index) => {
+                const Icon = stat.icon;
+
+                return (
+                  <article key={stat.label} className="home-hero-stat-card" style={{ '--card-delay': `${index * 110}ms` }}>
+                    <Icon size={18} />
+                    <span>{stat.label}</span>
+                    <strong>{stat.value}</strong>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-story" id="story">
+        <div className="container home-story-grid">
+          <div className="home-story-copy">
+            <div className="home-section-header">
+              <span className="home-section-kicker">Philosophy of calm</span>
+              <h2 className="home-section-title">Beauty, paced like a breath.</h2>
+              <p className="home-section-lead">
+                Hazel Beauty Saloon is built around slower starts, softer finishes, and treatments
+                that feel intentionally edited rather than overdone.
+              </p>
+              <p className="home-section-text">
+                The team listens first, recommends second, and shapes each appointment around how
+                you want to feel when you leave.
+              </p>
+            </div>
+
+            <div className="home-philosophy-grid">
+              {philosophyCards.map((card, index) => {
+                const Icon = card.icon;
+
+                return (
+                  <article
+                    key={card.title}
+                    className="home-philosophy-card"
+                    style={{ '--card-delay': `${index * 120}ms` }}
+                  >
+                    <Icon size={20} />
+                    <h3>{card.title}</h3>
+                    <p>{card.text}</p>
+                  </article>
+                );
+              })}
+            </div>
+
+            <Link to="/contact" className="home-inline-link">
+              Meet the team
+              <ArrowRight size={16} />
             </Link>
           </div>
-        </div>
-      </section>
 
-      <section className="home-story">
-        <div className="container home-story-grid">
-          <div className="home-story-media">
-            <div className="home-story-image-shell">
-              <img
-                src={storyImage}
-                alt="Spa facial treatment in a softly lit wellness room"
-                className="home-story-image"
-                loading="lazy"
-              />
-            </div>
-            <div className="home-story-quote">
+          <div className="home-story-aside">
+            <article className="home-story-quote-card">
+              <Quote className="home-story-quote-icon" size={68} aria-hidden="true" />
               <p>"Silence is the language of the soul."</p>
-            </div>
-          </div>
+              <span>Crafted to feel restorative, never rushed.</span>
+            </article>
 
-          <div className="home-story-copy">
-            <span className="home-story-divider" />
-            <h2 className="home-section-title">
-              The Art of
-              <br />
-              Purposeful Stillness
-            </h2>
-            <p className="home-section-text">
-              Founded on the principle that true luxury is found in time and
-              space, {SALON_NAME} offers a curated environment where the
-              noise of the world dissolves into a whisper.
-            </p>
-            <p className="home-section-text">
-              Every element, from the scent of hand-pressed oils to the
-              rhythmic cadence of our signature rituals, is orchestrated to
-              guide you back to your center. We believe wellness is not a
-              destination, but a state of being.
-            </p>
-            <div className="home-story-meta">
-              <span className="home-story-line" />
-              <span className="home-story-year">Since 1994</span>
+            <article className="home-story-team-card">
+              <span className="home-story-team-kicker">Our story</span>
+              <strong>
+                Warm hosts, detail-obsessed therapists, and a front desk that treats every visit
+                like a welcome back.
+              </strong>
+              <p>
+                From consultation to aftercare, the experience is designed to feel personal,
+                calm, and clear.
+              </p>
+            </article>
+
+            <div className="home-story-meta-row">
+              <span>
+                <CalendarDays size={14} />
+                Tailored consults
+              </span>
+              <span>
+                <Clock3 size={14} />
+                Unhurried sessions
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="home-services">
+      <section className="home-gallery">
         <div className="container">
           <div className="home-section-header home-section-header-centered">
-            <span className="home-section-kicker">Curated Rituals</span>
-            <h2 className="home-section-title">Signature Experiences</h2>
+            <span className="home-section-kicker">Inside the salon</span>
+            <h2 className="home-section-title">A small portfolio of the atmosphere.</h2>
+            <p className="home-section-lead">
+              Warm surfaces, candlelight, and ritual details come together to make the space feel
+              calm before the service even begins.
+            </p>
+          </div>
+
+          <div className="home-gallery-grid">
+            {galleryTiles.map((tile, index) => (
+              <article
+                key={tile.title}
+                className={`home-gallery-tile ${tile.className}`}
+                style={{ '--card-delay': `${index * 120}ms` }}
+              >
+                <img
+                  src={heroImage}
+                  alt={tile.title}
+                  className="home-gallery-image"
+                  loading="lazy"
+                  style={{ objectPosition: tile.position }}
+                />
+                <div className="home-gallery-overlay" aria-hidden="true" />
+                <div className="home-gallery-copy">
+                  <span>{tile.title}</span>
+                  <p>{tile.caption}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-services" id="services">
+        <div className="container">
+          <div className="home-section-header home-section-header-centered">
+            <span className="home-section-kicker">Curated rituals</span>
+            <h2 className="home-section-title">Signature experiences.</h2>
+            <p className="home-section-lead">
+              Elevated service cards pair tactile imagery with faster scanning, clearer hierarchy,
+              and a gentler path to booking.
+            </p>
           </div>
 
           <div className="home-services-grid">
-            {featuredServices.map((service) => (
-              <article key={service.title} className="home-service-card">
-                <div className="home-service-image-shell">
+            {serviceTiles.map((service, index) => (
+              <article
+                key={service.title}
+                className="home-service-card"
+                style={{ '--card-delay': `${index * 120}ms` }}
+              >
+                <div className="home-service-media">
                   <img
-                    src={service.image}
-                    alt={service.alt}
+                    src={heroImage}
+                    alt={service.title}
                     className="home-service-image"
                     loading="lazy"
+                    style={{ objectPosition: service.position }}
                   />
+                  <div className="home-service-media-overlay" aria-hidden="true" />
+                  <span className="home-service-badge">{service.badge}</span>
+                  <span className="home-service-duration">{service.duration}</span>
                 </div>
                 <div className="home-service-content">
                   <h3>{service.title}</h3>
@@ -166,31 +372,36 @@ const Home = () => {
       <section className="home-testimonials">
         <div className="container">
           <div className="home-section-header home-section-header-centered">
-            <span className="home-section-kicker home-section-kicker-muted">
-              Guest Perspectives
-            </span>
-            <h2 className="home-section-title home-section-title-italic">
-              Echoes of Peace
-            </h2>
+            <span className="home-section-kicker home-section-kicker-muted">Guest perspectives</span>
+            <h2 className="home-section-title home-section-title-italic">Echoes of peace.</h2>
+            <p className="home-section-lead">
+              Guest quotes are styled as a horizontal, scrollable narrative so the section feels
+              more premium and less rigid on smaller screens.
+            </p>
           </div>
 
-          <div className="home-testimonials-grid">
-            {testimonials.map((testimonial) => (
-              <article key={testimonial.name} className="home-testimonial-card">
-                <Quote className="home-testimonial-quote-icon" size={70} />
-                <div className="home-stars" aria-hidden="true">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} size={18} fill="currentColor" />
-                  ))}
+          <div className="home-testimonials-track" aria-label="Guest testimonials">
+            {testimonials.map((testimonial, index) => (
+              <article
+                key={testimonial.name}
+                className="home-testimonial-card"
+                style={{ '--card-delay': `${index * 120}ms` }}
+              >
+                <div className="home-testimonial-head">
+                  <Quote className="home-testimonial-quote-icon" size={64} aria-hidden="true" />
+                  <div className="home-stars" aria-hidden="true">
+                    {Array.from({ length: 5 }).map((_, starIndex) => (
+                      <Star key={starIndex} size={16} fill="currentColor" />
+                    ))}
+                  </div>
                 </div>
+
                 <p className="home-testimonial-copy">"{testimonial.quote}"</p>
+
                 <div className="home-testimonial-author">
-                  <img
-                    src={testimonial.image}
-                    alt={testimonial.alt}
-                    className="home-testimonial-avatar"
-                    loading="lazy"
-                  />
+                  <div className="home-testimonial-monogram" aria-hidden="true">
+                    {testimonial.initials}
+                  </div>
                   <div>
                     <h4>{testimonial.name}</h4>
                     <p>{testimonial.title}</p>
@@ -205,18 +416,54 @@ const Home = () => {
       <section className="home-cta">
         <div className="home-cta-media">
           <img
-            src={ctaImage}
-            alt="Minimalist wellness retreat overlooking a forest at dawn"
+            src={heroImage}
+            alt=""
             className="home-cta-image"
             loading="lazy"
           />
         </div>
-        <div className="home-cta-overlay" />
         <div className="container home-cta-content">
-          <h2 className="home-cta-title">Ready for Your Retreat?</h2>
-          <Link to="/booking" className="home-primary-button home-primary-button-large">
-            Book Your Appointment Now
-          </Link>
+          <div className="home-cta-copy">
+            <span className="home-section-kicker home-section-kicker-light">Ready for your retreat?</span>
+            <h2 className="home-cta-title">Reserve a calmer hour for yourself.</h2>
+            <p className="home-cta-text">
+              Tell us what you need, and we’ll help you choose the right ritual or service before
+              you arrive.
+            </p>
+
+            <div className="home-cta-actions">
+              <Link to="/booking" className="home-primary-button home-primary-button-large">
+                Book Your Appointment
+              </Link>
+              <a href={bookingPhoneHref} className="home-secondary-button home-secondary-button-light">
+                Call Front Desk
+              </a>
+            </div>
+          </div>
+
+          <aside className="home-cta-card">
+            <span className="home-cta-card-kicker">What to expect</span>
+            <ul>
+              <li>
+                <Sparkles size={15} />
+                Guided consultation
+              </li>
+              <li>
+                <Leaf size={15} />
+                Tailored care and product guidance
+              </li>
+              <li>
+                <ShieldCheck size={15} />
+                Quiet, private, and unhurried
+              </li>
+            </ul>
+
+            <div className="home-cta-card-foot">
+              <span>Bookings</span>
+              <a href={bookingEmailHref}>{BRAND_BOOKING_EMAIL}</a>
+              <small>{BRAND_CONTACT_EMAIL}</small>
+            </div>
+          </aside>
         </div>
       </section>
     </div>

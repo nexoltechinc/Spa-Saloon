@@ -1,10 +1,20 @@
 import { Link } from 'react-router-dom';
-import { Globe, Mail, Send } from 'lucide-react';
-import { BRAND_ADDRESS, BRAND_CONTACT_EMAIL, BRAND_PHONE, SALON_NAME } from '../config/brand';
+import { CalendarDays, Mail, MapPin, Phone } from 'lucide-react';
+import {
+  BRAND_ADDRESS,
+  BRAND_BOOKING_EMAIL,
+  BRAND_BOOKING_PHONE,
+  BRAND_CONTACT_EMAIL,
+  BRAND_MAP_LINK,
+  BRAND_PHONE,
+  SALON_NAME,
+} from '../config/brand';
 import './Footer.css';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const phoneHref = `tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`;
+  const bookingPhoneHref = `tel:${BRAND_BOOKING_PHONE.replace(/[^\d+]/g, '')}`;
 
   return (
     <footer className="footer">
@@ -16,40 +26,69 @@ const Footer = () => {
           <p className="footer-desc">
             Luxury beauty, salon, and wellness experiences curated with calm precision and polished care.
           </p>
-          <div className="footer-socials">
-            <a href="#" aria-label="Discover our world">
-              <Globe size={18} />
+          <div className="footer-actions" aria-label="Quick contact actions">
+            <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" aria-label="Open the salon location">
+              <MapPin size={18} />
+              <span>Visit</span>
             </a>
-            <a href="#" aria-label="Share with us">
-              <Send size={18} />
+            <a href={phoneHref} aria-label="Call the front desk">
+              <Phone size={18} />
+              <span>Call</span>
             </a>
-            <a href="#" aria-label="Email us">
+            <a href={`mailto:${BRAND_CONTACT_EMAIL}`} aria-label="Email the salon">
               <Mail size={18} />
+              <span>Email</span>
             </a>
+            <a href={bookingPhoneHref} aria-label="Call the booking line">
+              <CalendarDays size={18} />
+              <span>Book</span>
+            </a>
+          </div>
+          <div className="footer-badges">
+            <span>By reservation</span>
+            <span>West Hollywood</span>
+            <span>Luxury salon & spa</span>
           </div>
         </div>
 
-        <div className="footer-nav">
+        <div className="footer-column">
+          <h4 className="footer-heading">Explore</h4>
           <div className="footer-links-group">
-            <h4 className="footer-heading">Navigation</h4>
+            <Link to="/services">Services</Link>
+            <Link to="/booking">Reserve Now</Link>
+            <Link to="/contact">Contact</Link>
+            <Link to="/wellness">Wellness</Link>
+          </div>
+        </div>
+
+        <div className="footer-column">
+          <h4 className="footer-heading">Visit</h4>
+          <div className="footer-links-group footer-contact">
+            <p>{BRAND_ADDRESS}</p>
+            <a href={phoneHref}>{BRAND_PHONE}</a>
+            <a href={bookingPhoneHref}>{BRAND_BOOKING_PHONE}</a>
+            <a href={`mailto:${BRAND_BOOKING_EMAIL}`}>{BRAND_BOOKING_EMAIL}</a>
+            <a href={`mailto:${BRAND_CONTACT_EMAIL}`}>{BRAND_CONTACT_EMAIL}</a>
+          </div>
+        </div>
+
+        <div className="footer-column">
+          <h4 className="footer-heading">Support</h4>
+          <div className="footer-links-group">
             <Link to="/privacy-policy">Privacy Policy</Link>
             <Link to="/terms">Terms of Service</Link>
             <Link to="/wellness-journal">Wellness Journal</Link>
             <Link to="/careers">Careers</Link>
+            <Link to="/crm-login">Staff Login</Link>
           </div>
         </div>
+      </div>
 
-        <div className="footer-links-group footer-contact">
-          <h4 className="footer-heading">{SALON_NAME}</h4>
-          <p>
-            {BRAND_ADDRESS}
-          </p>
-          <p>T: {BRAND_PHONE}</p>
-          <p>E: {BRAND_CONTACT_EMAIL}</p>
-          <p className="footer-copyright">
-            Copyright {currentYear} {SALON_NAME}. All rights reserved.
-          </p>
-        </div>
+      <div className="container footer-bottom">
+        <p className="footer-copyright">
+          Copyright {currentYear} {SALON_NAME}. All rights reserved.
+        </p>
+        <p className="footer-bottom-note">Appointments are by reservation and tailored to your pace.</p>
       </div>
     </footer>
   );
