@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, BadgePercent, CalendarDays, Sparkles } from 'lucide-react';
 import {
   SERVICE_ADDONS,
@@ -16,9 +16,25 @@ import {
 import './ServiceCatalogPages.css';
 
 const Booking = () => {
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedServiceId, setSelectedServiceId] = useState(SERVICE_SEED[0]?.id || '');
+  const incomingSelectedServiceIds = useMemo(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const queryIds = (searchParams.get('services') || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const stateIds = Array.isArray(location.state?.selectedServiceIds) ? location.state.selectedServiceIds : [];
+    const stateSingleId = location.state?.selectedServiceId ? [location.state.selectedServiceId] : [];
+
+    return [...stateIds, ...stateSingleId, ...queryIds]
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }, [location.search, location.state]);
+
+  const [selectedServiceId, setSelectedServiceId] = useState(() => incomingSelectedServiceIds[0] || SERVICE_SEED[0]?.id || '');
   const [selectedAddonIds, setSelectedAddonIds] = useState(() => SERVICE_SEED[0]?.defaultAddonIds || []);
   const [staffLevel, setStaffLevel] = useState(STAFF_PRICING_RULES[0]?.label || 'Junior Staff');
   const [discountAmount, setDiscountAmount] = useState('0');

@@ -1,13 +1,15 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import CrmSidebar from './CrmSidebar';
 
 const Layout = ({ children }) => {
+  const { pathname } = useLocation();
+
   return (
     <>
-      <Navbar />
+      <Navbar key={pathname} />
       <CrmSidebar />
       <main>
         {children || <Outlet />}

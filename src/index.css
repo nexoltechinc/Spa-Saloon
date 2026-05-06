@@ -1,19 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Manrope:wght@300;400;500;600;700;800&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --color-warm-beige: #f5efe5;
-  --color-soft-ivory: #fbf7f0;
-  --color-taupe: #8b7f71;
-  --color-muted-stone: #a39b8c;
-  --color-deep-charcoal: #21231f;
-  --color-soft-gold: #c1a24a;
-  --color-subtle-botanical: #8da08a;
+  --color-deep-forest: #0b1a12;
+  --color-champagne-gold: #c5a059;
+  --color-base-cream: #f9f7f2;
+  --color-text-primary: #1a1a1a;
+  --color-surface: #fffdfa;
+  --color-surface-strong: #f3eee6;
+  --color-muted-ink: #5f665f;
+  --color-border: rgba(11, 26, 18, 0.12);
+  --color-subtle-botanical: #8fa186;
 
-  --font-heading: 'Playfair Display', serif;
-  --font-body: 'Manrope', sans-serif;
-  --font-accent: 'Montserrat', sans-serif;
+  --color-warm-beige: var(--color-base-cream);
+  --color-soft-ivory: var(--color-surface);
+  --color-taupe: #867968;
+  --color-muted-stone: #9b9489;
+  --color-deep-charcoal: var(--color-text-primary);
+  --color-soft-gold: var(--color-champagne-gold);
+
+  --font-heading: 'Cormorant Garamond', serif;
+  --font-display: 'Playfair Display', serif;
   --font-editorial: 'Playfair Display', serif;
-  --font-sans: 'Manrope', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-accent: 'Montserrat', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-micro: 'Lato', sans-serif;
 
   --space-xs: 0.5rem;
   --space-sm: 1rem;
@@ -41,8 +52,11 @@ html {
 }
 
 body {
-  background-color: var(--color-warm-beige);
-  color: var(--color-deep-charcoal);
+  background:
+    radial-gradient(circle at top left, rgba(197, 160, 89, 0.08), transparent 28%),
+    radial-gradient(circle at 90% 10%, rgba(143, 161, 134, 0.08), transparent 24%),
+    var(--color-base-cream);
+  color: var(--color-text-primary);
   font-family: var(--font-body);
   line-height: 1.65;
   min-height: 100vh;
@@ -76,26 +90,26 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
-  font-weight: 500;
-  line-height: 1.15;
+  font-weight: 600;
+  line-height: 1.08;
   margin-bottom: 0;
 }
 
 h1 {
-  font-size: clamp(2.5rem, 5vw, 4.7rem);
-  letter-spacing: -0.04em;
+  font-size: clamp(2.75rem, 5vw, 5.25rem);
+  letter-spacing: -0.03em;
 }
 
 h2 {
-  font-size: clamp(2rem, 4vw, 3.6rem);
+  font-size: clamp(2.1rem, 4vw, 3.7rem);
 }
 
 h3 {
-  font-size: clamp(1.45rem, 3vw, 2.2rem);
+  font-size: clamp(1.45rem, 3vw, 2.25rem);
 }
 
 p {
-  color: rgba(33, 35, 31, 0.9);
+  color: rgba(26, 26, 26, 0.9);
   font-size: 1rem;
   margin-bottom: 1rem;
 }
@@ -111,20 +125,20 @@ a:hover {
 }
 
 ::selection {
-  background: rgba(193, 162, 74, 0.28);
-  color: #1e231d;
+  background: rgba(197, 160, 89, 0.28);
+  color: #111710;
 }
 
 :focus-visible {
-  outline: 2px solid rgba(109, 91, 17, 0.35);
+  outline: 2px solid rgba(197, 160, 89, 0.45);
   outline-offset: 3px;
 }
 
 .glass {
-  background: rgba(251, 247, 240, 0.74);
+  background: rgba(255, 253, 248, 0.76);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: var(--shadow-subtle);
 }
 
@@ -147,7 +161,7 @@ a:hover {
   color: var(--color-taupe);
   display: block;
   font-family: var(--font-accent);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   margin-bottom: var(--space-xs);

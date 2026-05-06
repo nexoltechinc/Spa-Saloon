@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   CalendarDays,
@@ -39,6 +40,28 @@ const heroStats = [
     icon: Sparkles,
     label: 'Booking style',
     value: 'Private suites',
+  },
+];
+
+const featuredInTicker = [
+  'Luxury hospitality',
+  'West Hollywood concierge',
+  'Editorial calm',
+  'Private suite rituals',
+];
+
+const liveSocialProof = [
+  {
+    title: 'Live social proof',
+    message: 'Someone just booked a Signature Facial in West Hollywood.',
+  },
+  {
+    title: 'Live social proof',
+    message: 'A guest just reserved a quiet body ritual for this evening.',
+  },
+  {
+    title: 'Live social proof',
+    message: 'A bridal consultation was just added to the calendar.',
   },
 ];
 
@@ -140,6 +163,16 @@ const phoneHref = `tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`;
 const bookingEmailHref = `mailto:${BRAND_BOOKING_EMAIL}`;
 
 const Home = () => {
+  const [socialProofIndex, setSocialProofIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setSocialProofIndex((current) => (current + 1) % liveSocialProof.length);
+    }, 4200);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   return (
     <div className="home-page">
       <section className="home-hero">
@@ -171,9 +204,7 @@ const Home = () => {
               </Link>
             </div>
 
-            <p className="home-hero-note">
-              By reservation only · West Hollywood · Thoughtfully paced appointments
-            </p>
+            <p className="home-hero-note">By reservation only | West Hollywood | Thoughtfully paced appointments</p>
 
             <div className="home-hero-contact">
               <a href={phoneHref}>{BRAND_PHONE}</a>
@@ -213,6 +244,27 @@ const Home = () => {
               })}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="home-trust-band" aria-label="Trust and social proof">
+        <div className="container home-trust-grid">
+          <article className="home-featured-strip">
+            <span className="home-section-kicker">Featured in</span>
+            <div className="home-featured-track" aria-hidden="true">
+              {[...featuredInTicker, ...featuredInTicker].map((item, index) => (
+                <span key={`${item}-${index}`} className="home-featured-chip">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </article>
+
+          <article className="home-social-proof">
+            <span className="home-section-kicker">Live social proof</span>
+            <strong>{liveSocialProof[socialProofIndex].title}</strong>
+            <p>{liveSocialProof[socialProofIndex].message}</p>
+          </article>
         </div>
       </section>
 

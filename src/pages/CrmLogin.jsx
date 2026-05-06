@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowRight, Fingerprint, KeyRound, Mail, Sparkles } from 'lucide-react';
 import { CRM_AUTH_ENDPOINT_IS_DEFAULT, getCrmSession, setCrmToken } from '../config/crm';
 import { BRAND_TAGLINE, CRM_NAME, SALON_INITIALS, SALON_NAME } from '../config/brand';
 import {
@@ -11,6 +12,7 @@ import {
 import './CrmLogin.css';
 
 const HEALTH_REFRESH_MS = 15000;
+const loginVisualImage = '/images/hero.png';
 
 const normalizeFeedbackMessage = (value, fallback = '') => {
   if (typeof value === 'string') {
@@ -78,6 +80,36 @@ const statusCopy = {
   },
 };
 
+const authShortcuts = [
+  {
+    id: 'biometric',
+    icon: Fingerprint,
+    label: 'Face ID / Touch ID',
+    description: 'Fast sign-in for managed devices and trusted hardware.',
+  },
+  {
+    id: 'sso',
+    icon: Sparkles,
+    label: 'Enterprise SSO',
+    description: 'Google Workspace or Microsoft 365 entry point for teams.',
+  },
+];
+
+const visualHighlights = [
+  {
+    title: 'Live bookings',
+    text: 'Track appointments, guest flow, and arrival timing from one calm workspace.',
+  },
+  {
+    title: 'Automation-ready',
+    text: 'Designed for routing, follow-up, and clean operational handoffs without friction.',
+  },
+  {
+    title: 'Secure access',
+    text: 'Session handling and route protection keep the experience predictable and private.',
+  },
+];
+
 const getReturnPath = (location) => location.state?.from?.pathname || '/crm/dashboard';
 
 const classifySubmitError = (error, resolvedAuthUrl) => {
@@ -120,8 +152,7 @@ const classifySubmitError = (error, resolvedAuthUrl) => {
     return {
       tone: 'offline',
       title: 'CRM backend unreachable',
-      message:
-        'The browser could not reach the CRM service. Check that the API is running, then try again.',
+      message: 'The browser could not reach the CRM service. Check that the API is running, then try again.',
     };
   }
 
@@ -137,10 +168,7 @@ const classifySubmitError = (error, resolvedAuthUrl) => {
   return {
     tone: 'offline',
     title: 'Unable to sign in',
-    message: normalizeFeedbackMessage(
-      error?.message || 'The CRM login could not be completed right now.',
-      'The CRM login could not be completed right now.',
-    ),
+    message: normalizeFeedbackMessage(error?.message || 'The CRM login could not be completed right now.', 'The CRM login could not be completed right now.'),
   };
 };
 
@@ -160,6 +188,13 @@ const CrmLogin = () => {
 
   const session = getCrmSession();
   const returnPath = getReturnPath(location);
+  const resolvedApiOrigin = getCrmResolvedApiOrigin();
+  const resolvedAuthUrl = getCrmResolvedAuthUrl();
+  const status = statusCopy[connectionState.key] || statusCopy.checking;
+  const currentFeedback = feedback || null;
+  const authEndpointCopy = CRM_AUTH_ENDPOINT_IS_DEFAULT
+    ? `Using the local CRM auth route by default. Requests are sent to ${resolvedAuthUrl}. Set VITE_CRM_AUTH_ENDPOINT only when a deployment needs a custom sign-in URL.`
+    : `Custom auth endpoint configured for production-grade sign-in. Requests are sent to ${resolvedAuthUrl}.`;
 
   useEffect(() => {
     let cancelled = false;
@@ -205,8 +240,7 @@ const CrmLogin = () => {
         setConnectionState({
           key: 'warning',
           checkedAt: now,
-          message:
-            `The CRM health request reached ${getCrmResolvedApiOrigin()} and the route was not found. Check the CRM API base URL or proxy configuration.`,
+          message: `The CRM health request reached ${resolvedApiOrigin} and the route was not found. Check the CRM API base URL or proxy configuration.`,
         });
         return;
       }
@@ -232,12 +266,19 @@ const CrmLogin = () => {
         clearInterval(intervalId);
       }
     };
-  }, [returnPath]);
+  }, [resolvedApiOrigin]);
+
+  const showShortcutFeedback = (title, message) => {
+    setFeedback({
+      tone: 'warning',
+      title,
+      message,
+    });
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setFeedback(null);
-
     setIsLoading(true);
 
     try {
@@ -263,22 +304,14 @@ const CrmLogin = () => {
     return <Navigate to={returnPath} replace />;
   }
 
-  const status = statusCopy[connectionState.key] || statusCopy.checking;
-  const currentFeedback = feedback || null;
-  const resolvedApiOrigin = getCrmResolvedApiOrigin();
-  const resolvedAuthUrl = getCrmResolvedAuthUrl();
-  const authEndpointCopy = CRM_AUTH_ENDPOINT_IS_DEFAULT
-    ? `Using the local CRM auth route by default. Requests are sent to ${resolvedAuthUrl}. Set VITE_CRM_AUTH_ENDPOINT only when a deployment needs a custom sign-in URL.`
-    : `Custom auth endpoint configured for production-grade sign-in. Requests are sent to ${resolvedAuthUrl}.`;
-
   return (
     <section className="crm-login-page">
       <div className="crm-login-ambient crm-login-ambient-left" aria-hidden="true" />
       <div className="crm-login-ambient crm-login-ambient-right" aria-hidden="true" />
 
       <div className="container crm-login-container">
-        <div className="crm-login-layout">
-          <aside className="crm-login-story">
+        <div className="crm-login-shell">
+          <aside className="crm-login-visual">
             <div className="crm-login-brand-mark" aria-label={CRM_NAME}>
               <div className="crm-login-brand-emblem" aria-hidden="true">
                 <span>{SALON_INITIALS}</span>
@@ -288,95 +321,103 @@ const CrmLogin = () => {
                 <span>{BRAND_TAGLINE}</span>
               </div>
             </div>
-            <p className="crm-login-kicker">CRM Access</p>
-            <h1>Access the Hazel Beauty Saloon CRM with calm, secure precision.</h1>
-            <p className="crm-login-intro">
-              Sign in to manage bookings, leads, payments, and guest follow-up from a polished
-              operations workspace designed for Hazel Beauty Saloon.
-            </p>
 
-            <ul className="crm-login-benefits" aria-label="CRM access benefits">
-              <li>
-                <span>01</span>
-                <div>
-                  <strong>Trusted session handling</strong>
-                  <p>
-                    Signed tokens persist when you choose to stay signed in and are cleared
-                    immediately on logout.
-                  </p>
-                </div>
-              </li>
-              <li>
-                <span>02</span>
-                <div>
-                  <strong>Protected CRM navigation</strong>
-                  <p>
-                    Unauthorized visits are redirected before the workspace renders, keeping the
-                    app predictable and secure.
-                  </p>
-                </div>
-              </li>
-              <li>
-                <span>03</span>
-                <div>
-                  <strong>Clear operational feedback</strong>
-                  <p>
-                    Credential errors and infrastructure issues are shown separately so the team
-                    never has to guess what failed.
-                  </p>
-                </div>
-              </li>
-            </ul>
+            <div className="crm-login-visual-frame">
+              <img src={loginVisualImage} alt="Warm hospitality scene from Hazel Beauty Saloon" className="crm-login-visual-image" />
+              <div className="crm-login-visual-overlay" aria-hidden="true" />
+              <article className="crm-login-visual-quote">
+                <span>Daily inspiration</span>
+                <strong>Abundance through ease.</strong>
+                <p>Every operational touchpoint should feel as calm and deliberate as the salon itself.</p>
+              </article>
+            </div>
 
-            <div className="crm-login-trust-row" aria-label="Trust signals">
-              <span>Postgres-backed</span>
-              <span>7-day session support</span>
-              <span>Route-protected CRM</span>
+            <div className="crm-login-visual-points">
+              {visualHighlights.map((item) => (
+                <article key={item.title}>
+                  <span>{item.title}</span>
+                  <p>{item.text}</p>
+                </article>
+              ))}
             </div>
           </aside>
 
-          <div className="crm-login-panel">
+          <article className="crm-login-panel">
             <div className="crm-login-panel-header">
               <div>
                 <p className="crm-login-panel-kicker">Secure sign in</p>
                 <h2>Sign in to your workspace</h2>
               </div>
 
-              <span className={`crm-login-state-pill crm-login-state-${status.tone}`}>
-                {status.eyebrow}
-              </span>
+              <span className={`crm-login-state-pill crm-login-state-${status.tone}`}>{status.eyebrow}</span>
             </div>
 
             <p className="crm-login-panel-copy">
               Use your admin email to reach live Hazel Beauty Saloon CRM records, workflows, and operational reporting.
             </p>
 
+            <div className="crm-login-shortcuts" aria-label="Authentication shortcuts">
+              {authShortcuts.map((shortcut) => {
+                const Icon = shortcut.icon;
+
+                return (
+                  <button
+                    key={shortcut.id}
+                    type="button"
+                    className="crm-login-shortcut-button"
+                    onClick={() =>
+                      showShortcutFeedback(
+                        shortcut.label,
+                        `${shortcut.label} is ready as a design-first entry point. The password form below remains the active sign-in path.`,
+                      )
+                    }
+                  >
+                    <Icon size={16} />
+                    <span>
+                      <strong>{shortcut.label}</strong>
+                      <small>{shortcut.description}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="crm-login-shortcut-note">
+              Password sign-in remains available below, while biometric and SSO hooks are staged at the UI layer.
+            </p>
+
             <form className="crm-login-form" onSubmit={handleSubmit}>
               <div className="crm-login-field">
                 <label htmlFor="crm-email">Work email</label>
-                <input
-                  id="crm-email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@company.com"
-                  autoComplete="email"
-                  autoFocus
-                  required
-                />
+                <div className="crm-login-input-shell">
+                  <Mail size={16} />
+                  <input
+                    id="crm-email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@company.com"
+                    autoComplete="email"
+                    autoFocus
+                    required
+                  />
+                </div>
               </div>
 
               <div className="crm-login-field">
                 <label htmlFor="crm-password">Password</label>
-                <input
-                  id="crm-password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  required
-                />
+                <div className="crm-login-input-shell">
+                  <KeyRound size={16} />
+                  <input
+                    id="crm-password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="crm-login-row">
@@ -393,34 +434,27 @@ const CrmLogin = () => {
                 <span className="crm-login-session-note">7-day secure token when enabled</span>
               </div>
 
-              <button
-                type="submit"
-                className="crm-login-button"
-                disabled={isLoading}
-              >
+              <button type="submit" className="crm-login-button" disabled={isLoading}>
                 {isLoading ? 'Signing in...' : 'Sign in securely'}
+                {!isLoading ? <ArrowRight size={16} /> : null}
               </button>
             </form>
 
             {currentFeedback ? (
-              <div
-                className={`crm-login-alert crm-login-alert-${currentFeedback.tone}`}
-                role="alert"
-                aria-live="polite"
-              >
+              <div className={`crm-login-alert crm-login-alert-${currentFeedback.tone}`} role="alert" aria-live="polite">
                 <strong>{currentFeedback.title}</strong>
                 <p>{currentFeedback.message}</p>
               </div>
             ) : null}
 
-            <article className="crm-login-meta-card crm-login-meta-card-host">
-              <span>Resolved API base</span>
-              <strong>{resolvedApiOrigin}</strong>
-              <p>{authEndpointCopy}</p>
-            </article>
-
             <div className="crm-login-meta-grid">
-              <article className="crm-login-meta-card">
+              <article className="crm-login-meta-card crm-login-meta-card-dark">
+                <span>Resolved API base</span>
+                <strong>{resolvedApiOrigin}</strong>
+                <p>{authEndpointCopy}</p>
+              </article>
+
+              <article className="crm-login-meta-card crm-login-meta-card-dark">
                 <span>Connection</span>
                 <strong>{status.title}</strong>
                 <p>
@@ -429,11 +463,16 @@ const CrmLogin = () => {
               </article>
             </div>
 
+            <article className="crm-login-meta-card crm-login-meta-card-dark crm-login-meta-card-wide">
+              <span>Operational note</span>
+              <strong>{connectionState.message}</strong>
+              <p>{CRM_NAME} distinguishes credential failure from infrastructure failure so the team can trust the message they see.</p>
+            </article>
+
             <p className="crm-login-footer-note">
-              This login distinguishes credential failure from infrastructure failure so QA and
-              front desk teams can trust the message they see.
+              This login keeps the interface elegant while still surfacing the exact system state behind the workspace.
             </p>
-          </div>
+          </article>
         </div>
       </div>
     </section>

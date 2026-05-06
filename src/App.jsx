@@ -66,7 +66,7 @@ const Placeholder = ({ title }) => (
           margin: 0,
         }}
       >
-        We’re refining this page to match the rest of the Hazel Beauty Saloon experience. For
+        We're refining this page to match the rest of the Hazel Beauty Saloon experience. For
         now, the main services, booking, and contact paths are ready.
       </p>
     </div>
