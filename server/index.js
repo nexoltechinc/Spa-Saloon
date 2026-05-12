@@ -25,7 +25,8 @@ import {
   STAFF_PRICING_RULES,
 } from '../src/config/serviceCatalog.js'
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const modulePath = fileURLToPath(import.meta.url)
+const projectRoot = path.resolve(path.dirname(modulePath), '..')
 const distPath = path.join(projectRoot, 'dist')
 const indexHtmlPath = path.join(distPath, 'index.html')
 
@@ -48,6 +49,7 @@ const runtime = {
 }
 
 let bootstrapTimer = null
+let bootstrapStarted = false
 
 const serializeBootError = (error) => ({
   message: error?.message || 'Unexpected CRM startup failure.',
@@ -106,6 +108,15 @@ const scheduleBootstrapRetry = (delayMs = 10000) => {
   bootstrapTimer = setTimeout(() => {
     void bootstrapDatabase()
   }, delayMs)
+}
+
+const startBootstrapLoop = () => {
+  if (bootstrapStarted || runtime.shuttingDown) {
+    return
+  }
+
+  bootstrapStarted = true
+  void bootstrapDatabase()
 }
 
 const bootstrapDatabase = async () => {
@@ -1180,7 +1191,7 @@ const start = async () => {
       console.log(`CRM API listening on http://localhost:${config.port}`)
     })
 
-    void bootstrapDatabase()
+    startBootstrapLoop()
 
     const shutdown = async () => {
       runtime.shuttingDown = true
@@ -1200,4 +1211,15 @@ const start = async () => {
   }
 }
 
-await start()
+startBootstrapLoop()
+
+const isDirectRun = process.argv[1]
+  ? path.resolve(process.argv[1]) === modulePath
+  : false
+
+if (isDirectRun) {
+  await start()
+}
+
+export { app, runtime, start, startBootstrapLoop }
+export default app
