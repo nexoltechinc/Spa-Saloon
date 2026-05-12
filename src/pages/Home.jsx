@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   CalendarDays,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { Link } from 'react-router-dom';
+import { useInView } from 'react-intersection-observer';
 import {
   BRAND_ADDRESS,
   BRAND_BOOKING_EMAIL,
@@ -23,6 +24,8 @@ import {
   SALON_NAME,
 } from '../config/brand';
 import './Home.css';
+
+const TestimonialsCarousel = lazy(() => import('../components/TestimonialsCarousel'));
 
 const heroImage = '/images/hero.png';
 
@@ -180,6 +183,11 @@ const Home = () => {
     viewport: { once: true, amount: 0.22 },
     transition: { duration: 0.65, ease: 'easeOut' },
   };
+  const { ref: testimonialsRef, inView: testimonialsInView } = useInView({
+    triggerOnce: true,
+    rootMargin: '180px 0px',
+    threshold: 0.2,
+  });
 
   void motion;
 
@@ -452,7 +460,7 @@ const Home = () => {
       </section>
 
       <section className="home-testimonials">
-        <div className="container">
+        <div className="container" ref={testimonialsRef}>
           <div className="home-section-header home-section-header-centered">
             <span className="home-section-kicker home-section-kicker-muted">Guest perspectives</span>
             <h2 className="home-section-title home-section-title-italic">Echoes of peace.</h2>
@@ -462,38 +470,79 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="home-testimonials-track" aria-label="Guest testimonials">
-            {testimonials.map((testimonial, index) => (
-              <motion.article
-                key={testimonial.name}
-                className="home-testimonial-card"
-                style={{ '--card-delay': `${index * 120}ms` }}
-                {...revealProps}
-                transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
-              >
-                <div className="home-testimonial-head">
-                  <Quote className="home-testimonial-quote-icon" size={64} aria-hidden="true" />
-                  <div className="home-stars" aria-hidden="true">
-                    {Array.from({ length: 5 }).map((_, starIndex) => (
-                      <Star key={starIndex} size={16} fill="currentColor" />
-                    ))}
-                  </div>
-                </div>
+          {testimonialsInView ? (
+            <Suspense
+              fallback={
+                <div className="home-testimonials-track" aria-label="Guest testimonials">
+                  {testimonials.map((testimonial, index) => (
+                    <motion.article
+                      key={testimonial.name}
+                      className="home-testimonial-card"
+                      style={{ '--card-delay': `${index * 120}ms` }}
+                      {...revealProps}
+                      transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
+                    >
+                      <div className="home-testimonial-head">
+                        <Quote className="home-testimonial-quote-icon" size={64} aria-hidden="true" />
+                        <div className="home-stars" aria-hidden="true">
+                          {Array.from({ length: 5 }).map((_, starIndex) => (
+                            <Star key={starIndex} size={16} fill="currentColor" />
+                          ))}
+                        </div>
+                      </div>
 
-                <p className="home-testimonial-copy">"{testimonial.quote}"</p>
+                      <p className="home-testimonial-copy">"{testimonial.quote}"</p>
 
-                <div className="home-testimonial-author">
-                  <div className="home-testimonial-monogram" aria-hidden="true">
-                    {testimonial.initials}
-                  </div>
-                  <div>
-                    <h4>{testimonial.name}</h4>
-                    <p>{testimonial.title}</p>
-                  </div>
+                      <div className="home-testimonial-author">
+                        <div className="home-testimonial-monogram" aria-hidden="true">
+                          {testimonial.initials}
+                        </div>
+                        <div>
+                          <h4>{testimonial.name}</h4>
+                          <p>{testimonial.title}</p>
+                        </div>
+                      </div>
+                    </motion.article>
+                  ))}
                 </div>
-              </motion.article>
-            ))}
-          </div>
+              }
+            >
+              <TestimonialsCarousel testimonials={testimonials} />
+            </Suspense>
+          ) : (
+            <div className="home-testimonials-track" aria-label="Guest testimonials">
+              {testimonials.map((testimonial, index) => (
+                <motion.article
+                  key={testimonial.name}
+                  className="home-testimonial-card"
+                  style={{ '--card-delay': `${index * 120}ms` }}
+                  {...revealProps}
+                  transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
+                >
+                  <div className="home-testimonial-head">
+                    <Quote className="home-testimonial-quote-icon" size={64} aria-hidden="true" />
+                    <div className="home-stars" aria-hidden="true">
+                      {Array.from({ length: 5 }).map((_, starIndex) => (
+                        <Star key={starIndex} size={16} fill="currentColor" />
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="home-testimonial-copy">"{testimonial.quote}"</p>
+
+                  <div className="home-testimonial-author">
+                    <div className="home-testimonial-monogram" aria-hidden="true">
+                      {testimonial.initials}
+                    </div>
+                    <div>
+                      <h4>{testimonial.name}</h4>
+                      <p>{testimonial.title}</p>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

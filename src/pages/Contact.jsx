@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -16,6 +16,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -173,10 +174,10 @@ const Contact = () => {
   const [successRecord, setSuccessRecord] = useState(null);
   const [submitError, setSubmitError] = useState('');
   const {
+    control,
     register,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(contactSchema),
@@ -185,11 +186,10 @@ const Contact = () => {
     reValidateMode: 'onChange',
   });
 
-  const fullNameValue = watch('fullName');
-  const emailValue = watch('email');
-  const phoneValue = watch('phone');
-  const subjectValue = watch('subject');
-  const messageValue = watch('message');
+  const [fullNameValue, emailValue, phoneValue, subjectValue, messageValue] = useWatch({
+    control,
+    name: ['fullName', 'email', 'phone', 'subject', 'message'],
+  });
   const submittedAtLabel = successRecord?.submittedAt
     ? new Date(successRecord.submittedAt).toLocaleString([], {
         month: 'short',
@@ -236,12 +236,6 @@ const Contact = () => {
     setSubmitError(message);
     toast.error(message);
   };
-
-  useEffect(() => {
-    if (submitError) {
-      setSubmitError('');
-    }
-  }, [emailValue, fullNameValue, messageValue, phoneValue, subjectValue, submitError]);
 
   return (
     <div className="contact-page">
@@ -426,7 +420,7 @@ const Contact = () => {
           </aside>
 
           <article className="contact-form-card">
-            {status === 'success' && successRecord ? (
+            {successRecord ? (
               <div className="contact-success-state" aria-live="polite">
                 <div className="contact-success-badge">
                   <CheckCircle2 size={24} />
@@ -468,7 +462,7 @@ const Contact = () => {
                 </div>
               </div>
             ) : (
-              <form className="contact-form" onSubmit={handleSubmit} noValidate>
+              <form className="contact-form" onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)} noValidate>
                 <div className="contact-form-header">
                   <div>
                     <p className="contact-section-kicker">Send an inquiry</p>
@@ -485,69 +479,54 @@ const Contact = () => {
                   <span>Secure submission, inline validation, and direct CRM lead capture.</span>
                 </div>
 
-                {feedback ? (
-                  <div
-                    className={`contact-alert ${status === 'error' ? 'contact-alert-error' : 'contact-alert-info'}`}
-                    role={status === 'error' ? 'alert' : 'status'}
-                    aria-live="polite"
-                  >
-                    {status === 'error' ? <TriangleAlert size={16} /> : <Sparkles size={16} />}
-                    <span>{feedback}</span>
+                {submitError ? (
+                  <div className="contact-alert contact-alert-error" role="alert" aria-live="assertive">
+                    <TriangleAlert size={16} />
+                    <span>{submitError}</span>
                   </div>
                 ) : null}
 
                 <div className="contact-form-grid">
-                  <label className={`contact-field ${form.fullName ? 'is-filled' : ''} ${fieldState('fullName').hasError ? 'has-error' : ''}`}>
+                  <label className={`contact-field ${fullNameValue ? 'is-filled' : ''} ${errors.fullName ? 'has-error' : ''}`}>
                     <input
                       id="contact-full-name"
                       type="text"
-                      value={form.fullName}
-                      onChange={(event) => updateField('fullName', event.target.value)}
-                      onBlur={() => handleBlur('fullName')}
                       placeholder=" "
                       autoComplete="name"
-                      required
+                      {...register('fullName')}
                     />
                     <span>Full name</span>
-                    {fieldState('fullName').errorMessage ? <small>{fieldState('fullName').errorMessage}</small> : null}
+                    {errors.fullName ? <small>{errors.fullName.message}</small> : null}
                   </label>
 
-                  <label className={`contact-field ${form.email ? 'is-filled' : ''} ${fieldState('email').hasError ? 'has-error' : ''}`}>
+                  <label className={`contact-field ${emailValue ? 'is-filled' : ''} ${errors.email ? 'has-error' : ''}`}>
                     <input
                       id="contact-email"
                       type="email"
-                      value={form.email}
-                      onChange={(event) => updateField('email', event.target.value)}
-                      onBlur={() => handleBlur('email')}
                       placeholder=" "
                       autoComplete="email"
-                      required
+                      {...register('email')}
                     />
                     <span>Email address</span>
-                    {fieldState('email').errorMessage ? <small>{fieldState('email').errorMessage}</small> : null}
+                    {errors.email ? <small>{errors.email.message}</small> : null}
                   </label>
 
-                  <label className={`contact-field ${form.phone ? 'is-filled' : ''} ${fieldState('phone').hasError ? 'has-error' : ''}`}>
+                  <label className={`contact-field ${phoneValue ? 'is-filled' : ''} ${errors.phone ? 'has-error' : ''}`}>
                     <input
                       id="contact-phone"
                       type="tel"
-                      value={form.phone}
-                      onChange={(event) => updateField('phone', event.target.value)}
-                      onBlur={() => handleBlur('phone')}
                       placeholder=" "
                       autoComplete="tel"
+                      {...register('phone')}
                     />
                     <span>Phone number (optional)</span>
-                    {fieldState('phone').errorMessage ? <small>{fieldState('phone').errorMessage}</small> : null}
+                    {errors.phone ? <small>{errors.phone.message}</small> : null}
                   </label>
 
-                  <label className={`contact-field contact-field-select ${form.subject ? 'is-filled' : ''} ${fieldState('subject').hasError ? 'has-error' : ''}`}>
+                  <label className={`contact-field contact-field-select ${subjectValue ? 'is-filled' : ''} ${errors.subject ? 'has-error' : ''}`}>
                     <select
                       id="contact-subject"
-                      value={form.subject}
-                      onChange={(event) => updateField('subject', event.target.value)}
-                      onBlur={() => handleBlur('subject')}
-                      required
+                      {...register('subject')}
                     >
                       <option value="" disabled>
                         Select a reason
@@ -559,21 +538,18 @@ const Contact = () => {
                       ))}
                     </select>
                     <span>Subject</span>
-                    {fieldState('subject').errorMessage ? <small>{fieldState('subject').errorMessage}</small> : null}
+                    {errors.subject ? <small>{errors.subject.message}</small> : null}
                   </label>
 
-                  <label className={`contact-field contact-field-textarea contact-field-full ${form.message ? 'is-filled' : ''} ${fieldState('message').hasError ? 'has-error' : ''}`}>
+                  <label className={`contact-field contact-field-textarea contact-field-full ${messageValue ? 'is-filled' : ''} ${errors.message ? 'has-error' : ''}`}>
                     <textarea
                       id="contact-message"
-                      value={form.message}
-                      onChange={(event) => updateField('message', event.target.value)}
-                      onBlur={() => handleBlur('message')}
                       placeholder=" "
                       rows="6"
-                      required
+                      {...register('message')}
                     />
                     <span>Message</span>
-                    {fieldState('message').errorMessage ? <small>{fieldState('message').errorMessage}</small> : null}
+                    {errors.message ? <small>{errors.message.message}</small> : null}
                   </label>
                 </div>
 
@@ -586,8 +562,8 @@ const Contact = () => {
                     </span>
                   </p>
 
-                  <button type="submit" className="contact-submit-button" disabled={status === 'submitting'}>
-                    <span>{status === 'submitting' ? 'Sending...' : 'Send Message'}</span>
+                  <button type="submit" className="contact-submit-button" disabled={isSubmitting}>
+                    <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
                     <Send size={16} />
                   </button>
                 </div>
