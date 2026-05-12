@@ -18,9 +18,22 @@ const parseCorsOrigins = (value) => {
     .filter(Boolean)
 }
 
+const resolveDatabaseUrl = () => {
+  const candidates = [
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_URL,
+    process.env.POSTGRES_URL_NON_POOLING,
+    process.env.POSTGRES_PRISMA_URL,
+    process.env.POSTGRESQL_URL,
+  ]
+
+  const match = candidates.find((value) => String(value || '').trim())
+  return String(match || '').trim()
+}
+
 export const config = {
   port: toNumber(process.env.PORT, 3001),
-  databaseUrl: process.env.DATABASE_URL || '',
+  databaseUrl: resolveDatabaseUrl(),
   authSecret: process.env.CRM_AUTH_SECRET || 'spa-saloon-dev-secret',
   adminEmail: process.env.CRM_ADMIN_EMAIL || 'admin@spa.local',
   adminPassword: process.env.CRM_ADMIN_PASSWORD || 'ChangeMe123!',

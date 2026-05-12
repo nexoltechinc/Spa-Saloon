@@ -38,7 +38,7 @@ const pool = new Pool({
 
 const ensureDatabaseUrl = () => {
   if (!config.databaseUrl) {
-    const error = new Error('DATABASE_URL is required to start the CRM API.');
+    const error = new Error('A Postgres connection string is required to start the CRM API. Set DATABASE_URL or a Vercel POSTGRES_URL variable.');
     error.statusCode = 500;
     throw error;
   }
