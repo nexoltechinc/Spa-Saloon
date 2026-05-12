@@ -5,17 +5,8 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/crm/:path*",
-      "destination": "/api/crm?path=:path*"
-    },
-    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }

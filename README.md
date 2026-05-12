@@ -83,13 +83,14 @@ CRM_ADMIN_EMAIL=admin@spa.local
 CRM_ADMIN_PASSWORD=ChangeMe123!
 CRM_AUTH_SECRET=spa-saloon-dev-secret
 CRM_REQUIRE_AUTH=false
-# Optional. Keep the CRM API on the current origin unless you are moving it elsewhere.
+# Optional. The production frontend defaults to the Render CRM backend.
+# Override only if you are pointing the frontend at a different CRM host.
 VITE_CRM_API_BASE_URL=
 VITE_CRM_API_PREFIX=/api/crm
 ```
 
 The admin seed account uses `CRM_ADMIN_EMAIL` and `CRM_ADMIN_PASSWORD`. With the defaults above, the first sign-in is `admin@spa.local` / `ChangeMe123!`.
-The CRM login route is fixed to the canonical API path under the current API prefix, so it does not depend on a separate auth-endpoint override.
+In production the frontend resolves CRM requests against `https://spa-saloon.onrender.com` unless `VITE_CRM_API_BASE_URL` overrides it.
 
 ## API
 

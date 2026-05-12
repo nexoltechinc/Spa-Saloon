@@ -2,8 +2,10 @@ import { getCrmToken } from './crm.js';
 
 const runtimeEnv = import.meta.env ?? {};
 const isDev = Boolean(runtimeEnv.DEV);
+const DEFAULT_PROD_CRM_API_BASE_URL = 'https://spa-saloon.onrender.com';
 
-export const CRM_API_BASE_URL = runtimeEnv.VITE_CRM_API_BASE_URL || (isDev ? 'http://localhost:3001' : '');
+export const CRM_API_BASE_URL =
+  runtimeEnv.VITE_CRM_API_BASE_URL || (isDev ? 'http://localhost:3001' : DEFAULT_PROD_CRM_API_BASE_URL);
 export const CRM_API_PREFIX = runtimeEnv.VITE_CRM_API_PREFIX || '/api/crm';
 
 export const CRM_API_RESOURCES = {

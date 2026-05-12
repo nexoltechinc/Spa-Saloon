@@ -36,6 +36,9 @@ const pool = new Pool({
   connectionString: config.databaseUrl,
   // Fail fast when the configured database cannot be reached so health can degrade.
   connectionTimeoutMillis: 5000,
+  // Prefer IPv4 because some managed Postgres hosts surface IPv6 first and Render outbound
+  // connectivity may not reach that address family.
+  family: 4,
 });
 
 const ensureDatabaseUrl = () => {
