@@ -36,6 +36,20 @@ const asyncHandler = (handler) => (req, res, next) => {
 
 const app = express()
 
+const restoreCrmNestedPath = (req, res, next) => {
+  const requestUrl = new URL(req.originalUrl || req.url || '/', 'http://127.0.0.1')
+  const nestedPath = requestUrl.searchParams.get('path')
+
+  if (nestedPath) {
+    requestUrl.searchParams.delete('path')
+    const remainingQuery = requestUrl.searchParams.toString()
+    const normalizedNestedPath = String(nestedPath).replace(/^\/+/, '')
+    req.url = `/api/crm/${normalizedNestedPath}${remainingQuery ? `?${remainingQuery}` : ''}`
+  }
+
+  return next()
+}
+
 const runtime = {
   bootState: 'starting',
   bootMessage: 'CRM database is starting.',
@@ -702,6 +716,7 @@ app.use(
     origin: config.corsOrigins,
   }),
 )
+app.use(restoreCrmNestedPath)
 app.use(express.json({ limit: '1mb' }))
 
 app.get(
