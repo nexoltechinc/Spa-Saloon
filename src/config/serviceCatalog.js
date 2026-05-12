@@ -1,4 +1,4 @@
-import { resolveHazelCategoryImage, resolveHazelImage } from './serviceMedia';
+import { resolveHazelCategoryImage, resolveHazelImage } from './serviceMedia.js';
 
 const CATEGORY_DEFINITIONS = [
   {
