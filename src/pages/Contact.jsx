@@ -31,6 +31,7 @@ import './Contact.css';
 
 const heroImage = '/images/hero.png';
 const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(BRAND_ADDRESS)}&output=embed`;
+const BOOKING_ROUTE = '/booking';
 
 const SUBJECT_OPTIONS = [
   { value: 'General Inquiry', label: 'General Inquiry' },
@@ -192,6 +193,12 @@ const heroSummary = [
 
 const quickActions = [
   {
+    label: 'Reserve Now',
+    description: 'Book your appointment',
+    icon: CalendarDays,
+    to: BOOKING_ROUTE,
+  },
+  {
     label: 'Call',
     description: BRAND_PHONE,
     icon: Phone,
@@ -209,12 +216,6 @@ const quickActions = [
     icon: MapPin,
     href: BRAND_MAP_LINK,
     external: true,
-  },
-  {
-    label: 'Book Appointment',
-    description: 'Reserve your visit',
-    icon: CalendarDays,
-    to: '/booking',
   },
 ];
 
@@ -302,7 +303,11 @@ const Contact = () => {
             </p>
 
             <div className="contact-hero-actions">
-              <a href={`tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`} className="contact-primary-link">
+              <Link to={BOOKING_ROUTE} className="contact-primary-link">
+                Reserve Now
+                <CalendarDays size={16} />
+              </Link>
+              <a href={`tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`} className="contact-secondary-link">
                 Call Now
                 <Phone size={16} />
               </a>
@@ -473,8 +478,8 @@ const Contact = () => {
                     <button type="button" className="contact-secondary-button" onClick={resetForm}>
                       Send another message
                     </button>
-                    <Link to="/booking" className="contact-primary-link">
-                      Book Appointment
+                    <Link to={BOOKING_ROUTE} className="contact-primary-link">
+                      Reserve Now
                       <ArrowRight size={16} />
                     </Link>
                   </div>
@@ -574,11 +579,6 @@ const Contact = () => {
                   </div>
 
                   <div className="contact-form-footer">
-                    <p className="contact-form-note">
-                      <ShieldCheck size={16} />
-                      <span>Your message is private. We&rsquo;ll get back to you as soon as possible.</span>
-                    </p>
-
                     <button type="submit" className="contact-submit-button" disabled={isSubmitting}>
                       <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
                       <Send size={16} />

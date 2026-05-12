@@ -28,7 +28,7 @@
   position: relative;
   isolation: isolate;
   min-height: clamp(560px, 80vh, 760px);
-  padding: 8rem 0 3.8rem;
+  padding: 8rem 0 4.5rem;
   display: flex;
   align-items: center;
 }
@@ -62,7 +62,7 @@
 .contact-hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
-  align-items: center;
+  align-items: start;
   gap: clamp(2rem, 4vw, 4rem);
   position: relative;
   z-index: 2;
@@ -76,6 +76,7 @@
 .contact-hero-copy {
   max-width: 38rem;
   color: #fff;
+  padding-top: 0.5rem;
 }
 
 .contact-kicker,
@@ -232,8 +233,8 @@
 
 .contact-hero-panel {
   display: grid;
-  gap: 1.1rem;
-  padding: clamp(1.3rem, 2vw, 1.85rem);
+  gap: 1.2rem;
+  padding: clamp(1.5rem, 2.1vw, 2rem);
   border-radius: 30px;
   background: linear-gradient(180deg, rgba(10, 18, 13, 0.74), rgba(10, 18, 13, 0.58));
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -300,21 +301,21 @@
 
 .contact-main {
   position: relative;
-  margin-top: -2.6rem;
-  padding-bottom: 5.5rem;
+  margin-top: -1.6rem;
+  padding-bottom: 6rem;
   z-index: 3;
 }
 
 .contact-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
-  gap: 1.6rem;
+  grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
+  gap: 1.75rem;
   align-items: start;
 }
 
 .contact-info-rail {
   display: grid;
-  gap: 1.25rem;
+  gap: 1.35rem;
   position: sticky;
   top: 6.8rem;
   align-self: start;
@@ -322,7 +323,7 @@
 
 .contact-content-column {
   display: grid;
-  gap: 1.25rem;
+  gap: 1.35rem;
 }
 
 .contact-card,
@@ -335,7 +336,7 @@
 }
 
 .contact-card {
-  padding: clamp(1.35rem, 2vw, 1.8rem);
+  padding: clamp(1.45rem, 2.1vw, 1.95rem);
 }
 
 .contact-card h2,
@@ -350,12 +351,14 @@
 }
 
 .contact-card h2 {
-  font-size: clamp(2rem, 3vw, 2.85rem);
+  font-size: clamp(1.9rem, 2.7vw, 2.55rem);
+  line-height: 1.04;
   margin-bottom: 0.8rem;
 }
 
 .contact-card h3 {
-  font-size: clamp(1.55rem, 2.5vw, 2.05rem);
+  font-size: clamp(1.45rem, 2.2vw, 1.9rem);
+  line-height: 1.08;
 }
 
 .contact-copy {
@@ -366,15 +369,15 @@
 .contact-info-grid {
   display: grid;
   gap: 0.9rem;
-  margin-top: 1.4rem;
+  margin-top: 1.25rem;
 }
 
 .contact-info-card {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 0.9rem;
-  align-items: center;
-  padding: 1rem;
+  align-items: start;
+  padding: 1.05rem 1.05rem 1rem;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(11, 26, 18, 0.08);
@@ -395,6 +398,12 @@
   background: rgba(197, 160, 89, 0.12);
   color: var(--color-champagne-gold);
   flex-shrink: 0;
+  align-self: start;
+  margin-top: 0.12rem;
+}
+
+.contact-info-card-copy {
+  min-width: 0;
 }
 
 .contact-info-card-copy span,
@@ -414,11 +423,12 @@
   display: block;
   color: var(--color-text-primary);
   font-size: 0.98rem;
-  line-height: 1.45;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
 }
 
 .contact-info-card-copy p {
-  margin: 0.28rem 0 0;
+  margin: 0.38rem 0 0;
   color: var(--color-muted-ink);
   font-size: 0.88rem;
   line-height: 1.5;
@@ -426,6 +436,7 @@
 
 .contact-info-card svg:last-child {
   color: var(--color-champagne-gold);
+  align-self: center;
 }
 
 .contact-hours-list {
@@ -435,9 +446,9 @@
 }
 
 .contact-hours-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 1rem;
   padding: 0.9rem 1rem;
   border-radius: 18px;
@@ -458,8 +469,9 @@
 
 .contact-channel-tile {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.85rem;
+  min-height: 5.75rem;
   padding: 1rem;
   border-radius: 20px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 242, 232, 0.92));
@@ -494,7 +506,7 @@
 .contact-form-card {
   position: relative;
   overflow: hidden;
-  padding: clamp(1.35rem, 2.2vw, 2rem);
+  padding: clamp(1.55rem, 2.4vw, 2.2rem);
 }
 
 .contact-form-card::before {
@@ -515,15 +527,21 @@
 }
 
 .contact-form-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.85rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.9rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.contact-form-header > div {
+  display: grid;
+  gap: 0.25rem;
 }
 
 .contact-form-header h2 {
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  line-height: 1;
 }
 
 .contact-form-eta {
@@ -545,31 +563,29 @@
 .contact-form-intro {
   color: var(--color-muted-ink);
   line-height: 1.75;
-  margin-bottom: 1rem;
-  max-width: 42rem;
+  margin-bottom: 1.1rem;
+  max-width: 38rem;
 }
 
 .contact-form-trust {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  padding: 0.85rem 1rem;
-  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1.1rem;
   border-radius: 18px;
   background: rgba(143, 161, 134, 0.1);
   border: 1px solid rgba(143, 161, 134, 0.16);
   color: var(--color-deep-forest);
 }
 
-.contact-form-trust svg,
-.contact-form-note svg {
+.contact-form-trust svg {
   color: var(--color-champagne-gold);
   flex-shrink: 0;
   margin-top: 0.05rem;
 }
 
-.contact-form-trust span,
-.contact-form-note span {
+.contact-form-trust span {
   font-size: 0.92rem;
   line-height: 1.55;
 }
@@ -603,7 +619,7 @@
 .contact-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.95rem;
+  gap: 1rem;
 }
 
 .contact-field {
@@ -611,7 +627,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 4.9rem;
+  min-height: 4.8rem;
   padding: 1.05rem 1rem 0.85rem;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.92);
@@ -722,22 +738,14 @@
 }
 
 .contact-form-footer {
-  justify-content: space-between;
-  margin-top: 1rem;
-}
-
-.contact-form-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  max-width: 32rem;
-  color: var(--color-muted-ink);
-  margin-bottom: 0;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
 }
 
 .contact-submit-button {
   position: relative;
   overflow: hidden;
+  min-width: 13rem;
   border: none;
   background: linear-gradient(135deg, #9a7a2b 0%, #c5a059 48%, #e6c878 100%);
   box-shadow: 0 18px 40px rgba(72, 54, 14, 0.24);
@@ -831,7 +839,7 @@
 }
 
 .contact-map-card {
-  padding: clamp(1.2rem, 2vw, 1.5rem);
+  padding: clamp(1.35rem, 2.1vw, 1.7rem);
 }
 
 .contact-map-header {
@@ -839,7 +847,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.9rem;
 }
 
 .contact-map-link {
@@ -854,12 +862,12 @@
 }
 
 .contact-map-copy {
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .contact-map-frame {
   position: relative;
-  min-height: 300px;
+  min-height: 320px;
   border-radius: 24px;
   overflow: hidden;
   border: 1px solid rgba(11, 26, 18, 0.12);
@@ -870,7 +878,7 @@
 .contact-map-frame iframe {
   width: 100%;
   height: 100%;
-  min-height: 300px;
+  min-height: 320px;
   border: 0;
   filter: saturate(0.9) contrast(1.02) brightness(0.96);
 }
@@ -930,7 +938,7 @@
   }
 
   .contact-main {
-    margin-top: -1.8rem;
+    margin-top: -1rem;
   }
 }
 
@@ -965,13 +973,16 @@
     grid-template-columns: 1fr;
   }
 
-  .contact-map-header,
-  .contact-form-header,
-  .contact-hours-row {
+  .contact-map-header {
     flex-direction: column;
   }
 
+  .contact-form-header {
+    grid-template-columns: 1fr;
+  }
+
   .contact-hours-row {
+    grid-template-columns: 1fr;
     align-items: flex-start;
   }
 

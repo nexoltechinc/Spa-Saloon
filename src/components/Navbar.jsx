@@ -6,6 +6,7 @@ import './Navbar.css';
 
 const navItems = [
   { to: '/services', label: 'Services' },
+  { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ];
 
