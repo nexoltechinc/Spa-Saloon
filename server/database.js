@@ -32,8 +32,40 @@ export const WRITABLE_RESOURCES = new Set(RESOURCE_NAMES.filter((resource) => re
 
 const SETTINGS_ROW_ID = 'singleton';
 
+const resolvePoolOptions = (databaseUrl) => {
+  const rawUrl = String(databaseUrl || '').trim();
+
+  if (!rawUrl) {
+    return { connectionString: '' };
+  }
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+    const isSupabaseHost = parsedUrl.hostname.endsWith('.supabase.co');
+    const sslMode = parsedUrl.searchParams.get('sslmode')?.toLowerCase() || '';
+
+    // Supabase direct URLs commonly include sslmode=require, which pg treats as
+    // strict certificate verification. Normalize that into explicit TLS options
+    // so the database can connect from typical Node environments.
+    if (isSupabaseHost && sslMode) {
+      parsedUrl.searchParams.delete('sslmode');
+
+      return {
+        connectionString: parsedUrl.toString(),
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      };
+    }
+  } catch {
+    // Fall back to the raw string if it is not a valid URL.
+  }
+
+  return { connectionString: rawUrl };
+};
+
 const pool = new Pool({
-  connectionString: config.databaseUrl,
+  ...resolvePoolOptions(config.databaseUrl),
   // Fail fast when the configured database cannot be reached so health can degrade.
   connectionTimeoutMillis: 5000,
   // Prefer IPv4 because some managed Postgres hosts surface IPv6 first and Render outbound
