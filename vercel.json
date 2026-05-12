@@ -5,8 +5,8 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "^/api/crm/(.+)$",
-      "destination": "/api/crm?path=$1"
+      "source": "/api/crm/:path*",
+      "destination": "/api/crm?path=:path*"
     },
     {
       "source": "/((?!api/).*)",
