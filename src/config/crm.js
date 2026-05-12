@@ -1,12 +1,5 @@
-const runtimeEnv = import.meta.env ?? {};
-
-const normalizeValue = (value) => String(value || '').trim();
-
-const authEndpointValue = normalizeValue(runtimeEnv.VITE_CRM_AUTH_ENDPOINT);
-
-export const CRM_AUTH_ENDPOINT = authEndpointValue || '/api/crm/auth/login';
-
-export const CRM_AUTH_ENDPOINT_IS_DEFAULT = !authEndpointValue;
+// Keep the CRM login on the canonical API route so deployment env drift
+// cannot point the form at a dead path like /app/crm/auth/login.
 
 export const CRM_TOKEN_STORAGE_KEY = 'crm_token';
 

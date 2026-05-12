@@ -83,15 +83,13 @@ CRM_ADMIN_EMAIL=admin@spa.local
 CRM_ADMIN_PASSWORD=ChangeMe123!
 CRM_AUTH_SECRET=spa-saloon-dev-secret
 CRM_REQUIRE_AUTH=false
-# Optional. The app defaults to the local /api/crm/auth/login route.
-VITE_CRM_AUTH_ENDPOINT=/api/crm/auth/login
+# Optional. Keep the CRM API on the current origin unless you are moving it elsewhere.
 VITE_CRM_API_BASE_URL=
 VITE_CRM_API_PREFIX=/api/crm
 ```
 
 The admin seed account uses `CRM_ADMIN_EMAIL` and `CRM_ADMIN_PASSWORD`. With the defaults above, the first sign-in is `admin@spa.local` / `ChangeMe123!`.
-
-If `VITE_CRM_AUTH_ENDPOINT` is omitted, the login screen uses the local CRM auth path by default. If it is set, that endpoint is used for sign-in and the UI shows the override instead of the fallback route.
+The CRM login route is fixed to the canonical API path under the current API prefix, so it does not depend on a separate auth-endpoint override.
 
 ## API
 

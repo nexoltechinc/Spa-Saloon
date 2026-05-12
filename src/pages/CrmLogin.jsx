@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Fingerprint, KeyRound, Mail, Sparkles } from 'lucide-react';
-import { CRM_AUTH_ENDPOINT_IS_DEFAULT, getCrmSession, setCrmToken } from '../config/crm';
+import { getCrmSession, setCrmToken } from '../config/crm';
 import { BRAND_TAGLINE, CRM_NAME, SALON_INITIALS, SALON_NAME } from '../config/brand';
 import {
   crmHealthCheck,
@@ -192,9 +192,7 @@ const CrmLogin = () => {
   const resolvedAuthUrl = getCrmResolvedAuthUrl();
   const status = statusCopy[connectionState.key] || statusCopy.checking;
   const currentFeedback = feedback || null;
-  const authEndpointCopy = CRM_AUTH_ENDPOINT_IS_DEFAULT
-    ? `Using the local CRM auth route by default. Requests are sent to ${resolvedAuthUrl}. Set VITE_CRM_AUTH_ENDPOINT only when a deployment needs a custom sign-in URL.`
-    : `Custom auth endpoint configured for production-grade sign-in. Requests are sent to ${resolvedAuthUrl}.`;
+  const authEndpointCopy = `Requests are sent to ${resolvedAuthUrl}. The CRM login stays on the canonical API route so it cannot drift from the backend.`;
 
   useEffect(() => {
     let cancelled = false;

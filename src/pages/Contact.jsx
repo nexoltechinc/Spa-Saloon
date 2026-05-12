@@ -12,11 +12,9 @@ import {
   Phone,
   Send,
   ShieldCheck,
-  Sparkles,
   TriangleAlert,
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { useWatch } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import {
@@ -26,7 +24,6 @@ import {
   BRAND_CONTACT_EMAIL,
   BRAND_MAP_LINK,
   BRAND_PHONE,
-  BRAND_TAGLINE,
   SALON_NAME,
 } from '../config/brand';
 import { crmCreate } from '../config/crmApi';
@@ -39,10 +36,16 @@ const SUBJECT_OPTIONS = [
   { value: 'General Inquiry', label: 'General Inquiry' },
   { value: 'Booking Assistance', label: 'Booking Assistance' },
   { value: 'Bridal Consultation', label: 'Bridal Consultation' },
-  { value: 'Partnership', label: 'Partnership' },
+  { value: 'Private Event', label: 'Private Event' },
   { value: 'Feedback', label: 'Feedback' },
 ];
 const SUBJECT_VALUES = SUBJECT_OPTIONS.map((option) => option.value);
+
+const OPENING_HOURS = [
+  { day: 'Monday - Friday', hours: '10:00 AM - 8:00 PM' },
+  { day: 'Saturday', hours: '10:00 AM - 7:00 PM' },
+  { day: 'Sunday', hours: 'By Appointment' },
+];
 
 const INITIAL_FORM = {
   fullName: '',
@@ -60,9 +63,9 @@ const contactSchema = z
     subject: z
       .string()
       .trim()
-      .min(1, 'Choose a subject so we can route your message.')
-      .refine((value) => SUBJECT_VALUES.includes(value), 'Choose a subject so we can route your message.'),
-    message: z.string().trim().min(20, 'Please share at least 20 characters so we can help.'),
+      .min(1, 'Please choose a subject.')
+      .refine((value) => SUBJECT_VALUES.includes(value), 'Please choose a subject.'),
+    message: z.string().trim().min(20, 'Please share a few more details so we can help.'),
   })
   .superRefine((values, ctx) => {
     const phoneDigits = String(values.phone || '').replace(/[^\d]/g, '');
@@ -91,8 +94,8 @@ const createLeadPayload = (values) => {
     ownerName: 'Front Desk',
     owner: 'Front Desk',
     assignedTo: 'Front Desk',
-    branchName: 'Melrose Sanctuary',
-    branch: 'Melrose Sanctuary',
+    branchName: 'West Hollywood',
+    branch: 'West Hollywood',
     serviceInterest: values.subject,
     service: values.subject,
     budget: 0,
@@ -111,62 +114,107 @@ const getFriendlySubmitError = (error) => {
   const code = String(error?.code || '');
 
   if (status === 0 || code === 'CRM_NETWORK_UNAVAILABLE') {
-    return 'The CRM service could not be reached. Please try again in a moment or use the direct contact options.';
+    return 'We could not send your message right now. Please try again or contact us directly by phone or email.';
   }
 
   if (status >= 500 || code === 'CRM_SERVICE_UNAVAILABLE' || code === 'CRM_AUTH_SERVICE_UNAVAILABLE') {
-    return 'The CRM is temporarily unavailable. Your message has not been lost, but please try again shortly.';
+    return 'Our message service is temporarily unavailable. Please try again shortly or contact us directly.';
   }
 
   if (status === 404 || status === 405) {
-    return 'The CRM lead route was not available. Please use the phone or email options while we verify the API.';
+    return 'Our message service is temporarily unavailable. Please call or email us directly while we restore it.';
   }
 
   return String(error?.message || 'We could not send your message right now. Please try again.');
 };
 
-const contactChannels = [
+const contactDetails = [
   {
-    label: 'Directions',
-    icon: MapPin,
+    label: 'Address',
+    value: BRAND_ADDRESS,
+    description: 'West Hollywood, California',
     href: BRAND_MAP_LINK,
-    description: 'Open Google Maps',
+    icon: MapPin,
+    external: true,
   },
   {
-    label: 'Call Front Desk',
-    icon: Phone,
+    label: 'Phone Number',
+    value: BRAND_PHONE,
+    description: 'Front desk assistance',
     href: `tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`,
-    description: BRAND_PHONE,
+    icon: Phone,
+  },
+  {
+    label: 'Booking Line',
+    value: BRAND_BOOKING_PHONE,
+    description: 'Appointments and reservations',
+    href: `tel:${BRAND_BOOKING_PHONE.replace(/[^\d+]/g, '')}`,
+    icon: CalendarDays,
   },
   {
     label: 'General Email',
-    icon: Mail,
+    value: BRAND_CONTACT_EMAIL,
+    description: 'Questions and general assistance',
     href: `mailto:${BRAND_CONTACT_EMAIL}`,
-    description: BRAND_CONTACT_EMAIL,
+    icon: Mail,
   },
   {
-    label: 'Booking Email',
-    icon: CalendarDays,
+    label: 'Reservation Email',
+    value: BRAND_BOOKING_EMAIL,
+    description: 'Booking requests and confirmations',
     href: `mailto:${BRAND_BOOKING_EMAIL}`,
-    description: BRAND_BOOKING_EMAIL,
+    icon: Mail,
   },
 ];
 
-const contactPromises = [
+const heroSummary = [
   {
-    label: 'Response time',
-    value: '24 business hours',
+    label: 'Front Desk',
+    value: BRAND_PHONE,
+    icon: Phone,
+  },
+  {
+    label: 'Booking Line',
+    value: BRAND_BOOKING_PHONE,
+    icon: CalendarDays,
+  },
+  {
+    label: 'Hours',
+    value: 'Mon - Fri, 10 AM - 8 PM',
     icon: Clock3,
   },
   {
-    label: 'Lead routing',
-    value: 'CRM connected',
-    icon: ShieldCheck,
+    label: 'Location',
+    value: '8422 Melrose Ave',
+    icon: MapPin,
+  },
+];
+
+const quickActions = [
+  {
+    label: 'Call',
+    description: BRAND_PHONE,
+    icon: Phone,
+    href: `tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`,
   },
   {
-    label: 'Visit style',
-    value: 'By reservation',
-    icon: Sparkles,
+    label: 'Email',
+    description: BRAND_CONTACT_EMAIL,
+    icon: Mail,
+    href: `mailto:${BRAND_CONTACT_EMAIL}`,
+  },
+  {
+    label: 'Directions',
+    description: 'Open Google Maps',
+    icon: MapPin,
+    href: BRAND_MAP_LINK,
+    external: true,
+  },
+  {
+    label: 'Book Appointment',
+    description: 'Reserve your visit',
+    icon: CalendarDays,
+    to: '/booking',
   },
 ];
 
@@ -211,8 +259,8 @@ const Contact = () => {
     try {
       const submission = crmCreate('leads', createLeadPayload(values));
       toast.promise(submission, {
-        loading: 'Sending your inquiry to the CRM...',
-        success: 'Your inquiry has been received. We will respond within 24 business hours.',
+        loading: 'Sending your message...',
+        success: 'Your message has been sent. Our front desk team will be in touch soon.',
         error: (error) => getFriendlySubmitError(error),
       });
 
@@ -220,7 +268,7 @@ const Contact = () => {
       const leadId = savedLead?.id || savedLead?.leadId || savedLead?._id || '';
 
       setSuccessRecord({
-        leadId,
+        reference: leadId || 'Message received',
         subject: values.subject,
         submittedAt: new Date().toISOString(),
       });
@@ -247,16 +295,15 @@ const Contact = () => {
 
         <div className="container contact-hero-grid">
           <div className="contact-hero-copy">
-            <p className="contact-kicker">Contact / Lead Capture</p>
-            <h1>Start the conversation, and we will route it with care.</h1>
+            <p className="contact-kicker">Contact</p>
+            <h1>Get in Touch</h1>
             <p className="contact-hero-intro">
-              {BRAND_TAGLINE}. Send a note, and our front desk will capture it in the CRM with a
-              calm, premium follow-up path.
+              Have a question or ready to book your visit? Our front desk team is here to help.
             </p>
 
             <div className="contact-hero-actions">
               <a href={`tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`} className="contact-primary-link">
-                Call Front Desk
+                Call Now
                 <Phone size={16} />
               </a>
               <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" className="contact-secondary-link">
@@ -265,50 +312,34 @@ const Contact = () => {
               </a>
             </div>
 
-            <div className="contact-hero-trust">
-              {contactPromises.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <article key={item.label}>
-                    <Icon size={16} />
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </article>
-                );
-              })}
-            </div>
+            <p className="contact-hero-note">
+              Prefer to write to us? Send a message below and we will get back to you as soon as
+              possible.
+            </p>
           </div>
 
           <div className="contact-hero-panel">
-            <article className="contact-response-card">
-              <span className="contact-response-kicker">
-                <ShieldCheck size={14} />
-                Trusted lead flow
-              </span>
-              <h2>Every inquiry is designed to feel secure and human.</h2>
-              <p>
-                Your submission travels into the CRM as a new lead with a clear source,
-                timestamp, and routing details.
-              </p>
-            </article>
+            <p className="contact-section-kicker">Front Desk</p>
+            <h2>Simple ways to reach us.</h2>
+            <p>
+              Call, email, or visit us in West Hollywood. We are happy to help with bookings,
+              questions, and directions.
+            </p>
 
-            <div className="contact-response-grid">
-              <article>
-                <span>Lead source</span>
-                <strong>Website - Contact Form</strong>
-              </article>
-              <article>
-                <span>Response window</span>
-                <strong>24 business hours</strong>
-              </article>
-              <article>
-                <span>Follow-up tone</span>
-                <strong>Warm + private</strong>
-              </article>
-              <article>
-                <span>Routing</span>
-                <strong>Front desk + CRM</strong>
-              </article>
+            <div className="contact-hero-summary">
+              {heroSummary.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <article key={item.label} className="contact-hero-summary-item">
+                    <Icon size={16} />
+                    <div>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -318,66 +349,262 @@ const Contact = () => {
         <div className="container contact-layout">
           <aside className="contact-info-rail">
             <article className="contact-card contact-card-primary">
-              <p className="contact-section-kicker">Salon Details</p>
-              <h2>Visit Hazel Beauty Saloon in West Hollywood.</h2>
+              <p className="contact-section-kicker">Contact Information</p>
+              <h2>Visit, call, or email.</h2>
               <p className="contact-copy">
-                We keep the experience calm from the first call to the final follow-up.
+                Choose the option that feels easiest for you. We are here to help with visits,
+                reservations, and general questions.
               </p>
 
-              <div className="contact-detail-list">
-                <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" className="contact-detail-row">
-                  <MapPin size={18} />
-                  <div>
-                    <span>Address</span>
-                    <strong>{BRAND_ADDRESS}</strong>
-                  </div>
-                  <ExternalLink size={14} />
-                </a>
-                <a href={`tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`} className="contact-detail-row">
-                  <Phone size={18} />
-                  <div>
-                    <span>Front desk</span>
-                    <strong>{BRAND_PHONE}</strong>
-                  </div>
-                  <ArrowRight size={14} />
-                </a>
-                <a href={`tel:${BRAND_BOOKING_PHONE.replace(/[^\d+]/g, '')}`} className="contact-detail-row">
-                  <CalendarDays size={18} />
-                  <div>
-                    <span>Booking line</span>
-                    <strong>{BRAND_BOOKING_PHONE}</strong>
-                  </div>
-                  <ArrowRight size={14} />
-                </a>
-                <a href={`mailto:${BRAND_CONTACT_EMAIL}`} className="contact-detail-row">
-                  <Mail size={18} />
-                  <div>
-                    <span>General email</span>
-                    <strong>{BRAND_CONTACT_EMAIL}</strong>
-                  </div>
-                  <ArrowRight size={14} />
-                </a>
-                <a href={`mailto:${BRAND_BOOKING_EMAIL}`} className="contact-detail-row">
-                  <Mail size={18} />
-                  <div>
-                    <span>Reservations</span>
-                    <strong>{BRAND_BOOKING_EMAIL}</strong>
-                  </div>
-                  <ArrowRight size={14} />
-                </a>
+              <div className="contact-info-grid">
+                {contactDetails.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="contact-info-card"
+                      target={item.external ? '_blank' : undefined}
+                      rel={item.external ? 'noreferrer' : undefined}
+                    >
+                      <div className="contact-info-card-icon">
+                        <Icon size={18} />
+                      </div>
+                      <div className="contact-info-card-copy">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                        <p>{item.description}</p>
+                      </div>
+                      {item.external ? <ExternalLink size={14} /> : <ArrowRight size={14} />}
+                    </a>
+                  );
+                })}
               </div>
+            </article>
+
+            <article className="contact-card contact-hours-card">
+              <p className="contact-section-kicker">Opening Hours</p>
+              <h3>When we&rsquo;re available</h3>
+
+              <div className="contact-hours-list">
+                {OPENING_HOURS.map((item) => (
+                  <div key={item.day} className="contact-hours-row">
+                    <span>{item.day}</span>
+                    <strong>{item.hours}</strong>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article className="contact-card contact-connect-card">
+              <p className="contact-section-kicker">Quick Actions</p>
+              <h3>Reach us in one tap.</h3>
+
+              <div className="contact-channel-grid">
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+
+                  if (action.to) {
+                    return (
+                      <Link key={action.label} to={action.to} className="contact-channel-tile">
+                        <Icon size={18} />
+                        <div>
+                          <strong>{action.label}</strong>
+                          <span>{action.description}</span>
+                        </div>
+                      </Link>
+                    );
+                  }
+
+                  return (
+                    <a
+                      key={action.label}
+                      href={action.href}
+                      className="contact-channel-tile"
+                      target={action.external ? '_blank' : undefined}
+                      rel={action.external ? 'noreferrer' : undefined}
+                    >
+                      <Icon size={18} />
+                      <div>
+                        <strong>{action.label}</strong>
+                        <span>{action.description}</span>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </article>
+          </aside>
+
+          <div className="contact-content-column">
+            <article className="contact-form-card">
+              {successRecord ? (
+                <div className="contact-success-state" aria-live="polite">
+                  <div className="contact-success-badge">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  <p className="contact-section-kicker">Message received</p>
+                  <h2>Thank you for reaching out.</h2>
+                  <p className="contact-copy">
+                    We have received your message and will get back to you as soon as possible.
+                  </p>
+
+                  <div className="contact-success-grid">
+                    <article>
+                      <span>Reference</span>
+                      <strong>{successRecord.reference}</strong>
+                    </article>
+                    <article>
+                      <span>Subject</span>
+                      <strong>{successRecord.subject}</strong>
+                    </article>
+                    <article>
+                      <span>Submitted</span>
+                      <strong>{submittedAtLabel || 'Just now'}</strong>
+                    </article>
+                    <article>
+                      <span>Next Step</span>
+                      <strong>Our front desk team will reply soon.</strong>
+                    </article>
+                  </div>
+
+                  <div className="contact-success-actions">
+                    <button type="button" className="contact-secondary-button" onClick={resetForm}>
+                      Send another message
+                    </button>
+                    <Link to="/booking" className="contact-primary-link">
+                      Book Appointment
+                      <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <form className="contact-form" onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)} noValidate>
+                  <div className="contact-form-header">
+                    <div>
+                      <p className="contact-section-kicker">Inquiry Form</p>
+                      <h2>Send a Message</h2>
+                    </div>
+                    <span className="contact-form-eta">
+                      <Clock3 size={14} />
+                      We usually reply within one business day
+                    </span>
+                  </div>
+
+                  <p className="contact-form-intro">
+                    Have a question about appointments, services, or a special occasion? Send us a
+                    note and our team will be glad to help.
+                  </p>
+
+                  <div className="contact-form-trust">
+                    <ShieldCheck size={16} />
+                    <span>Your message is private. We&rsquo;ll get back to you as soon as possible.</span>
+                  </div>
+
+                  {submitError ? (
+                    <div className="contact-alert contact-alert-error" role="alert" aria-live="assertive">
+                      <TriangleAlert size={16} />
+                      <span>{submitError}</span>
+                    </div>
+                  ) : null}
+
+                  <div className="contact-form-grid">
+                    <label className={`contact-field ${fullNameValue ? 'is-filled' : ''} ${errors.fullName ? 'has-error' : ''}`}>
+                      <input
+                        id="contact-full-name"
+                        type="text"
+                        placeholder=" "
+                        autoComplete="name"
+                        {...register('fullName')}
+                      />
+                      <span>Full Name</span>
+                      {errors.fullName ? <small>{errors.fullName.message}</small> : null}
+                    </label>
+
+                    <label className={`contact-field ${emailValue ? 'is-filled' : ''} ${errors.email ? 'has-error' : ''}`}>
+                      <input
+                        id="contact-email"
+                        type="email"
+                        placeholder=" "
+                        autoComplete="email"
+                        {...register('email')}
+                      />
+                      <span>Email Address</span>
+                      {errors.email ? <small>{errors.email.message}</small> : null}
+                    </label>
+
+                    <label className={`contact-field ${phoneValue ? 'is-filled' : ''} ${errors.phone ? 'has-error' : ''}`}>
+                      <input
+                        id="contact-phone"
+                        type="tel"
+                        placeholder=" "
+                        autoComplete="tel"
+                        {...register('phone')}
+                      />
+                      <span>Phone Number</span>
+                      {errors.phone ? <small>{errors.phone.message}</small> : null}
+                    </label>
+
+                    <label className={`contact-field contact-field-select ${subjectValue ? 'is-filled' : ''} ${errors.subject ? 'has-error' : ''}`}>
+                      <select id="contact-subject" {...register('subject')}>
+                        <option value="" disabled>
+                          Select a subject
+                        </option>
+                        {SUBJECT_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <span>Subject</span>
+                      {errors.subject ? <small>{errors.subject.message}</small> : null}
+                    </label>
+
+                    <label className={`contact-field contact-field-textarea contact-field-full ${messageValue ? 'is-filled' : ''} ${errors.message ? 'has-error' : ''}`}>
+                      <textarea
+                        id="contact-message"
+                        placeholder=" "
+                        rows="6"
+                        {...register('message')}
+                      />
+                      <span>Message</span>
+                      {errors.message ? <small>{errors.message.message}</small> : null}
+                    </label>
+                  </div>
+
+                  <div className="contact-form-footer">
+                    <p className="contact-form-note">
+                      <ShieldCheck size={16} />
+                      <span>Your message is private. We&rsquo;ll get back to you as soon as possible.</span>
+                    </p>
+
+                    <button type="submit" className="contact-submit-button" disabled={isSubmitting}>
+                      <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
+                      <Send size={16} />
+                    </button>
+                  </div>
+                </form>
+              )}
             </article>
 
             <article className="contact-card contact-map-card">
               <div className="contact-map-header">
                 <div>
-                  <p className="contact-section-kicker">Map</p>
-                  <h3>Interactive location preview</h3>
+                  <p className="contact-section-kicker">Location</p>
+                  <h3>Find us in West Hollywood.</h3>
                 </div>
                 <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" className="contact-map-link">
-                  Open in Maps
+                  Open in Google Maps
                 </a>
               </div>
+
+              <p className="contact-copy contact-map-copy">
+                {SALON_NAME}
+                <br />
+                {BRAND_ADDRESS}
+              </p>
+
               <div className="contact-map-frame">
                 <iframe
                   title="Hazel Beauty Saloon location map"
@@ -389,187 +616,10 @@ const Contact = () => {
                 <div className="contact-map-overlay">
                   <span>West Hollywood</span>
                   <strong>{BRAND_ADDRESS}</strong>
-                  <p>Tap the map to explore directions, nearby streets, and travel time.</p>
                 </div>
               </div>
             </article>
-
-            <article className="contact-card contact-connect-card">
-              <p className="contact-section-kicker">Connect</p>
-              <h3>Fast actions for mobile and desktop.</h3>
-              <div className="contact-channel-grid">
-                {contactChannels.map((channel) => {
-                  const Icon = channel.icon;
-
-                  return (
-                    <a key={channel.label} href={channel.href} className="contact-channel-tile" target={channel.href.startsWith('http') ? '_blank' : undefined} rel={channel.href.startsWith('http') ? 'noreferrer' : undefined}>
-                      <Icon size={18} />
-                      <div>
-                        <strong>{channel.label}</strong>
-                        <span>{channel.description}</span>
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-              <div className="contact-privacy-note">
-                <ShieldCheck size={16} />
-                <span>Your details are used only for salon follow-up and CRM routing.</span>
-              </div>
-            </article>
-          </aside>
-
-          <article className="contact-form-card">
-            {successRecord ? (
-              <div className="contact-success-state" aria-live="polite">
-                <div className="contact-success-badge">
-                  <CheckCircle2 size={24} />
-                </div>
-                <p className="contact-section-kicker">Inquiry received</p>
-                <h2>Thank you for your inquiry.</h2>
-                <p className="contact-copy">
-                  We have received your message and will respond within 24 business hours. You
-                  will also receive a confirmation email shortly.
-                </p>
-
-                <div className="contact-success-grid">
-                  <article>
-                    <span>Reference</span>
-                    <strong>{successRecord.leadId || 'CRM lead created'}</strong>
-                  </article>
-                  <article>
-                    <span>Subject</span>
-                    <strong>{successRecord.subject}</strong>
-                  </article>
-                  <article>
-                    <span>Submitted</span>
-                    <strong>{submittedAtLabel || 'Just now'}</strong>
-                  </article>
-                  <article>
-                    <span>Next step</span>
-                    <strong>Front desk follow-up</strong>
-                  </article>
-                </div>
-
-                <div className="contact-success-actions">
-                  <button type="button" className="contact-secondary-button" onClick={resetForm}>
-                    Send another inquiry
-                  </button>
-                  <Link to="/booking" className="contact-primary-link">
-                    Explore booking
-                    <ArrowRight size={16} />
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <form className="contact-form" onSubmit={handleSubmit(onValidSubmit, onInvalidSubmit)} noValidate>
-                <div className="contact-form-header">
-                  <div>
-                    <p className="contact-section-kicker">Send an inquiry</p>
-                    <h2>Tell us what you need, and we will route it into the CRM.</h2>
-                  </div>
-                  <span className="contact-form-eta">
-                    <Clock3 size={14} />
-                    Typical response: 24 business hours
-                  </span>
-                </div>
-
-                <div className="contact-form-trust">
-                  <ShieldCheck size={16} />
-                  <span>Secure submission, inline validation, and direct CRM lead capture.</span>
-                </div>
-
-                {submitError ? (
-                  <div className="contact-alert contact-alert-error" role="alert" aria-live="assertive">
-                    <TriangleAlert size={16} />
-                    <span>{submitError}</span>
-                  </div>
-                ) : null}
-
-                <div className="contact-form-grid">
-                  <label className={`contact-field ${fullNameValue ? 'is-filled' : ''} ${errors.fullName ? 'has-error' : ''}`}>
-                    <input
-                      id="contact-full-name"
-                      type="text"
-                      placeholder=" "
-                      autoComplete="name"
-                      {...register('fullName')}
-                    />
-                    <span>Full name</span>
-                    {errors.fullName ? <small>{errors.fullName.message}</small> : null}
-                  </label>
-
-                  <label className={`contact-field ${emailValue ? 'is-filled' : ''} ${errors.email ? 'has-error' : ''}`}>
-                    <input
-                      id="contact-email"
-                      type="email"
-                      placeholder=" "
-                      autoComplete="email"
-                      {...register('email')}
-                    />
-                    <span>Email address</span>
-                    {errors.email ? <small>{errors.email.message}</small> : null}
-                  </label>
-
-                  <label className={`contact-field ${phoneValue ? 'is-filled' : ''} ${errors.phone ? 'has-error' : ''}`}>
-                    <input
-                      id="contact-phone"
-                      type="tel"
-                      placeholder=" "
-                      autoComplete="tel"
-                      {...register('phone')}
-                    />
-                    <span>Phone number (optional)</span>
-                    {errors.phone ? <small>{errors.phone.message}</small> : null}
-                  </label>
-
-                  <label className={`contact-field contact-field-select ${subjectValue ? 'is-filled' : ''} ${errors.subject ? 'has-error' : ''}`}>
-                    <select
-                      id="contact-subject"
-                      {...register('subject')}
-                    >
-                      <option value="" disabled>
-                        Select a reason
-                      </option>
-                      {SUBJECT_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <span>Subject</span>
-                    {errors.subject ? <small>{errors.subject.message}</small> : null}
-                  </label>
-
-                  <label className={`contact-field contact-field-textarea contact-field-full ${messageValue ? 'is-filled' : ''} ${errors.message ? 'has-error' : ''}`}>
-                    <textarea
-                      id="contact-message"
-                      placeholder=" "
-                      rows="6"
-                      {...register('message')}
-                    />
-                    <span>Message</span>
-                    {errors.message ? <small>{errors.message.message}</small> : null}
-                  </label>
-                </div>
-
-                <div className="contact-form-footer">
-                  <p className="contact-form-note">
-                    <ShieldCheck size={16} />
-                    <span>
-                      Lead source: Website - Contact Form. We will confirm receipt by email and
-                      create a CRM record for follow-up.
-                    </span>
-                  </p>
-
-                  <button type="submit" className="contact-submit-button" disabled={isSubmitting}>
-                    <span>{isSubmitting ? 'Sending...' : 'Send Message'}</span>
-                    <Send size={16} />
-                  </button>
-                </div>
-              </form>
-            )}
-          </article>
+          </div>
         </div>
       </section>
     </div>

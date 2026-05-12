@@ -1,4 +1,4 @@
-import { CRM_AUTH_ENDPOINT, getCrmToken } from './crm.js';
+import { getCrmToken } from './crm.js';
 
 const runtimeEnv = import.meta.env ?? {};
 const isDev = Boolean(runtimeEnv.DEV);
@@ -34,16 +34,7 @@ export const getCrmResolvedApiOrigin = () => {
 };
 
 export const getCrmResolvedAuthUrl = () => {
-  const endpoint = String(CRM_AUTH_ENDPOINT || '').trim() || '/api/crm/auth/login';
-
-  if (/^https?:\/\//i.test(endpoint)) {
-    return endpoint;
-  }
-
-  const origin = getCrmResolvedApiOrigin();
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const base = joinPath(CRM_API_BASE_URL, normalizedEndpoint);
-  return new URL(base, origin).toString();
+  return buildUrl('/auth/login');
 };
 
 const buildUrl = (path, query) => {
@@ -123,10 +114,6 @@ const normalizeErrorMessage = (value, fallback = 'CRM request failed.') => {
   return text;
 };
 
-const buildAuthUrl = () => {
-  return getCrmResolvedAuthUrl();
-};
-
 const fetchJson = async (url, requestInit) => {
   let response;
 
@@ -202,17 +189,17 @@ export const crmHealthCheck = async () => {
 };
 
 export const crmLogin = async (credentials, options = {}) => {
-  const { headers = {}, ...requestOptions } = options;
+  const { headers = {} } = options;
 
-  return fetchJson(buildAuthUrl(), {
-    ...requestOptions,
+  return crmApiRequest('/auth/login', {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
       ...headers,
     },
-    body: JSON.stringify(credentials),
+    body: credentials,
+    token: '',
   });
 };
 
