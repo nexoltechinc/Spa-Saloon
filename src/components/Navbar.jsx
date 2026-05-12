@@ -6,8 +6,6 @@ import './Navbar.css';
 
 const navItems = [
   { to: '/services', label: 'Services' },
-  { to: '/sanctuaries', label: 'Sanctuaries' },
-  { to: '/wellness', label: 'Wellness' },
   { to: '/contact', label: 'Contact' },
 ];
 
