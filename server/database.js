@@ -34,6 +34,8 @@ const SETTINGS_ROW_ID = 'singleton';
 
 const pool = new Pool({
   connectionString: config.databaseUrl,
+  // Fail fast when the configured database cannot be reached so health can degrade.
+  connectionTimeoutMillis: 5000,
 });
 
 const ensureDatabaseUrl = () => {
