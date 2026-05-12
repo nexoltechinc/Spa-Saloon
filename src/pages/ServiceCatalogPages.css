@@ -163,6 +163,70 @@
   gap: 1rem;
 }
 
+.service-booking-hero-visual {
+  position: relative;
+  overflow: hidden;
+  min-height: 220px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(139, 94, 52, 0.16), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(139, 94, 52, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  isolation: isolate;
+}
+
+.service-booking-hero-visual-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.service-booking-hero-visual-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(17, 17, 17, 0.02) 12%, rgba(17, 17, 17, 0.5) 100%),
+    linear-gradient(135deg, rgba(139, 94, 52, 0.08), transparent 55%);
+  z-index: 1;
+}
+
+.service-booking-hero-visual-copy {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  z-index: 2;
+  display: grid;
+  gap: 0.2rem;
+  color: #fff8ee;
+}
+
+.service-booking-hero-visual-copy span {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.7rem;
+  background: rgba(255, 255, 255, 0.12);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.service-booking-hero-visual-copy strong {
+  font-size: clamp(1.45rem, 2.8vw, 2.2rem);
+  line-height: 1.05;
+  max-width: 14ch;
+}
+
+.service-booking-hero-visual-copy p {
+  margin: 0;
+  max-width: 28ch;
+  color: rgba(255, 248, 235, 0.84);
+  line-height: 1.55;
+}
+
 .service-catalog-panel-intro,
 .service-booking-price-card {
   background: linear-gradient(180deg, rgba(139, 94, 52, 0.11), rgba(255, 255, 255, 0.84));
@@ -340,6 +404,10 @@
   font: inherit;
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
 }
 
 .service-catalog-card:hover,
@@ -351,6 +419,36 @@
 .service-booking-card.is-selected {
   border-color: rgba(139, 94, 52, 0.4);
   background: linear-gradient(180deg, rgba(139, 94, 52, 0.08), rgba(255, 255, 255, 0.92));
+}
+
+.service-booking-card-media {
+  position: relative;
+  min-height: 180px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(139, 94, 52, 0.18), rgba(255, 255, 255, 0.82));
+}
+
+.service-booking-card-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.service-booking-card-media-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(16, 16, 16, 0.02) 24%, rgba(16, 16, 16, 0.38) 100%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 60%);
+}
+
+.service-booking-card-body {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
 }
 
 .service-catalog-card-top,
@@ -393,6 +491,10 @@
   margin: 0.8rem 0 0;
   color: var(--catalog-muted);
   line-height: 1.65;
+}
+
+.service-booking-card-body > p {
+  margin-top: 0;
 }
 
 .service-catalog-metadata,

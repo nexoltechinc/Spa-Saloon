@@ -23,11 +23,14 @@ import {
   BRAND_TAGLINE,
   SALON_NAME,
 } from '../config/brand';
+import { resolveHazelImage } from '../config/serviceMedia';
 import './Home.css';
 
 const TestimonialsCarousel = lazy(() => import('../components/TestimonialsCarousel'));
 
-const heroImage = '/images/hero.png';
+const homeHeroBackdropImage = resolveHazelImage('facial-skin-care', 'home-hero-backdrop');
+const homeHeroPanelImage = resolveHazelImage('bridal-packages', 'home-hero-panel');
+const homeCtaImage = resolveHazelImage('nails', 'home-cta');
 
 const heroStats = [
   {
@@ -92,22 +95,28 @@ const philosophyCards = [
 
 const galleryTiles = [
   {
-    title: 'Arrival Lounge',
-    caption: 'Warm light, textural finishes, and a first impression that slows the breath.',
+    title: 'Glow Ritual',
+    caption: 'Facial care and warm light for a first impression that feels calm.',
     className: 'home-gallery-tile-large',
     position: 'center 24%',
+    image: resolveHazelImage('facial-skin-care', 'home-gallery-glow'),
+    alt: 'Facial treatment photograph from Hazel Beauty Saloon',
   },
   {
-    title: 'Ritual Detail',
-    caption: 'Candles, botanicals, and the quiet precision behind every service.',
+    title: 'Styled Detail',
+    caption: 'Hair finishing with quiet precision and a polished rhythm.',
     className: 'home-gallery-tile-tall',
     position: 'center 56%',
+    image: resolveHazelImage('hair-services', 'home-gallery-styled'),
+    alt: 'Hair styling photograph from Hazel Beauty Saloon',
   },
   {
-    title: 'Evening Reset',
-    caption: 'A serene finish designed to linger long after you leave.',
+    title: 'Polished Finish',
+    caption: 'A serene close-up that keeps the final look refined and ready.',
     className: 'home-gallery-tile-wide',
     position: 'center 76%',
+    image: resolveHazelImage('nails', 'home-gallery-polished'),
+    alt: 'Nail service photograph from Hazel Beauty Saloon',
   },
 ];
 
@@ -119,6 +128,8 @@ const serviceTiles = [
       'Deep release with warm stones, layered pressure, and custom oils to unwind tension without rushing the body.',
     duration: '75 min',
     position: 'center 32%',
+    image: resolveHazelImage('spa-massage', 'home-service-massage'),
+    alt: 'Massage service photograph from Hazel Beauty Saloon',
   },
   {
     title: 'Facial Renewal',
@@ -127,6 +138,8 @@ const serviceTiles = [
       'Botanical actives and lymphatic flow work together to restore luminosity and clarity.',
     duration: '60 min',
     position: 'center 52%',
+    image: resolveHazelImage('facial-skin-care', 'home-service-facial'),
+    alt: 'Facial treatment photograph from Hazel Beauty Saloon',
   },
   {
     title: 'Aromatic Body Scrub',
@@ -135,6 +148,8 @@ const serviceTiles = [
       'A polishing exfoliation that leaves the skin smooth, hydrated, and beautifully renewed.',
     duration: '45 min',
     position: 'center 74%',
+    image: resolveHazelImage('spa-massage', 'home-service-scrub'),
+    alt: 'Body treatment photograph from Hazel Beauty Saloon',
   },
 ];
 
@@ -204,7 +219,7 @@ const Home = () => {
       <motion.section className="home-hero" ref={heroRef}>
         <motion.div className="home-hero-backdrop" aria-hidden="true" style={heroBackdropStyle}>
           <img
-            src={heroImage}
+            src={homeHeroBackdropImage}
             alt=""
             className="home-hero-image"
             loading="eager"
@@ -241,8 +256,8 @@ const Home = () => {
           <motion.div className="home-hero-panel" {...revealProps} transition={{ duration: 0.7, ease: 'easeOut', delay: 0.12 }}>
             <div className="home-hero-image-shell">
               <motion.img
-                src={heroImage}
-                alt="Warm spa ritual bowl surrounded by candles and botanicals"
+                src={homeHeroPanelImage}
+                alt="Bridal beauty service photograph from Hazel Beauty Saloon"
                 className="home-hero-panel-image"
                 loading="eager"
               />
@@ -396,8 +411,8 @@ const Home = () => {
                 transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
               >
                 <img
-                  src={heroImage}
-                  alt={tile.title}
+                  src={tile.image}
+                  alt={tile.alt}
                   className="home-gallery-image"
                   loading="lazy"
                   style={{ objectPosition: tile.position }}
@@ -435,8 +450,8 @@ const Home = () => {
               >
                 <div className="home-service-media">
                   <img
-                    src={heroImage}
-                    alt={service.title}
+                    src={service.image}
+                    alt={service.alt}
                     className="home-service-image"
                     loading="lazy"
                     style={{ objectPosition: service.position }}
@@ -549,7 +564,7 @@ const Home = () => {
       <section className="home-cta">
         <div className="home-cta-media">
           <img
-            src={heroImage}
+            src={homeCtaImage}
             alt=""
             className="home-cta-image"
             loading="lazy"

@@ -5,6 +5,7 @@ import RequireCrmAuth from './components/RequireCrmAuth';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import About from './pages/About';
+import Packages from './pages/Packages';
 import Booking from './pages/Booking';
 import Contact from './pages/Contact';
 import { CRM_NAME, SALON_NAME } from './config/brand';
@@ -116,6 +117,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/services" element={<Services />} />
           <Route path="/about" element={<About />} />
+          <Route path="/packages" element={<Packages />} />
           <Route path="/sanctuaries" element={<Placeholder title="Sanctuaries" />} />
           <Route path="/wellness" element={<Placeholder title="Wellness" />} />
           <Route path="/booking" element={<Booking />} />

@@ -118,6 +118,45 @@ const GROUP_THEMES = {
   },
 };
 
+const FAQ_ITEMS = [
+  {
+    id: 'appointment',
+    question: 'Do I need an appointment before visiting?',
+    answer:
+      'We recommend booking an appointment in advance so our team can prepare your service time properly. Walk-ins may be accepted depending on availability, but reservations are preferred.',
+  },
+  {
+    id: 'services',
+    question: 'What services does Hazel Beauty Saloon offer?',
+    answer:
+      'We offer hair care, hair color, blow dry, styling, facial and skin rituals, massage and grooming, manicure and pedicure care, bridal/event looks, and selected beauty packages.',
+  },
+  {
+    id: 'reserve',
+    question: 'How can I reserve my appointment?',
+    answer:
+      'You can reserve your appointment through the Reserve Now button, call the front desk, or send us a message through the Contact page. Our team will guide you with availability and service details.',
+  },
+  {
+    id: 'prices',
+    question: 'Can I ask about prices before booking?',
+    answer:
+      'Yes. Service prices may vary depending on the treatment, styling needs, duration, and package selection. You can check the Services page or contact us for help before confirming your booking.',
+  },
+  {
+    id: 'bridal',
+    question: 'Do you offer bridal or event makeup services?',
+    answer:
+      'Yes. We provide bridal and event beauty services, including party makeup, glam makeup, engagement makeup, and HD/airbrush makeup options. We recommend booking these services in advance.',
+  },
+  {
+    id: 'guidance',
+    question: 'What should I do if I am not sure which service to choose?',
+    answer:
+      'You can contact our team and tell us what look, treatment, or result you want. We will help guide you toward the most suitable service or package.',
+  },
+];
+
 const formatMinutesTotal = (minutes) => {
   const total = Math.max(0, Number(minutes) || 0);
   if (!total) return '0 min';
@@ -141,6 +180,7 @@ const Services = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedServiceId, setExpandedServiceId] = useState(SERVICE_SEED[0]?.id || '');
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
+  const [expandedFaqId, setExpandedFaqId] = useState(FAQ_ITEMS[0]?.id || '');
   const { data: catalog } = useServiceCatalog();
 
   const activeServices = useMemo(
@@ -386,6 +426,13 @@ const Services = () => {
                             }}
                           >
                             <div className="services-menu-preview">
+                              <img
+                                src={service.imageUrl || SERVICE_SEED[0]?.imageUrl || '/images/hero.png'}
+                                alt={`${service.name} service photograph from Hazel Beauty Saloon`}
+                                className="services-menu-preview-image"
+                                loading="lazy"
+                              />
+                              <div className="services-menu-preview-overlay" aria-hidden="true" />
                               <div className="services-menu-preview-shape" aria-hidden="true" />
                               <span>{group.label} ritual</span>
                               <strong>{service.name}</strong>
@@ -552,6 +599,73 @@ const Services = () => {
             </div>
           </article>
         </aside>
+      </section>
+
+      <section className="services-menu-faq" id="faq" aria-labelledby="services-menu-faq-title">
+        <div className="services-menu-faq-shell">
+          <div className="services-menu-faq-header">
+            <div>
+              <p className="services-menu-faq-kicker">
+                <Sparkles size={14} />
+                Frequently asked questions
+              </p>
+              <h2 id="services-menu-faq-title">Helpful details before you book.</h2>
+            </div>
+            <p>
+              Common questions about appointments, services, pricing, bridal looks, and how to get
+              the right guidance before your visit.
+            </p>
+          </div>
+
+          <div className="services-menu-faq-list">
+            {FAQ_ITEMS.map((item) => {
+              const isOpen = expandedFaqId === item.id;
+
+              return (
+                <article key={item.id} className={`services-menu-faq-item${isOpen ? ' is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="services-menu-faq-toggle"
+                    aria-expanded={isOpen}
+                    aria-controls={`services-menu-faq-panel-${item.id}`}
+                    onClick={() => setExpandedFaqId((current) => (current === item.id ? '' : item.id))}
+                  >
+                    <span>{item.question}</span>
+                    <ChevronDown size={18} className="services-menu-faq-chevron" />
+                  </button>
+
+                  {isOpen ? (
+                    <div id={`services-menu-faq-panel-${item.id}`} className="services-menu-faq-panel">
+                      <p>{item.answer}</p>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="services-menu-faq-cta">
+            <div>
+              <p className="services-menu-faq-kicker">Still have a question?</p>
+              <h3>Our team is here to help you choose the right service.</h3>
+            </div>
+
+            <div className="services-menu-faq-actions">
+              <Link to="/contact" className="services-menu-secondary-link">
+                Contact Us
+                <ArrowRight size={16} />
+              </Link>
+              <Link
+                to={bookingHref}
+                state={{ selectedServiceIds, selectedServiceId: selectedServiceIds[0] || '' }}
+                className="services-menu-primary-link"
+              >
+                Reserve Now
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );

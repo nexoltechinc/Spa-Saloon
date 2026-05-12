@@ -11,9 +11,11 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BRAND_ADDRESS, BRAND_BOOKING_PHONE, SALON_NAME } from '../config/brand';
+import { resolveHazelImage } from '../config/serviceMedia';
 import './About.css';
 
-const heroImage = '/images/hero.png';
+const aboutHeroBackdropImage = resolveHazelImage('facial-skin-care', 'about-hero-backdrop');
+const aboutHeroPanelImage = resolveHazelImage('bridal-packages', 'about-hero-panel');
 const BOOKING_ROUTE = '/booking';
 const CONTACT_ROUTE = '/contact';
 
@@ -108,7 +110,7 @@ const About = () => (
     <section className="about-hero">
       <div className="about-hero-backdrop" aria-hidden="true">
         <img
-          src={heroImage}
+          src={aboutHeroBackdropImage}
           alt=""
           className="about-hero-image"
           loading="eager"
@@ -144,8 +146,8 @@ const About = () => (
         <aside className="about-hero-panel">
           <div className="about-hero-panel-media">
             <img
-              src={heroImage}
-              alt="Hazel Beauty Saloon interior with candles, botanicals, and a spa bowl"
+              src={aboutHeroPanelImage}
+              alt="Bridal beauty service photograph from Hazel Beauty Saloon"
               className="about-hero-panel-image"
               loading="eager"
             />

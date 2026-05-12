@@ -55,6 +55,7 @@ const Footer = () => {
           <h4 className="footer-heading">Explore</h4>
           <div className="footer-links-group">
             <Link to="/services">Services</Link>
+            <Link to="/packages">Packages &amp; Offers</Link>
             <Link to="/booking">Reserve Now</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/wellness">Wellness</Link>

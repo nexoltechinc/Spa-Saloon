@@ -8,6 +8,7 @@ import {
   STAFF_PRICING_RULES,
   slugify,
 } from '../config/serviceCatalog';
+import { resolveHazelImage } from '../config/serviceMedia';
 
 export const SERVICE_CATALOG_QUERY_KEY = ['service-catalog'];
 
@@ -16,6 +17,11 @@ const toArray = (value) => (Array.isArray(value) ? value : []);
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toText = (value, fallback = '') => {
+  const text = String(value || '').trim();
+  return text || fallback;
 };
 
 const mergeById = (fallbackItems, remoteItems) => {
@@ -47,6 +53,7 @@ const normalizeCategory = (entry, index = 0) => {
     description: String(entry.description || entry.summary || ''),
     sortOrder: toNumber(entry.sortOrder ?? entry.sort_order ?? index + 1, index + 1),
     slug: String(entry.slug || slugify(name) || id),
+    imageUrl: toText(entry.imageUrl || entry.image || entry.coverImage || entry.media?.imageUrl, resolveHazelImage(id, id)),
     isActive: entry.isActive !== false && entry.active !== false,
   };
 };
@@ -138,6 +145,8 @@ const normalizeService = (entry, categoryLookup, fallbackService, index = 0) => 
     .filter(Boolean);
   const remotePackageItems = toArray(entry.packageItems).map(normalizePackageItem);
   const fallbackPackageItems = Array.isArray(fallbackService?.packageItems) ? fallbackService.packageItems : [];
+  const fallbackImage = fallbackService?.imageUrl || resolveHazelImage(category.id, name);
+  const remoteImage = entry.imageUrl || entry.image || entry.coverImage || entry.media?.imageUrl;
 
   return {
     ...fallbackService,
@@ -153,6 +162,7 @@ const normalizeService = (entry, categoryLookup, fallbackService, index = 0) => 
     description: String(entry.description || entry.summary || fallbackService?.description || 'Service'),
     status: String(entry.status || fallbackService?.status || (entry.active === false ? 'Inactive' : 'Active')),
     active: entry.active !== false && String(entry.status || fallbackService?.status || 'Active') !== 'Inactive',
+    imageUrl: toText(remoteImage, fallbackImage),
     taxRatePercent: toNumber(entry.taxRatePercent ?? entry.tax_rate_percent ?? fallbackService?.taxRatePercent ?? 0, fallbackService?.taxRatePercent || 0),
     defaultDiscountAmountPkr: toNumber(entry.defaultDiscountAmountPkr ?? entry.defaultDiscountAmount ?? fallbackService?.defaultDiscountAmountPkr ?? 0, fallbackService?.defaultDiscountAmountPkr || 0),
     defaultAddonIds: remoteDefaultAddonIds.length ? remoteDefaultAddonIds : fallbackService?.defaultAddonIds || [],

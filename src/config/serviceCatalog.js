@@ -1,3 +1,5 @@
+import { resolveHazelCategoryImage, resolveHazelImage } from './serviceMedia';
+
 const CATEGORY_DEFINITIONS = [
   {
     id: 'hair-services',
@@ -171,6 +173,7 @@ const buildService = ({
   defaultAddonIds = [],
   packageItems = [],
   isPackage = false,
+  imageUrl = '',
 }) => {
   const category = CATEGORY_DEFINITIONS.find((entry) => entry.id === categoryId);
 
@@ -192,6 +195,7 @@ const buildService = ({
     defaultAddonIds,
     packageItems,
     isPackage,
+    imageUrl: imageUrl || resolveHazelImage(categoryId, id),
     bookingVisible: status === 'Active',
     posAvailable: status === 'Active',
     createdAt: '',
@@ -202,6 +206,7 @@ const buildService = ({
 export const SERVICE_CATEGORIES = CATEGORY_DEFINITIONS.map((category) => ({
   ...category,
   slug: category.id,
+  imageUrl: resolveHazelCategoryImage(category.id),
   isActive: true,
 }));
 

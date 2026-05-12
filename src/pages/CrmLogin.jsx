@@ -9,10 +9,11 @@ import {
   getCrmResolvedApiOrigin,
   getCrmResolvedAuthUrl,
 } from '../config/crmApi';
+import { resolveHazelImage } from '../config/serviceMedia';
 import './CrmLogin.css';
 
 const HEALTH_REFRESH_MS = 15000;
-const loginVisualImage = '/images/hero.png';
+const loginVisualImage = resolveHazelImage('facial-skin-care', 'crm-login');
 
 const normalizeFeedbackMessage = (value, fallback = '') => {
   if (typeof value === 'string') {
@@ -321,7 +322,7 @@ const CrmLogin = () => {
             </div>
 
             <div className="crm-login-visual-frame">
-              <img src={loginVisualImage} alt="Warm hospitality scene from Hazel Beauty Saloon" className="crm-login-visual-image" />
+              <img src={loginVisualImage} alt="Facial treatment photograph from Hazel Beauty Saloon" className="crm-login-visual-image" />
               <div className="crm-login-visual-overlay" aria-hidden="true" />
               <article className="crm-login-visual-quote">
                 <span>Daily inspiration</span>

@@ -110,6 +110,12 @@ const Booking = () => {
     { label: 'Staff tiers', value: staffPricingRules.length },
   ];
 
+  const heroVisualService = selectedService || activeServices[0] || SERVICE_SEED[0] || null;
+  const heroVisualImage = heroVisualService?.imageUrl || SERVICE_SEED[0]?.imageUrl || '/images/hero.png';
+  const heroVisualAlt = heroVisualService
+    ? `${heroVisualService.name} service photograph from Hazel Beauty Saloon`
+    : 'Hazel Beauty Saloon treatment photograph';
+
   return (
     <div className="service-booking-page">
       <section className="service-booking-hero">
@@ -139,6 +145,21 @@ const Booking = () => {
         </div>
 
         <div className="service-booking-hero-panel">
+          <div className="service-booking-hero-visual">
+            <img
+              src={heroVisualImage}
+              alt={heroVisualAlt}
+              className="service-booking-hero-visual-image"
+              loading="eager"
+            />
+            <div className="service-booking-hero-visual-overlay" aria-hidden="true" />
+            <article className="service-booking-hero-visual-copy">
+              <span>Selected treatment</span>
+              <strong>{heroVisualService?.name || 'Choose a treatment'}</strong>
+              <p>{heroVisualService?.category || 'A calm preview from the Hazel catalog.'}</p>
+            </article>
+          </div>
+
           <div className="service-booking-price-card">
             <span>Final Preview</span>
             <strong>{pricingQuote ? formatPkr(pricingQuote.finalPrice) : formatPkr(0)}</strong>
@@ -193,38 +214,50 @@ const Booking = () => {
                   className={`service-booking-card${isSelected ? ' is-selected' : ''}`}
                   onClick={() => selectService(service)}
                 >
-                  <div className="service-booking-card-top">
-                    <div>
-                      <span className="service-booking-badge">{service.category}</span>
-                      <h3>{service.name}</h3>
-                    </div>
-                    <strong>{formatPkr(service.price)}</strong>
+                  <div className="service-booking-card-media">
+                    <img
+                      src={service.imageUrl || SERVICE_SEED[0]?.imageUrl || '/images/hero.png'}
+                      alt={`${service.name} service photograph from Hazel Beauty Saloon`}
+                      className="service-booking-card-image"
+                      loading="lazy"
+                    />
+                    <div className="service-booking-card-media-overlay" aria-hidden="true" />
                   </div>
 
-                  <p>{service.description}</p>
+                  <div className="service-booking-card-body">
+                    <div className="service-booking-card-top">
+                      <div>
+                        <span className="service-booking-badge">{service.category}</span>
+                        <h3>{service.name}</h3>
+                      </div>
+                      <strong>{formatPkr(service.price)}</strong>
+                    </div>
 
-                  <div className="service-booking-metadata">
-                    <span>
-                      <CalendarDays size={14} />
-                      {service.durationLabel || formatDuration(service)}
-                    </span>
-                    <span>
-                      <BadgePercent size={14} />
-                      Staff pricing ready
+                    <p>{service.description}</p>
+
+                    <div className="service-booking-metadata">
+                      <span>
+                        <CalendarDays size={14} />
+                        {service.durationLabel || formatDuration(service)}
+                      </span>
+                      <span>
+                        <BadgePercent size={14} />
+                        Staff pricing ready
+                      </span>
+                    </div>
+
+                    {packageItems.length ? (
+                      <div className="service-booking-package-mini">
+                        {packageItems.slice(0, 3).map((item) => (
+                          <span key={`${service.id}-${item.itemName}`}>{item.itemName}</span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <span className="service-booking-card-link">
+                      {isSelected ? 'Selected' : 'Select service'}
                     </span>
                   </div>
-
-                  {packageItems.length ? (
-                    <div className="service-booking-package-mini">
-                      {packageItems.slice(0, 3).map((item) => (
-                        <span key={`${service.id}-${item.itemName}`}>{item.itemName}</span>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <span className="service-booking-card-link">
-                    {isSelected ? 'Selected' : 'Select service'}
-                  </span>
                 </button>
               );
             })}

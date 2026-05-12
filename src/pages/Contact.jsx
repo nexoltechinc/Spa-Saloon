@@ -27,9 +27,10 @@ import {
   SALON_NAME,
 } from '../config/brand';
 import { crmCreate } from '../config/crmApi';
+import { resolveHazelImage } from '../config/serviceMedia';
 import './Contact.css';
 
-const heroImage = '/images/hero.png';
+const contactHeroImage = resolveHazelImage('facial-skin-care', 'contact-hero');
 const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(BRAND_ADDRESS)}&output=embed`;
 const BOOKING_ROUTE = '/booking';
 
@@ -290,7 +291,7 @@ const Contact = () => {
     <div className="contact-page">
       <section className="contact-hero">
         <div className="contact-hero-backdrop" aria-hidden="true">
-          <img src={heroImage} alt="" className="contact-hero-image" loading="eager" />
+          <img src={contactHeroImage} alt="" className="contact-hero-image" loading="eager" />
         </div>
         <div className="contact-hero-overlay" aria-hidden="true" />
 
