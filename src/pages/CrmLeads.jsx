@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { List } from 'react-window';
 import {
   Building2,
   Clock3,
@@ -45,6 +46,7 @@ const SOURCE_OPTIONS = [
 const SOURCE_FILTERS = ['All Sources', ...SOURCE_OPTIONS];
 const FOLLOW_UP_FILTERS = ['All Leads', 'Needs Follow-Up', 'Due Today', 'Overdue', 'Booked', 'Open Pipeline'];
 const LEAD_GRID_COLUMNS = 'minmax(248px, 1.34fr) minmax(124px, 0.92fr) minmax(108px, 0.78fr) minmax(96px, 0.72fr) minmax(132px, 0.94fr) minmax(154px, 1fr) minmax(98px, 0.74fr) minmax(120px, 0.84fr) minmax(84px, 0.64fr)';
+const LEAD_ROW_HEIGHT = 104;
 
 const getStatusTone = (status) => {
   const normalized = String(status || '').toLowerCase();
@@ -192,6 +194,64 @@ const buildPayload = (draft) => {
 };
 
 const isOpenPipeline = (lead) => !['Booked', 'Lost', 'Disqualified'].includes(normalizeLeadStatus(lead.status));
+
+const LeadRow = ({ index, style, leads, selectedLeadId, onSelectLead }) => {
+  const lead = leads[index];
+
+  if (!lead) {
+    return null;
+  }
+
+  const isSelected = lead.id === selectedLeadId;
+  const activity = getLeadActivity(lead);
+
+  return (
+    <button
+      type="button"
+      className={`crm-workspace-row${isSelected ? ' crm-workspace-row-active' : ''}`}
+      onClick={() => onSelectLead(lead)}
+      style={{ ...style, boxSizing: 'border-box', gridTemplateColumns: LEAD_GRID_COLUMNS }}
+    >
+      <div className="crm-workspace-row-primary">
+        <p className="crm-workspace-row-title">{lead.fullName}</p>
+        <p className="crm-workspace-row-subtitle">
+          <span>{lead.email || 'No email'}</span>
+          <span>{lead.phone || 'No phone'}</span>
+        </p>
+      </div>
+      <div className="crm-workspace-row-meta">
+        <strong>{lead.source}</strong>
+        <span>{lead.branchName || 'No branch'}</span>
+      </div>
+      <div className="crm-workspace-badge-row">
+        <span className={`crm-workspace-badge crm-workspace-badge-${getStatusTone(lead.status)}`}>{lead.status}</span>
+      </div>
+      <div className="crm-workspace-badge-row">
+        <span className={`crm-workspace-badge crm-workspace-badge-${getPriorityTone(lead.priority)}`}>{lead.priority}</span>
+      </div>
+      <div className="crm-workspace-row-meta">
+        <strong>{lead.ownerName || 'Unassigned'}</strong>
+        <span>{lead.branchName || 'No branch'}</span>
+      </div>
+      <div className="crm-workspace-row-meta">
+        <strong>{lead.serviceInterest || 'Open interest'}</strong>
+        <span>{activity.label}</span>
+      </div>
+      <div className="crm-workspace-row-meta">
+        <strong>{formatMoney(lead.budget)}</strong>
+        <span>{lead.status === 'Booked' ? 'Converted value' : 'Pipeline value'}</span>
+      </div>
+      <div className="crm-workspace-badge-row">
+        <span className={`crm-workspace-badge crm-workspace-badge-${getFollowUpTone(lead)}`}>
+          {lead.nextFollowUpAt ? formatDate(lead.nextFollowUpAt) : 'Not set'}
+        </span>
+      </div>
+      <div className="crm-workspace-badge-row">
+        <span className="crm-workspace-chip-link">Open</span>
+      </div>
+    </button>
+  );
+};
 
 const CrmLeads = () => {
   const navigate = useNavigate();
@@ -496,6 +556,7 @@ const CrmLeads = () => {
 
   const selectedLeadActivity = getLeadActivity(selectedLead);
   const dirtyModeLabel = mode === 'create' ? 'New Lead Entry' : 'Lead Detail';
+  const leadListHeight = Math.max(420, Math.min(860, filteredLeads.length * LEAD_ROW_HEIGHT || 420));
 
   return (
     <CrmShell shellClassName="crm-workspace-shell crm-leads-shell">
@@ -608,60 +669,18 @@ const CrmLeads = () => {
                 </div>
               </div>
             ) : (
-              <div className="crm-workspace-group-list">
-                {filteredLeads.map((lead) => {
-                  const isSelected = lead.id === selectedLeadId;
-                  const activity = getLeadActivity(lead);
-
-                  return (
-                    <button
-                      key={lead.id}
-                      type="button"
-                      className={`crm-workspace-row${isSelected ? ' crm-workspace-row-active' : ''}`}
-                      onClick={() => openEdit(lead)}
-                      style={{ gridTemplateColumns: LEAD_GRID_COLUMNS }}
-                    >
-                      <div className="crm-workspace-row-primary">
-                        <p className="crm-workspace-row-title">{lead.fullName}</p>
-                        <p className="crm-workspace-row-subtitle">
-                          <span>{lead.email || 'No email'}</span>
-                          <span>{lead.phone || 'No phone'}</span>
-                        </p>
-                      </div>
-                      <div className="crm-workspace-row-meta">
-                        <strong>{lead.source}</strong>
-                        <span>{lead.branchName || 'No branch'}</span>
-                      </div>
-                      <div className="crm-workspace-badge-row">
-                        <span className={`crm-workspace-badge crm-workspace-badge-${getStatusTone(lead.status)}`}>{lead.status}</span>
-                      </div>
-                      <div className="crm-workspace-badge-row">
-                        <span className={`crm-workspace-badge crm-workspace-badge-${getPriorityTone(lead.priority)}`}>{lead.priority}</span>
-                      </div>
-                      <div className="crm-workspace-row-meta">
-                        <strong>{lead.ownerName || 'Unassigned'}</strong>
-                        <span>{lead.branchName || 'No branch'}</span>
-                      </div>
-                      <div className="crm-workspace-row-meta">
-                        <strong>{lead.serviceInterest || 'Open interest'}</strong>
-                        <span>{activity.label}</span>
-                      </div>
-                      <div className="crm-workspace-row-meta">
-                        <strong>{formatMoney(lead.budget)}</strong>
-                        <span>{lead.status === 'Booked' ? 'Converted value' : 'Pipeline value'}</span>
-                      </div>
-                      <div className="crm-workspace-badge-row">
-                        <span className={`crm-workspace-badge crm-workspace-badge-${getFollowUpTone(lead)}`}>
-                          {lead.nextFollowUpAt ? formatDate(lead.nextFollowUpAt) : 'Not set'}
-                        </span>
-                      </div>
-                      <div className="crm-workspace-badge-row">
-                        <span className="crm-workspace-chip-link">Open</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <List
+                className="crm-workspace-group-list crm-leads-virtual-list"
+                rowCount={filteredLeads.length}
+                rowHeight={LEAD_ROW_HEIGHT}
+                rowComponent={LeadRow}
+                rowProps={{
+                  leads: filteredLeads,
+                  selectedLeadId,
+                  onSelectLead: openEdit,
+                }}
+                style={{ height: leadListHeight, width: '100%' }}
+              />
             )}
           </article>
 

@@ -34,9 +34,17 @@
   gap: 0.58rem;
 }
 
+.crm-leads-shell .crm-leads-virtual-list {
+  gap: 0;
+}
+
 .crm-leads-shell .crm-workspace-row {
   min-height: 82px;
   padding: 0.88rem 0.92rem;
+}
+
+.crm-leads-shell .crm-leads-virtual-list .crm-workspace-row {
+  box-sizing: border-box;
 }
 
 .crm-leads-shell .crm-workspace-row-primary {

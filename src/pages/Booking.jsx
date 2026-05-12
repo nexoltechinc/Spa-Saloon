@@ -4,6 +4,7 @@ import { ArrowRight, BadgePercent, CalendarDays, Sparkles } from 'lucide-react';
 import {
   SERVICE_ADDONS,
   SERVICE_CATEGORIES,
+  SERVICE_PACKAGE_ITEMS,
   SERVICE_SEED,
   STAFF_PRICING_RULES,
   calculateServicePricing,
@@ -11,14 +12,21 @@ import {
   formatPkr,
   getAddonsForService,
   getCategoryCountMap,
-  getPackageItemsForService,
 } from '../config/serviceCatalog';
+import { useServiceCatalog } from '../hooks/useServiceCatalog';
 import './ServiceCatalogPages.css';
 
 const Booking = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const { data: catalog } = useServiceCatalog();
+
+  const servicesCatalog = catalog?.services?.length ? catalog.services : SERVICE_SEED;
+  const categoriesCatalog = catalog?.categories?.length ? catalog.categories : SERVICE_CATEGORIES;
+  const addonsCatalog = catalog?.addons?.length ? catalog.addons : SERVICE_ADDONS;
+  const packageItemCatalog = catalog?.packageItems?.length ? catalog.packageItems : SERVICE_PACKAGE_ITEMS;
+  const staffPricingRules = catalog?.staffPricingRules?.length ? catalog.staffPricingRules : STAFF_PRICING_RULES;
   const incomingSelectedServiceIds = useMemo(() => {
     const searchParams = new URLSearchParams(location.search);
     const queryIds = (searchParams.get('services') || '')
@@ -41,8 +49,8 @@ const Booking = () => {
   const [taxRatePercent, setTaxRatePercent] = useState('0');
 
   const activeServices = useMemo(
-    () => SERVICE_SEED.filter((service) => service.status !== 'Inactive' && service.active !== false),
-    [],
+    () => servicesCatalog.filter((service) => service.status !== 'Inactive' && service.active !== false),
+    [servicesCatalog],
   );
 
   const categoryCountMap = useMemo(() => getCategoryCountMap(activeServices), [activeServices]);
@@ -64,7 +72,7 @@ const Booking = () => {
     [activeServices, selectedServiceId],
   );
 
-  const availableAddons = useMemo(() => getAddonsForService(selectedService, SERVICE_ADDONS), [selectedService]);
+  const availableAddons = useMemo(() => getAddonsForService(selectedService, addonsCatalog), [addonsCatalog, selectedService]);
 
   const pricingQuote = useMemo(() => {
     if (!selectedService) return null;
@@ -74,16 +82,20 @@ const Booking = () => {
       staffLevel,
       discountAmount,
       taxRatePercent,
-      addonCatalog: SERVICE_ADDONS,
-      staffRules: STAFF_PRICING_RULES,
+      addonCatalog: addonsCatalog,
+      staffRules: staffPricingRules,
     });
-  }, [discountAmount, selectedAddonIds, selectedService, staffLevel, taxRatePercent]);
+  }, [addonsCatalog, discountAmount, selectedAddonIds, selectedService, staffLevel, staffPricingRules, taxRatePercent]);
 
   const selectedCategoryName = selectedCategory === 'all'
     ? 'All Treatments'
-    : SERVICE_CATEGORIES.find((category) => category.id === selectedCategory)?.name || 'All Treatments';
+    : categoriesCatalog.find((category) => category.id === selectedCategory)?.name || 'All Treatments';
 
-  const selectedPackageItems = selectedService ? getPackageItemsForService(selectedService.id) : [];
+  const selectedPackageItems = selectedService
+    ? packageItemCatalog.filter((item) => item.serviceId === selectedService.id)
+    : [];
+
+  const getPackageItemsForService = (serviceId) => packageItemCatalog.filter((item) => item.serviceId === serviceId);
 
   const selectService = (service) => {
     setSelectedServiceId(service.id);
@@ -93,9 +105,9 @@ const Booking = () => {
 
   const heroStats = [
     { label: 'Live treatments', value: activeServices.length },
-    { label: 'Categories', value: SERVICE_CATEGORIES.length },
-    { label: 'Add-ons', value: SERVICE_ADDONS.length },
-    { label: 'Staff tiers', value: STAFF_PRICING_RULES.length },
+    { label: 'Categories', value: categoriesCatalog.length },
+    { label: 'Add-ons', value: addonsCatalog.length },
+    { label: 'Staff tiers', value: staffPricingRules.length },
   ];
 
   return (
@@ -147,12 +159,12 @@ const Booking = () => {
         <button type="button" className={selectedCategory === 'all' ? 'is-active' : ''} onClick={() => setSelectedCategory('all')}>
           All <span>{activeServices.length}</span>
         </button>
-        {SERVICE_CATEGORIES.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            className={selectedCategory === category.id ? 'is-active' : ''}
-            onClick={() => setSelectedCategory(category.id)}
+        {categoriesCatalog.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              className={selectedCategory === category.id ? 'is-active' : ''}
+              onClick={() => setSelectedCategory(category.id)}
           >
             {category.name} <span>{categoryCountMap.get(category.id) || 0}</span>
           </button>
@@ -250,7 +262,7 @@ const Booking = () => {
                   <label>
                     <span>Staff Level</span>
                     <select value={staffLevel} onChange={(event) => setStaffLevel(event.target.value)}>
-                      {STAFF_PRICING_RULES.map((rule) => (
+                      {staffPricingRules.map((rule) => (
                         <option key={rule.id} value={rule.label}>
                           {rule.label} (+{rule.adjustmentPercent}%)
                         </option>

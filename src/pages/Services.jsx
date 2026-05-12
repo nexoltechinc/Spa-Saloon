@@ -13,15 +13,16 @@ import {
   X,
 } from 'lucide-react';
 import {
-  SERVICE_ADDONS,
-  SERVICE_SEED,
-  STAFF_PRICING_RULES,
   calculateServicePricing,
   formatDuration,
   formatPkr,
   getAddonsForService,
-  getPackageItemsForService,
+  SERVICE_ADDONS,
+  SERVICE_SEED,
+  SERVICE_PACKAGE_ITEMS,
+  STAFF_PRICING_RULES,
 } from '../config/serviceCatalog';
+import { useServiceCatalog } from '../hooks/useServiceCatalog';
 import './ServicesMenu.css';
 
 const statusMessage =
@@ -140,11 +141,15 @@ const Services = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedServiceId, setExpandedServiceId] = useState(SERVICE_SEED[0]?.id || '');
   const [selectedServiceIds, setSelectedServiceIds] = useState([]);
+  const { data: catalog } = useServiceCatalog();
 
   const activeServices = useMemo(
-    () => SERVICE_SEED.filter((service) => service.status !== 'Inactive' && service.active !== false),
-    [],
+    () => (catalog?.services?.length ? catalog.services : SERVICE_SEED).filter((service) => service.status !== 'Inactive' && service.active !== false),
+    [catalog?.services],
   );
+  const addonCatalog = catalog?.addons?.length ? catalog.addons : SERVICE_ADDONS;
+  const packageItemCatalog = catalog?.packageItems?.length ? catalog.packageItems : SERVICE_PACKAGE_ITEMS;
+  const staffPricingRules = catalog?.staffPricingRules?.length ? catalog.staffPricingRules : STAFF_PRICING_RULES;
 
   const groupCountMap = useMemo(
     () =>
@@ -232,12 +237,12 @@ const Services = () => {
   };
 
   const renderTierQuotes = (service) =>
-    STAFF_PRICING_RULES.slice(0, 3).map((rule) => {
+    staffPricingRules.slice(0, 3).map((rule) => {
       const quote = calculateServicePricing(service, {
         staffLevel: rule.label,
         selectedAddonIds: [],
-        addonCatalog: [],
-        staffRules: STAFF_PRICING_RULES,
+        addonCatalog: addonCatalog || [],
+        staffRules: staffPricingRules,
       });
 
       return {
@@ -338,8 +343,8 @@ const Services = () => {
                   {group.services.map((service) => {
                     const isExpanded = expandedServiceId === service.id;
                     const isSelected = selectedServiceIds.includes(service.id);
-                    const packageItems = getPackageItemsForService(service.id);
-                    const addOns = getAddonsForService(service, SERVICE_ADDONS);
+                    const packageItems = packageItemCatalog.filter((item) => item.serviceId === service.id);
+                    const addOns = getAddonsForService(service, addonCatalog);
                     const tierQuotes = renderTierQuotes(service);
                     const theme = GROUP_THEMES[group.id] || GROUP_THEMES.all;
                     const serviceBookingIds = isSelected ? selectedServiceIds : [...selectedServiceIds, service.id];

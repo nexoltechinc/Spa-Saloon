@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowRight,
   CalendarDays,
@@ -14,6 +15,9 @@ import {
   Sparkles,
   TriangleAlert,
 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
 import {
   BRAND_ADDRESS,
   BRAND_BOOKING_EMAIL,
@@ -37,6 +41,7 @@ const SUBJECT_OPTIONS = [
   { value: 'Partnership', label: 'Partnership' },
   { value: 'Feedback', label: 'Feedback' },
 ];
+const SUBJECT_VALUES = SUBJECT_OPTIONS.map((option) => option.value);
 
 const INITIAL_FORM = {
   fullName: '',
@@ -46,40 +51,29 @@ const INITIAL_FORM = {
   message: '',
 };
 
-const VALIDATION_KEYS = Object.keys(INITIAL_FORM);
+const contactSchema = z
+  .object({
+    fullName: z.string().trim().min(2, 'Please enter your full name.'),
+    email: z.string().trim().email('Enter a valid email address.'),
+    phone: z.string().trim().optional().or(z.literal('')),
+    subject: z
+      .string()
+      .trim()
+      .min(1, 'Choose a subject so we can route your message.')
+      .refine((value) => SUBJECT_VALUES.includes(value), 'Choose a subject so we can route your message.'),
+    message: z.string().trim().min(20, 'Please share at least 20 characters so we can help.'),
+  })
+  .superRefine((values, ctx) => {
+    const phoneDigits = String(values.phone || '').replace(/[^\d]/g, '');
 
-const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
-
-const validateContactForm = (values) => {
-  const errors = {};
-  const fullName = String(values.fullName || '').trim();
-  const email = String(values.email || '').trim();
-  const phone = String(values.phone || '').trim();
-  const subject = String(values.subject || '').trim();
-  const message = String(values.message || '').trim();
-
-  if (fullName.length < 2) {
-    errors.fullName = 'Please enter your full name.';
-  }
-
-  if (!validateEmail(email)) {
-    errors.email = 'Enter a valid email address.';
-  }
-
-  if (!subject) {
-    errors.subject = 'Choose a subject so we can route your message.';
-  }
-
-  if (phone && phone.replace(/[^\d]/g, '').length < 7) {
-    errors.phone = 'Enter a valid phone number, or leave this blank.';
-  }
-
-  if (message.length < 20) {
-    errors.message = 'Please share at least 20 characters so we can help.';
-  }
-
-  return errors;
-};
+    if (values.phone && phoneDigits.length > 0 && phoneDigits.length < 7) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['phone'],
+        message: 'Enter a valid phone number, or leave this blank.',
+      });
+    }
+  });
 
 const createLeadPayload = (values) => {
   const submittedAt = new Date().toISOString();
@@ -176,13 +170,26 @@ const contactPromises = [
 ];
 
 const Contact = () => {
-  const [form, setForm] = useState(INITIAL_FORM);
-  const [touched, setTouched] = useState({});
-  const [status, setStatus] = useState('idle');
-  const [feedback, setFeedback] = useState('');
   const [successRecord, setSuccessRecord] = useState(null);
+  const [submitError, setSubmitError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(contactSchema),
+    defaultValues: INITIAL_FORM,
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+  });
 
-  const errors = validateContactForm(form);
+  const fullNameValue = watch('fullName');
+  const emailValue = watch('email');
+  const phoneValue = watch('phone');
+  const subjectValue = watch('subject');
+  const messageValue = watch('message');
   const submittedAtLabel = successRecord?.submittedAt
     ? new Date(successRecord.submittedAt).toLocaleString([], {
         month: 'short',
@@ -192,70 +199,49 @@ const Contact = () => {
       })
     : '';
 
-  const updateField = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
-    if (status !== 'idle') {
-      setStatus('idle');
-      setFeedback('');
-    }
-  };
-
-  const handleBlur = (field) => {
-    setTouched((current) => ({ ...current, [field]: true }));
-  };
-
-  const markAllTouched = () => {
-    setTouched(VALIDATION_KEYS.reduce((acc, key) => ({ ...acc, [key]: true }), {}));
-  };
-
   const resetForm = () => {
-    setForm(INITIAL_FORM);
-    setTouched({});
-    setStatus('idle');
-    setFeedback('');
+    reset(INITIAL_FORM);
     setSuccessRecord(null);
+    setSubmitError('');
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    markAllTouched();
-
-    const nextErrors = validateContactForm(form);
-    if (Object.keys(nextErrors).length > 0) {
-      setStatus('error');
-      setFeedback('Please review the highlighted fields and try again.');
-      return;
-    }
-
-    setStatus('submitting');
-    setFeedback('Sending your inquiry to the CRM...');
+  const onValidSubmit = async (values) => {
+    setSubmitError('');
 
     try {
-      const savedLead = await crmCreate('leads', createLeadPayload(form));
+      const submission = crmCreate('leads', createLeadPayload(values));
+      toast.promise(submission, {
+        loading: 'Sending your inquiry to the CRM...',
+        success: 'Your inquiry has been received. We will respond within 24 business hours.',
+        error: (error) => getFriendlySubmitError(error),
+      });
+
+      const savedLead = await submission;
       const leadId = savedLead?.id || savedLead?.leadId || savedLead?._id || '';
 
       setSuccessRecord({
         leadId,
-        subject: form.subject,
+        subject: values.subject,
         submittedAt: new Date().toISOString(),
       });
-      setStatus('success');
-      setFeedback('');
-      setForm(INITIAL_FORM);
-      setTouched({});
+      reset(INITIAL_FORM);
     } catch (error) {
-      setStatus('error');
-      setFeedback(getFriendlySubmitError(error));
+      const message = getFriendlySubmitError(error);
+      setSubmitError(message);
     }
   };
 
-  const fieldState = (field) => {
-    const shouldShow = (status === 'error' || touched[field]) && errors[field];
-    return {
-      hasError: Boolean(shouldShow),
-      errorMessage: shouldShow ? errors[field] : '',
-    };
+  const onInvalidSubmit = () => {
+    const message = 'Please review the highlighted fields and try again.';
+    setSubmitError(message);
+    toast.error(message);
   };
+
+  useEffect(() => {
+    if (submitError) {
+      setSubmitError('');
+    }
+  }, [emailValue, fullNameValue, messageValue, phoneValue, subjectValue, submitError]);
 
   return (
     <div className="contact-page">

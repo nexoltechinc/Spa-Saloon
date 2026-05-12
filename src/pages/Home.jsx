@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   CalendarDays,
@@ -11,6 +11,7 @@ import {
   Star,
   Waves,
 } from 'lucide-react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { Link } from 'react-router-dom';
 import {
   BRAND_ADDRESS,
@@ -164,6 +165,23 @@ const bookingEmailHref = `mailto:${BRAND_BOOKING_EMAIL}`;
 
 const Home = () => {
   const [socialProofIndex, setSocialProofIndex] = useState(0);
+  const heroRef = useRef(null);
+  const prefersReducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const heroBackdropY = useTransform(scrollYProgress, [0, 1], ['0%', '14%']);
+  const heroBackdropScale = useTransform(scrollYProgress, [0, 1], [1.04, 1.12]);
+  const heroBackdropStyle = prefersReducedMotion ? undefined : { y: heroBackdropY, scale: heroBackdropScale };
+  const revealProps = {
+    initial: prefersReducedMotion ? false : { opacity: 0, y: 24 },
+    whileInView: prefersReducedMotion ? undefined : { opacity: 1, y: 0 },
+    viewport: { once: true, amount: 0.22 },
+    transition: { duration: 0.65, ease: 'easeOut' },
+  };
+
+  void motion;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -175,19 +193,19 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      <section className="home-hero">
-        <div className="home-hero-backdrop" aria-hidden="true">
+      <motion.section className="home-hero" ref={heroRef}>
+        <motion.div className="home-hero-backdrop" aria-hidden="true" style={heroBackdropStyle}>
           <img
             src={heroImage}
             alt=""
             className="home-hero-image"
             loading="eager"
           />
-        </div>
+        </motion.div>
         <div className="home-hero-overlay" aria-hidden="true" />
 
         <div className="container home-hero-grid">
-          <div className="home-hero-copy">
+          <motion.div className="home-hero-copy" {...revealProps}>
             <span className="home-eyebrow">Luxury salon & spa</span>
             <h1>{SALON_NAME}</h1>
             <p className="home-hero-intro">
@@ -210,11 +228,11 @@ const Home = () => {
               <a href={phoneHref}>{BRAND_PHONE}</a>
               <span>{BRAND_ADDRESS}</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="home-hero-panel">
+          <motion.div className="home-hero-panel" {...revealProps} transition={{ duration: 0.7, ease: 'easeOut', delay: 0.12 }}>
             <div className="home-hero-image-shell">
-              <img
+              <motion.img
                 src={heroImage}
                 alt="Warm spa ritual bowl surrounded by candles and botanicals"
                 className="home-hero-panel-image"
@@ -235,17 +253,23 @@ const Home = () => {
                 const Icon = stat.icon;
 
                 return (
-                  <article key={stat.label} className="home-hero-stat-card" style={{ '--card-delay': `${index * 110}ms` }}>
+                  <motion.article
+                    key={stat.label}
+                    className="home-hero-stat-card"
+                    style={{ '--card-delay': `${index * 110}ms` }}
+                    {...revealProps}
+                    transition={{ duration: 0.5, ease: 'easeOut', delay: index * 0.06 }}
+                  >
                     <Icon size={18} />
                     <span>{stat.label}</span>
                     <strong>{stat.value}</strong>
-                  </article>
+                  </motion.article>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       <section className="home-trust-band" aria-label="Trust and social proof">
         <div className="container home-trust-grid">
@@ -289,15 +313,17 @@ const Home = () => {
                 const Icon = card.icon;
 
                 return (
-                  <article
+                  <motion.article
                     key={card.title}
                     className="home-philosophy-card"
                     style={{ '--card-delay': `${index * 120}ms` }}
+                    {...revealProps}
+                    transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
                   >
                     <Icon size={20} />
                     <h3>{card.title}</h3>
                     <p>{card.text}</p>
-                  </article>
+                  </motion.article>
                 );
               })}
             </div>
@@ -354,10 +380,12 @@ const Home = () => {
 
           <div className="home-gallery-grid">
             {galleryTiles.map((tile, index) => (
-              <article
+              <motion.article
                 key={tile.title}
                 className={`home-gallery-tile ${tile.className}`}
                 style={{ '--card-delay': `${index * 120}ms` }}
+                {...revealProps}
+                transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
               >
                 <img
                   src={heroImage}
@@ -371,7 +399,7 @@ const Home = () => {
                   <span>{tile.title}</span>
                   <p>{tile.caption}</p>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>
@@ -390,10 +418,12 @@ const Home = () => {
 
           <div className="home-services-grid">
             {serviceTiles.map((service, index) => (
-              <article
+              <motion.article
                 key={service.title}
                 className="home-service-card"
                 style={{ '--card-delay': `${index * 120}ms` }}
+                {...revealProps}
+                transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
               >
                 <div className="home-service-media">
                   <img
@@ -415,7 +445,7 @@ const Home = () => {
                     <ArrowRight size={16} />
                   </Link>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>
@@ -434,10 +464,12 @@ const Home = () => {
 
           <div className="home-testimonials-track" aria-label="Guest testimonials">
             {testimonials.map((testimonial, index) => (
-              <article
+              <motion.article
                 key={testimonial.name}
                 className="home-testimonial-card"
                 style={{ '--card-delay': `${index * 120}ms` }}
+                {...revealProps}
+                transition={{ duration: 0.55, ease: 'easeOut', delay: index * 0.08 }}
               >
                 <div className="home-testimonial-head">
                   <Quote className="home-testimonial-quote-icon" size={64} aria-hidden="true" />
@@ -459,7 +491,7 @@ const Home = () => {
                     <p>{testimonial.title}</p>
                   </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>
