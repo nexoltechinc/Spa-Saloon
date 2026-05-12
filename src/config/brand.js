@@ -10,6 +10,6 @@ export const BRAND_FRONTDESK_EMAIL = `frontdesk@${BRAND_DOMAIN}`;
 export const BRAND_WEBSITE = `www.${BRAND_DOMAIN}`;
 export const BRAND_BOOKING_URL = `${BRAND_WEBSITE}/book`;
 export const BRAND_ADDRESS = '8422 Melrose Ave, West Hollywood, CA 90069';
-export const BRAND_PHONE = '(323) 555-0188';
-export const BRAND_BOOKING_PHONE = '(323) 555-0177';
+export const BRAND_PHONE = '03349794441';
+export const BRAND_BOOKING_PHONE = '03354464192';
 export const BRAND_MAP_LINK = 'https://maps.google.com/?q=8422+Melrose+Ave+West+Hollywood+CA+90069';
