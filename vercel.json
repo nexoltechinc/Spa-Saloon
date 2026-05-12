@@ -9,7 +9,7 @@
       "destination": "/api/crm?path=$1"
     },
     {
-      "source": "^/(?!api/).*$",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
