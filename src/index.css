@@ -1,22 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --color-deep-forest: #0b1a12;
-  --color-champagne-gold: #c5a059;
-  --color-base-cream: #f9f7f2;
-  --color-text-primary: #1a1a1a;
-  --color-surface: #fffdfa;
-  --color-surface-strong: #f3eee6;
-  --color-muted-ink: #5f665f;
-  --color-border: rgba(11, 26, 18, 0.12);
-  --color-subtle-botanical: #8fa186;
+  --color-blush-pink: #e8aeb7;
+  --color-champagne-beige: #fbeae4;
+  --color-soft-cream: #fff7f2;
+  --color-rose-gold: #c75d6b;
+  --color-soft-accent: #c89b6a;
+  --color-deep-brown: #2b1f1f;
+  --color-soft-text: #6f5a5a;
+  --color-footer-deep: #2a181a;
+  --color-white: #ffffff;
+  --color-deep-brown-rgb: 43, 31, 31;
+  --color-rose-gold-rgb: 199, 93, 107;
+  --color-blush-pink-rgb: 232, 174, 183;
+  --color-champagne-beige-rgb: 251, 234, 228;
 
-  --color-warm-beige: var(--color-base-cream);
-  --color-soft-ivory: var(--color-surface);
-  --color-taupe: #867968;
-  --color-muted-stone: #9b9489;
+  --color-deep-forest: var(--color-deep-brown);
+  --color-champagne-gold: var(--color-rose-gold);
+  --color-base-cream: var(--color-soft-cream);
+  --color-text-primary: var(--color-deep-brown);
+  --color-surface: var(--color-white);
+  --color-surface-strong: var(--color-champagne-beige);
+  --color-muted-ink: var(--color-soft-text);
+  --color-border: rgba(var(--color-rose-gold-rgb), 0.2);
+  --color-subtle-botanical: var(--color-blush-pink);
+
+  --color-warm-beige: var(--color-champagne-beige);
+  --color-soft-ivory: var(--color-white);
+  --color-taupe: var(--color-rose-gold);
+  --color-muted-stone: rgba(var(--color-deep-brown-rgb), 0.58);
   --color-deep-charcoal: var(--color-text-primary);
-  --color-soft-gold: var(--color-champagne-gold);
+  --color-soft-gold: var(--color-soft-accent);
 
   --font-heading: 'Cormorant Garamond', serif;
   --font-display: 'Playfair Display', serif;
@@ -36,8 +50,8 @@
   --border-radius-md: 16px;
   --border-radius-lg: 24px;
 
-  --shadow-subtle: 0 6px 20px rgba(18, 18, 16, 0.06);
-  --shadow-lift: 0 18px 42px rgba(18, 18, 16, 0.1);
+  --shadow-subtle: 0 8px 24px rgba(var(--color-deep-brown-rgb), 0.08);
+  --shadow-lift: 0 18px 42px rgba(var(--color-deep-brown-rgb), 0.14);
   --transition-smooth: all 0.3s ease-in-out;
 }
 
@@ -53,8 +67,8 @@ html {
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(197, 160, 89, 0.08), transparent 28%),
-    radial-gradient(circle at 90% 10%, rgba(143, 161, 134, 0.08), transparent 24%),
+    radial-gradient(circle at top left, rgba(var(--color-blush-pink-rgb), 0.18), transparent 30%),
+    radial-gradient(circle at 92% 10%, rgba(var(--color-champagne-beige-rgb), 0.86), transparent 34%),
     var(--color-base-cream);
   color: var(--color-text-primary);
   font-family: var(--font-body);
@@ -109,7 +123,7 @@ h3 {
 }
 
 p {
-  color: rgba(26, 26, 26, 0.9);
+  color: var(--color-soft-text);
   font-size: 1rem;
   margin-bottom: 1rem;
 }
@@ -125,20 +139,20 @@ a:hover {
 }
 
 ::selection {
-  background: rgba(197, 160, 89, 0.28);
-  color: #111710;
+  background: rgba(var(--color-rose-gold-rgb), 0.28);
+  color: var(--color-deep-brown);
 }
 
 :focus-visible {
-  outline: 2px solid rgba(197, 160, 89, 0.45);
+  outline: 2px solid rgba(var(--color-rose-gold-rgb), 0.6);
   outline-offset: 3px;
 }
 
 .glass {
-  background: rgba(255, 253, 248, 0.76);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.14);
   box-shadow: var(--shadow-subtle);
 }
 
@@ -158,7 +172,7 @@ a:hover {
 }
 
 .text-accent {
-  color: var(--color-taupe);
+  color: var(--color-rose-gold);
   display: block;
   font-family: var(--font-accent);
   font-size: 0.78rem;

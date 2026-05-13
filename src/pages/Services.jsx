@@ -26,50 +26,50 @@ import { useServiceCatalog } from '../hooks/useServiceCatalog';
 import './ServicesMenu.css';
 
 const statusMessage =
-  'A hierarchical service menu with sticky filters, elegant accordion rows, and a live booking summary.';
+  'Browse bridal, party, facial, hair, and nail services with a clear menu and a live booking summary.';
 
 const MENU_GROUPS = [
   {
     id: 'all',
     label: 'All',
     categoryIds: SERVICE_SEED.map((service) => service.categoryId),
-    description: 'Complete menu',
+    description: 'Complete beauty menu',
   },
   {
     id: 'hair',
     label: 'Hair',
     categoryIds: ['hair-services'],
-    description: 'Shape, color, and polish',
+    description: 'Cut, color, and styling',
   },
   {
     id: 'skin',
     label: 'Skin',
     categoryIds: ['facial-skin-care'],
-    description: 'Facials and skin rituals',
+    description: 'Facials and glow care',
   },
   {
     id: 'body',
     label: 'Body',
     categoryIds: ['spa-massage', 'threading-waxing'],
-    description: 'Massage and grooming',
+    description: 'Spa and grooming care',
   },
   {
     id: 'nails',
     label: 'Nails',
     categoryIds: ['nail-services'],
-    description: 'Manicure and pedicure care',
+    description: 'Manicure and pedicure',
   },
   {
     id: 'makeup',
     label: 'Makeup',
     categoryIds: ['makeup-services'],
-    description: 'Event and bridal looks',
+    description: 'Party and bridal looks',
   },
   {
     id: 'packages',
     label: 'Packages',
     categoryIds: ['bridal-packages'],
-    description: 'Complete bundles',
+    description: 'Wedding and event bundles',
   },
 ];
 
@@ -123,37 +123,37 @@ const FAQ_ITEMS = [
     id: 'appointment',
     question: 'Do I need an appointment before visiting?',
     answer:
-      'We recommend booking an appointment in advance so our team can prepare your service time properly. Walk-ins may be accepted depending on availability, but reservations are preferred.',
+      'Yes, advance booking is recommended so we can prepare your slot properly. Walk-ins depend on availability, especially during wedding season and Eid days.',
   },
   {
     id: 'services',
     question: 'What services does Hazel Beauty Saloon offer?',
     answer:
-      'We offer hair care, hair color, blow dry, styling, facial and skin rituals, massage and grooming, manicure and pedicure care, bridal/event looks, and selected beauty packages.',
+      'We offer bridal and party makeup, hair styling, facials, manicure/pedicure, spa care, threading, waxing, and event packages.',
   },
   {
     id: 'reserve',
     question: 'How can I reserve my appointment?',
     answer:
-      'You can reserve your appointment through the Reserve Now button, call the front desk, or send us a message through the Contact page. Our team will guide you with availability and service details.',
+      'You can book through the Book Appointment button, call our front desk, or message us on WhatsApp for quick availability.',
   },
   {
     id: 'prices',
     question: 'Can I ask about prices before booking?',
     answer:
-      'Yes. Service prices may vary depending on the treatment, styling needs, duration, and package selection. You can check the Services page or contact us for help before confirming your booking.',
+      'Yes. Prices can vary by look complexity, hair length, product use, and package selection. Our team will guide you before final booking.',
   },
   {
     id: 'bridal',
     question: 'Do you offer bridal or event makeup services?',
     answer:
-      'Yes. We provide bridal and event beauty services, including party makeup, glam makeup, engagement makeup, and HD/airbrush makeup options. We recommend booking these services in advance.',
+      'Yes. We provide Nikkah, Mehndi, Barat, Walima, engagement, Eid, and party makeup services. Please book early for wedding dates.',
   },
   {
     id: 'guidance',
     question: 'What should I do if I am not sure which service to choose?',
     answer:
-      'You can contact our team and tell us what look, treatment, or result you want. We will help guide you toward the most suitable service or package.',
+      'Share your event details and preferred look with our team. We will recommend the most suitable service or package for your needs.',
   },
 ];
 
@@ -297,8 +297,8 @@ const Services = () => {
     <div className="services-menu-page">
       <section className="services-menu-hero">
         <div className="services-menu-hero-copy">
-          <p className="services-menu-kicker">Treatment Menu / Services Architecture</p>
-          <h1>An effortless menu for calm, high-conversion booking.</h1>
+          <p className="services-menu-kicker">Services Menu</p>
+          <h1>Choose the right beauty service for your occasion.</h1>
           <p>{statusMessage}</p>
 
           <div className="services-menu-actions">
@@ -306,20 +306,20 @@ const Services = () => {
               <Sparkles size={16} />
               <input
                 type="search"
-                placeholder="Search hair, skin, body, nails, makeup, or packages"
+                placeholder="Search bridal, facial, hair, nails, makeup, or packages"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </label>
             <Link to={bookingHref} state={{ selectedServiceIds, selectedServiceId: selectedServiceIds[0] || '' }} className="services-menu-primary-link">
-              {selectedServiceIds.length ? 'Complete Reservation' : 'Open Booking Planner'}
+              {selectedServiceIds.length ? 'Book Appointment' : 'Open Booking Planner'}
               <ArrowRight size={16} />
             </Link>
           </div>
 
           <div className="services-menu-hero-note">
             <Star size={14} />
-            <span>Quick add to booking, tiered price previews, and a sticky reservation summary.</span>
+            <span>Quick add to booking, package details, and a sticky summary for faster checkout.</span>
           </div>
         </div>
 
@@ -348,7 +348,7 @@ const Services = () => {
             Filter menu
           </span>
           <strong>{selectedCategoryName}</strong>
-          <p>{selectedCategory === 'all' ? 'Browse the full ritual menu.' : getGroupById(selectedCategory).description}</p>
+          <p>{selectedCategory === 'all' ? 'Browse the full beauty menu.' : getGroupById(selectedCategory).description}</p>
         </div>
 
         <div className="services-menu-filter-scroll">
@@ -437,7 +437,7 @@ const Services = () => {
                               <span>{group.label} ritual</span>
                               <strong>{service.name}</strong>
                               <p>
-                                {group.description}. The experience feels curated, softly paced, and elevated from the first glance.
+                                {group.description}. A polished service flow designed for event readiness and confident results.
                               </p>
                             </div>
 
@@ -497,7 +497,7 @@ const Services = () => {
                               <div className="services-menu-detail-actions">
                                 <button type="button" className="services-menu-quick-add" onClick={() => addServiceToSummary(service)}>
                                   <Plus size={16} />
-                                  {isSelected ? 'Added to summary' : 'Quick add to booking'}
+                                  {isSelected ? 'Added to summary' : 'Add to booking'}
                                 </button>
                                 <Link
                                   to={serviceBookingHref}
@@ -507,7 +507,7 @@ const Services = () => {
                                   }}
                                   className="services-menu-secondary-link"
                                 >
-                                  Go to booking
+                                  Continue booking
                                   <ArrowRight size={16} />
                                 </Link>
                               </div>
@@ -543,13 +543,13 @@ const Services = () => {
             <div className="services-menu-summary-head">
               <div>
                 <p className="services-menu-summary-kicker">Sticky booking summary</p>
-                <h2>{selectedServices.length ? `${selectedServices.length} selected services` : 'Ready to curate your menu'}</h2>
+                <h2>{selectedServices.length ? `${selectedServices.length} selected services` : 'Ready to plan your booking'}</h2>
               </div>
               <ShoppingBag size={18} />
             </div>
 
             <p className="services-menu-summary-copy">
-              Build a clean reservation stack, review the running total, and continue to booking when the menu feels complete.
+              Build your service list, review total time and amount, then proceed to booking.
             </p>
 
             <div className="services-menu-summary-metrics">
@@ -593,7 +593,7 @@ const Services = () => {
                 Clear summary
               </button>
               <Link to={bookingHref} state={{ selectedServiceIds, selectedServiceId: selectedServiceIds[0] || '' }} className="services-menu-primary-link">
-                {selectedServices.length ? 'Complete Reservation' : 'Open booking'}
+                {selectedServices.length ? 'Book Appointment' : 'Start Booking'}
                 <ArrowRight size={16} />
               </Link>
             </div>
@@ -647,7 +647,7 @@ const Services = () => {
           <div className="services-menu-faq-cta">
             <div>
               <p className="services-menu-faq-kicker">Still have a question?</p>
-              <h3>Our team is here to help you choose the right service.</h3>
+              <h3>Our team is here to guide your booking.</h3>
             </div>
 
             <div className="services-menu-faq-actions">
@@ -660,7 +660,7 @@ const Services = () => {
                 state={{ selectedServiceIds, selectedServiceId: selectedServiceIds[0] || '' }}
                 className="services-menu-primary-link"
               >
-                Reserve Now
+                Book Appointment
                 <ArrowRight size={16} />
               </Link>
             </div>

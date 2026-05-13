@@ -11,9 +11,9 @@ const packageCards = [
     id: 'bridal-beauty',
     title: 'Bridal Beauty Package',
     description:
-      'A complete beauty preparation package for brides who want a polished and elegant look for their special day.',
+      'Complete bridal preparation for Nikkah, Barat, or Walima with a polished and camera-ready finish.',
     includes: ['Bridal makeup', 'Hair styling', 'Skin preparation', 'Final touch-up guidance'],
-    duration: '3–4 hours',
+    duration: '3-4 hours',
     image: resolveHazelImage('bridal-packages', 'package-bridal-beauty'),
     alt: 'Bridal beauty service photograph from Hazel Beauty Saloon',
   },
@@ -21,9 +21,9 @@ const packageCards = [
     id: 'party-glam',
     title: 'Party Glam Package',
     description:
-      'A refined look for parties, formal events, dinners, and celebrations.',
+      'A refined look for Mehndi, engagement, Eid, dinners, and family celebrations.',
     includes: ['Party makeup', 'Hair styling', 'Light skin prep'],
-    duration: '1–2 hours',
+    duration: '1-2 hours',
     image: resolveHazelImage('makeup-services', 'package-party-glam'),
     alt: 'Party makeup service photograph from Hazel Beauty Saloon',
   },
@@ -31,9 +31,9 @@ const packageCards = [
     id: 'facial-massage',
     title: 'Facial + Massage Package',
     description:
-      'A relaxing self-care package designed to refresh your skin and help you unwind.',
+      'A glow-focused self-care package designed to refresh skin and relax body stress.',
     includes: ['Facial ritual', 'Relaxing massage', 'Skin care guidance'],
-    duration: '1–2 hours',
+    duration: '1-2 hours',
     image: resolveHazelImage('spa-massage', 'package-facial-massage'),
     alt: 'Facial and massage service photograph from Hazel Beauty Saloon',
   },
@@ -41,9 +41,9 @@ const packageCards = [
     id: 'hair-styling',
     title: 'Hair Styling Package',
     description:
-      'A polished hair care package for fresh, clean, and beautiful styling.',
+      'A polished hair package for smooth styling, event finishing, and all-day hold.',
     includes: ['Blow dry', 'Hair styling', 'Basic finishing'],
-    duration: '45–90 minutes',
+    duration: '45-90 minutes',
     image: resolveHazelImage('hair-services', 'package-hair-styling'),
     alt: 'Hair styling service photograph from Hazel Beauty Saloon',
   },
@@ -51,9 +51,9 @@ const packageCards = [
     id: 'mani-pedi',
     title: 'Manicure + Pedicure Package',
     description:
-      'A clean and elegant nail care package for hands and feet.',
+      'A clean and elegant nail care package for event-ready hands and feet.',
     includes: ['Manicure', 'Pedicure', 'Nail shaping', 'Polish application'],
-    duration: '1–2 hours',
+    duration: '1-2 hours',
     image: resolveHazelImage('nail-services', 'package-mani-pedi'),
     alt: 'Manicure and pedicure service photograph from Hazel Beauty Saloon',
   },
@@ -61,9 +61,9 @@ const packageCards = [
     id: 'luxury-self-care',
     title: 'Luxury Self-Care Package',
     description:
-      'A complete salon and spa experience for customers who want a calm, premium refresh.',
+      'A complete salon and spa refresh for women who want premium care in one visit.',
     includes: ['Facial', 'Massage', 'Hair styling', 'Manicure or pedicure'],
-    duration: '2–4 hours',
+    duration: '2-4 hours',
     image: resolveHazelImage('facial-skin-care', 'package-luxury-self-care'),
     alt: 'Luxury self-care service photograph from Hazel Beauty Saloon',
   },
@@ -75,15 +75,15 @@ const Packages = () => (
       <div className="container packages-hero-grid">
         <div className="packages-hero-copy">
           <p className="packages-kicker">Packages & Offers</p>
-          <h1>Bundled experiences for calm, polished visits.</h1>
+          <h1>Bundled packages for bridal, party, and glow care.</h1>
           <p>
-            Explore curated beauty and salon packages designed for bridal preparation, event looks,
-            self-care sessions, and polished finishing without repeating individual service pricing.
+            Explore curated packages for Nikkah, Mehndi, Barat, Walima, Eid, and self-care sessions
+            without selecting each service individually.
           </p>
 
           <div className="packages-hero-actions">
             <Link to={BOOKING_ROUTE} className="packages-primary-link">
-              Reserve Now
+              Book Appointment
               <ArrowRight size={16} />
             </Link>
             <Link to={SERVICES_ROUTE} className="packages-secondary-link">
@@ -96,10 +96,10 @@ const Packages = () => (
         <aside className="packages-hero-panel">
           <div className="packages-hero-highlight">
             <span>Thoughtfully bundled</span>
-            <strong>Built around occasion, comfort, and ease.</strong>
+            <strong>Built around event needs, comfort, and convenience.</strong>
             <p>
-              Each package groups together the services guests most often ask for when they want a
-              smoother booking path.
+              Each package combines the services clients usually request together for a smoother
+              booking flow.
             </p>
           </div>
 
@@ -110,7 +110,7 @@ const Packages = () => (
             </article>
             <article>
               <span>Booking</span>
-              <strong>Reserve now, refine details later</strong>
+              <strong>Book now, confirm details on call/WhatsApp</strong>
             </article>
           </div>
         </aside>
@@ -122,11 +122,11 @@ const Packages = () => (
         <div className="packages-section-head">
           <div>
             <p className="packages-kicker">Package Selection</p>
-            <h2>Choose the experience that fits your visit.</h2>
+            <h2>Choose the package that fits your event.</h2>
           </div>
           <p>
-            Package cards stay focused on what is included, how long the experience may take, and
-            the easiest next step to reserve.
+            Package cards show what is included, estimated duration, and the easiest next step to
+            book.
           </p>
         </div>
 
@@ -162,7 +162,7 @@ const Packages = () => (
 
                 <div className="packages-card-actions">
                   <Link to={BOOKING_ROUTE} className="packages-primary-link">
-                    Reserve Now
+                    Book Appointment
                     <ArrowRight size={16} />
                   </Link>
                   <Link to={SERVICES_ROUTE} className="packages-inline-link">
@@ -178,8 +178,8 @@ const Packages = () => (
         <div className="packages-guidance-note">
           <Sparkles size={16} />
           <p>
-            For detailed service pricing, please visit our Services page or contact our team for
-            package guidance.
+            For exact package customization, visit our Services page or contact our team on
+            call/WhatsApp.
           </p>
         </div>
       </div>
@@ -188,3 +188,4 @@ const Packages = () => (
 );
 
 export default Packages;
+

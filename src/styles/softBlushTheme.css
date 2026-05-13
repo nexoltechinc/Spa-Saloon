@@ -1,0 +1,683 @@
+/* Soft Blush Luxury theme overrides for the public website experience */
+
+main {
+  background: transparent;
+}
+
+.navbar,
+.navbar-home,
+.navbar-solid,
+.navbar-scrolled {
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.16);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 248, 243, 0.92) 100%
+  );
+  box-shadow:
+    0 14px 36px rgba(var(--color-deep-brown-rgb), 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.navbar::before {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.65) 0, rgba(255, 255, 255, 0) 42%),
+    linear-gradient(
+      90deg,
+      rgba(var(--color-champagne-beige-rgb), 0.18) 0%,
+      rgba(var(--color-blush-pink-rgb), 0.12) 48%,
+      rgba(var(--color-champagne-beige-rgb), 0.18) 100%
+    );
+}
+
+.navbar::after {
+  background: linear-gradient(90deg, transparent, rgba(var(--color-rose-gold-rgb), 0.38), transparent);
+}
+
+.nav-logo,
+.nav-link,
+.nav-mobile-panel-head strong,
+.nav-mobile-close,
+.nav-menu-toggle,
+.nav-mobile-kicker,
+.nav-brand-subtitle {
+  color: var(--color-deep-brown);
+}
+
+.nav-logo:hover,
+.nav-link:hover,
+.nav-link.active,
+.nav-link[aria-current='page'] {
+  color: var(--color-rose-gold);
+}
+
+.nav-link::after {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--color-rose-gold-rgb), 0.14),
+    rgba(var(--color-rose-gold-rgb), 0.96),
+    rgba(var(--color-rose-gold-rgb), 0.14)
+  );
+}
+
+.nav-menu-toggle,
+.nav-mobile-close {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.nav-mobile-backdrop {
+  background: rgba(var(--color-deep-brown-rgb), 0.26);
+}
+
+.nav-mobile-panel {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.2);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(var(--color-champagne-beige-rgb), 0.84) 100%
+  );
+  box-shadow: 0 26px 64px rgba(var(--color-deep-brown-rgb), 0.2);
+}
+
+.nav-mobile-links .nav-link {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.18);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.nav-mobile-footer p {
+  color: rgba(var(--color-deep-brown-rgb), 0.8);
+}
+
+.btn,
+.home-primary-button,
+.home-secondary-button,
+.about-primary-link,
+.about-secondary-link,
+.contact-primary-link,
+.contact-secondary-link,
+.contact-secondary-button,
+.contact-submit-button,
+.services-menu-primary-link,
+.services-menu-secondary-link,
+.services-menu-quick-add,
+.services-menu-secondary-button,
+.service-catalog-primary-link,
+.service-catalog-secondary-link,
+.service-booking-primary-link,
+.service-booking-secondary-link {
+  border-radius: 999px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary,
+.home-primary-button,
+.about-primary-link,
+.contact-primary-link,
+.contact-submit-button,
+.services-menu-primary-link,
+.service-catalog-primary-link,
+.service-booking-primary-link {
+  background: var(--color-rose-gold);
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.68);
+  box-shadow: 0 14px 30px rgba(var(--color-rose-gold-rgb), 0.3);
+  color: #ffffff;
+}
+
+.btn-primary::before,
+.home-primary-button::before,
+.about-primary-link::before,
+.contact-primary-link::before,
+.contact-submit-button::before {
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+}
+
+.btn-primary:hover,
+.home-primary-button:hover,
+.about-primary-link:hover,
+.contact-primary-link:hover,
+.contact-submit-button:hover,
+.services-menu-primary-link:hover,
+.service-catalog-primary-link:hover,
+.service-booking-primary-link:hover {
+  background: var(--color-soft-accent);
+  box-shadow: 0 20px 36px rgba(var(--color-rose-gold-rgb), 0.34);
+  filter: none;
+  transform: translateY(-2px);
+}
+
+.btn-secondary,
+.home-secondary-button,
+.about-secondary-link,
+.contact-secondary-link,
+.contact-secondary-button,
+.services-menu-secondary-link,
+.services-menu-secondary-button,
+.services-menu-quick-add,
+.service-catalog-secondary-link,
+.service-booking-secondary-link {
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.5);
+  background: #ffffff;
+  color: var(--color-rose-gold);
+}
+
+.btn-secondary:hover,
+.home-secondary-button:hover,
+.about-secondary-link:hover,
+.contact-secondary-link:hover,
+.contact-secondary-button:hover,
+.services-menu-secondary-link:hover,
+.services-menu-secondary-button:hover:not(:disabled),
+.services-menu-quick-add:hover,
+.service-catalog-secondary-link:hover,
+.service-booking-secondary-link:hover {
+  background: rgba(var(--color-champagne-beige-rgb), 0.54);
+  transform: translateY(-2px);
+}
+
+.home-page,
+.about-page,
+.contact-page,
+.services-menu-page,
+.service-booking-page,
+.service-catalog-page {
+  color: var(--color-deep-brown);
+  background:
+    radial-gradient(circle at 10% 8%, rgba(var(--color-blush-pink-rgb), 0.2) 0, rgba(var(--color-blush-pink-rgb), 0) 30%),
+    radial-gradient(circle at 90% 10%, rgba(var(--color-champagne-beige-rgb), 0.45) 0, rgba(var(--color-champagne-beige-rgb), 0) 34%),
+    var(--color-soft-cream);
+}
+
+.home-hero,
+.about-hero,
+.contact-hero,
+.services-menu-hero,
+.service-booking-hero,
+.service-catalog-hero {
+  background: linear-gradient(135deg, #fff8f3 0%, #f6e7d8 50%, #e8b4b8 100%);
+  border-radius: clamp(22px, 3.2vw, 34px);
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.14);
+  box-shadow: 0 22px 56px rgba(var(--color-deep-brown-rgb), 0.12);
+}
+
+.home-hero-backdrop,
+.about-hero-backdrop,
+.contact-hero-backdrop {
+  opacity: 0.2;
+}
+
+.home-hero-overlay,
+.about-hero-overlay,
+.contact-hero-overlay {
+  background:
+    linear-gradient(102deg, rgba(255, 248, 243, 0.9) 0%, rgba(246, 231, 216, 0.78) 52%, rgba(232, 180, 184, 0.58) 100%),
+    linear-gradient(180deg, rgba(255, 248, 243, 0.56) 0%, rgba(255, 248, 243, 0.78) 100%);
+}
+
+.home-hero h1,
+.about-hero-copy h1,
+.contact-hero-copy h1,
+.services-menu-hero-copy h1,
+.service-booking-hero-copy h1,
+.service-catalog-hero-copy h1 {
+  color: var(--color-deep-brown);
+}
+
+.about-hero-copy,
+.contact-hero-copy,
+.about-hero-panel,
+.contact-hero-panel {
+  color: var(--color-deep-brown);
+}
+
+.about-hero-card strong,
+.about-hero-highlight strong,
+.about-hero-highlight span,
+.contact-hero-panel h2,
+.contact-hero-panel p,
+.contact-hero-summary-item strong,
+.contact-hero-summary-item span {
+  color: var(--color-deep-brown);
+}
+
+.home-eyebrow,
+.about-kicker,
+.contact-kicker,
+.services-menu-kicker,
+.service-booking-kicker,
+.service-catalog-kicker {
+  color: var(--color-rose-gold);
+}
+
+.home-hero-intro,
+.home-hero-note,
+.home-hero-contact a,
+.home-hero-contact span,
+.about-hero-intro,
+.about-hero-note,
+.contact-hero-intro,
+.contact-hero-note,
+.services-menu-hero-copy > p,
+.service-booking-hero-copy p,
+.service-catalog-hero-copy p {
+  color: rgba(var(--color-deep-brown-rgb), 0.84);
+}
+
+.home-hero-contact a,
+.home-hero-contact span {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.2);
+}
+
+.home-hero-image-shell,
+.about-hero-panel-media {
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.18);
+}
+
+.home-hero-card,
+.about-hero-card,
+.contact-hero-panel,
+.services-menu-hero-highlight,
+.service-booking-price-card,
+.service-catalog-panel-intro {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.2);
+  color: var(--color-deep-brown);
+  box-shadow: 0 16px 34px rgba(var(--color-deep-brown-rgb), 0.1);
+}
+
+.home-hero-card span,
+.about-hero-card span,
+.contact-hero-summary-item span,
+.services-menu-hero-highlight span,
+.service-booking-price-card span,
+.service-catalog-panel-intro span {
+  color: var(--color-rose-gold);
+}
+
+.home-hero-ribbon,
+.home-service-badge,
+.home-service-duration,
+.home-section-kicker,
+.about-section-kicker,
+.contact-section-kicker,
+.service-booking-badge,
+.service-catalog-badge,
+.services-menu-badge,
+.services-menu-summary-kicker,
+.services-menu-filterbar-kicker {
+  color: var(--color-rose-gold);
+}
+
+.home-trust-band,
+.home-gallery,
+.home-testimonials,
+.about-experience,
+.about-values,
+.contact-main,
+.services-menu-layout,
+.service-booking-layout,
+.service-catalog-content {
+  background: rgba(var(--color-champagne-beige-rgb), 0.34);
+}
+
+.home-story,
+.home-services,
+.home-cta,
+.about-story,
+.about-features,
+.about-team,
+.about-cta,
+.services-menu-filterbar,
+.service-booking-nav,
+.service-catalog-nav {
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.home-service-card,
+.home-philosophy-card,
+.home-testimonial-card,
+.home-story-quote-card,
+.home-story-team-card,
+.about-story-card,
+.about-team-card,
+.about-value-card,
+.about-feature-card,
+.about-experience-card,
+.about-cta-card,
+.contact-card,
+.contact-form-card,
+.contact-info-card,
+.contact-channel-tile,
+.services-menu-group,
+.services-menu-summary-card,
+.services-menu-empty,
+.services-menu-accordion,
+.services-menu-stats article,
+.services-menu-filterbar,
+.service-booking-card,
+.service-catalog-card,
+.service-booking-summary-card,
+.service-catalog-side-card,
+.service-booking-addon-list button,
+.service-booking-package-panel,
+.service-booking-addon-panel {
+  background: #ffffff;
+  border: 1px solid rgba(var(--color-champagne-beige-rgb), 0.9);
+  box-shadow: 0 10px 28px rgba(var(--color-deep-brown-rgb), 0.08);
+}
+
+.home-service-card:hover,
+.home-philosophy-card:hover,
+.home-testimonial-card:hover,
+.about-feature-card:hover,
+.about-experience-card:hover,
+.contact-info-card:hover,
+.contact-channel-tile:hover,
+.services-menu-accordion:hover,
+.service-booking-card:hover,
+.service-catalog-card:hover,
+.service-booking-addon-list button:hover {
+  box-shadow: 0 16px 34px rgba(var(--color-rose-gold-rgb), 0.22);
+  border-color: rgba(var(--color-rose-gold-rgb), 0.34);
+  transform: translateY(-3px);
+}
+
+.home-inline-link,
+.home-inline-link svg,
+.about-team-aside a,
+.contact-map-link,
+.footer-links-group a:hover {
+  color: var(--color-rose-gold);
+}
+
+.home-cta {
+  background: linear-gradient(135deg, #fff8f3 0%, #f6e7d8 52%, #e8b4b8 100%);
+}
+
+.home-cta-media {
+  opacity: 0.18;
+}
+
+.home-cta-media::after {
+  background: linear-gradient(180deg, rgba(255, 248, 243, 0.86) 0%, rgba(255, 248, 243, 0.92) 100%);
+}
+
+.home-cta-title,
+.home-cta-text,
+.home-section-kicker-light {
+  color: var(--color-deep-brown);
+}
+
+.home-cta-card-kicker,
+.home-cta-card-foot span,
+.about-section-kicker-light {
+  color: var(--color-rose-gold);
+}
+
+.home-cta-card li,
+.home-cta-card-foot a,
+.home-cta-card-foot small {
+  color: rgba(var(--color-deep-brown-rgb), 0.88);
+}
+
+.about-cta-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(var(--color-champagne-beige-rgb), 0.82));
+  border: 1px solid rgba(var(--color-rose-gold-rgb), 0.22);
+}
+
+.about-cta-copy h2,
+.about-cta-copy p {
+  color: var(--color-deep-brown);
+}
+
+.home-gallery-overlay,
+.home-service-media-overlay {
+  background: linear-gradient(180deg, rgba(58, 42, 42, 0.12) 0%, rgba(58, 42, 42, 0.42) 100%);
+}
+
+.home-stars,
+.home-testimonial-quote-icon,
+.about-feature-icon,
+.about-hero-highlight svg,
+.contact-info-card-icon,
+.contact-hero-summary-item svg,
+.contact-form-trust svg,
+.services-menu-summary-head svg,
+.services-menu-list-block li svg,
+.service-booking-metadata svg,
+.service-catalog-metadata svg {
+  color: var(--color-rose-gold);
+}
+
+.services-menu-hero-copy {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(var(--color-champagne-beige-rgb), 0.9) 100%);
+  color: var(--color-deep-brown);
+}
+
+.services-menu-search,
+.services-menu-hero-note,
+.services-menu-filter-scroll button,
+.services-menu-secondary-link,
+.services-menu-secondary-button,
+.services-menu-quick-add,
+.services-menu-detail-grid article,
+.services-menu-tier,
+.services-menu-summary-metrics article,
+.services-menu-chip-row span,
+.services-menu-selected-item {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(var(--color-rose-gold-rgb), 0.2);
+  color: var(--color-deep-brown);
+}
+
+.services-menu-search input,
+.services-menu-search input::placeholder {
+  color: rgba(var(--color-deep-brown-rgb), 0.78);
+}
+
+.services-menu-filter-scroll button.is-active,
+.services-menu-filter-scroll button.is-active span {
+  background: var(--color-rose-gold);
+  color: #ffffff;
+}
+
+.services-menu-panel,
+.services-menu-preview {
+  background: rgba(var(--color-champagne-beige-rgb), 0.56);
+  border-color: rgba(var(--color-rose-gold-rgb), 0.16);
+}
+
+.services-menu-preview span {
+  color: rgba(var(--color-deep-brown-rgb), 0.82);
+}
+
+.services-menu-preview strong {
+  color: var(--color-rose-gold);
+}
+
+.service-booking-page,
+.service-catalog-page {
+  --catalog-bg: var(--color-soft-cream);
+  --catalog-panel: rgba(255, 255, 255, 0.9);
+  --catalog-border: rgba(var(--color-rose-gold-rgb), 0.2);
+  --catalog-ink: var(--color-deep-brown);
+  --catalog-muted: rgba(var(--color-deep-brown-rgb), 0.74);
+  --catalog-accent: var(--color-rose-gold);
+  --catalog-accent-soft: rgba(var(--color-rose-gold-rgb), 0.14);
+  --catalog-shadow: 0 14px 34px rgba(var(--color-deep-brown-rgb), 0.1);
+}
+
+.service-booking-nav button.is-active,
+.service-catalog-nav button.is-active,
+.service-booking-card.is-selected,
+.service-booking-addon-list button.is-active {
+  background: var(--color-rose-gold);
+  color: #ffffff;
+  border-color: rgba(var(--color-rose-gold-rgb), 0.65);
+}
+
+.service-booking-nav button span,
+.service-catalog-nav button span,
+.service-booking-card-link,
+.service-catalog-card-actions {
+  color: var(--color-rose-gold);
+}
+
+.service-booking-price-card strong,
+.service-catalog-panel-intro strong,
+.service-booking-total strong,
+.service-booking-summary-card h2,
+.service-catalog-side-card h3 {
+  color: var(--color-deep-brown);
+}
+
+.contact-form-card::before,
+.contact-success-badge,
+.contact-map-overlay,
+.contact-hero-panel {
+  background: linear-gradient(135deg, rgba(var(--color-blush-pink-rgb), 0.2), rgba(var(--color-champagne-beige-rgb), 0.44));
+  border-color: rgba(var(--color-rose-gold-rgb), 0.2);
+}
+
+.contact-form-trust,
+.contact-map-link,
+.contact-hours-row,
+.contact-success-grid article {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.2);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.contact-alert-error {
+  background: rgba(var(--color-rose-gold-rgb), 0.12);
+  border-color: rgba(var(--color-rose-gold-rgb), 0.28);
+  color: #8d3f31;
+}
+
+.contact-field {
+  background: #ffffff;
+  border-color: rgba(var(--color-champagne-beige-rgb), 0.98);
+}
+
+.contact-field input,
+.contact-field select,
+.contact-field textarea {
+  color: var(--color-deep-brown);
+  background: #ffffff;
+}
+
+.contact-field span {
+  color: rgba(var(--color-deep-brown-rgb), 0.66);
+}
+
+.contact-field:focus-within,
+.contact-field.is-filled {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.56);
+  box-shadow: 0 14px 30px rgba(var(--color-rose-gold-rgb), 0.16);
+}
+
+.contact-field:focus-within span,
+.contact-field.is-filled span,
+.contact-field.has-error span {
+  color: var(--color-rose-gold);
+}
+
+.contact-field.has-error {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.62);
+  background: rgba(255, 250, 247, 0.96);
+}
+
+.contact-submit-button:disabled {
+  background: rgba(var(--color-rose-gold-rgb), 0.48);
+}
+
+.footer {
+  background: linear-gradient(180deg, #3a2a2a 0%, #2f2222 100%);
+  border-top: 1px solid rgba(var(--color-blush-pink-rgb), 0.22);
+}
+
+.footer-logo,
+.footer-heading {
+  color: #ffffff;
+}
+
+.footer-desc,
+.footer-links-group a,
+.footer-links-group p,
+.footer-copyright,
+.footer-bottom-note,
+.footer-actions a,
+.footer-badges span {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.footer-actions a,
+.footer-badges span {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(var(--color-blush-pink-rgb), 0.3);
+}
+
+.footer-actions a:hover {
+  background: rgba(var(--color-blush-pink-rgb), 0.2);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(var(--color-blush-pink-rgb), 0.18);
+}
+
+.footer-links-group a:hover {
+  color: var(--color-blush-pink);
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(var(--color-blush-pink-rgb), 0.2);
+}
+
+.home-testimonials-topline,
+.home-testimonials-control,
+.home-testimonials-topline strong {
+  color: var(--color-deep-brown);
+}
+
+.home-testimonials-topline strong,
+.home-testimonials-control {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.22);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.home-testimonials-control:hover:not(:disabled) {
+  border-color: rgba(var(--color-rose-gold-rgb), 0.42);
+  box-shadow: 0 14px 28px rgba(var(--color-rose-gold-rgb), 0.16);
+}
+
+.home-testimonials-dot {
+  background: rgba(var(--color-rose-gold-rgb), 0.3);
+}
+
+.home-testimonials-dot:hover,
+.home-testimonials-dot.is-active {
+  background: var(--color-rose-gold);
+}
+
+.home-testimonials-dot.is-active {
+  box-shadow: 0 0 0 4px rgba(var(--color-rose-gold-rgb), 0.14);
+}
+
+[class*='faq'] .btn-primary,
+[class*='faq'] button:is(.btn-primary, .home-primary-button, .contact-submit-button) {
+  background: var(--color-rose-gold);
+}
+
+@media (max-width: 760px) {
+  .home-hero,
+  .about-hero,
+  .contact-hero,
+  .services-menu-hero,
+  .service-booking-hero,
+  .service-catalog-hero {
+    border-radius: 20px;
+  }
+}

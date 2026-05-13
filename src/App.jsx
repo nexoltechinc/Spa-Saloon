@@ -36,7 +36,7 @@ const Placeholder = ({ title }) => (
       <p
         style={{
           margin: 0,
-          color: '#6d5b11',
+          color: '#C75D6B',
           fontFamily: 'var(--font-accent)',
           fontSize: '0.72rem',
           fontWeight: 800,
@@ -49,7 +49,7 @@ const Placeholder = ({ title }) => (
       <h2
         style={{
           margin: '0.5rem 0 1rem',
-          color: '#1f221d',
+          color: '#2B1F1F',
           fontFamily: 'var(--font-editorial)',
           fontSize: 'clamp(2rem, 4vw, 3.2rem)',
           fontStyle: 'italic',
@@ -61,15 +61,15 @@ const Placeholder = ({ title }) => (
       </h2>
       <p
         style={{
-          color: '#5b6357',
+          color: 'rgba(43, 31, 31, 0.78)',
           fontFamily: 'var(--font-sans)',
           fontSize: '1rem',
           lineHeight: '1.85',
           margin: 0,
         }}
       >
-        We're refining this page to match the rest of the Hazel Beauty Saloon experience. For
-        now, the main services, booking, and contact paths are ready.
+        We're refining this page to match the latest Hazel Beauty Saloon experience. For now, the
+        main services, booking, and contact paths are ready.
       </p>
     </div>
   </div>
@@ -78,10 +78,10 @@ const Placeholder = ({ title }) => (
 const RouteFallback = ({ label }) => (
   <div style={{ minHeight: '42vh', display: 'grid', placeItems: 'center', padding: '6rem 1rem', textAlign: 'center' }}>
     <div>
-      <p style={{ margin: 0, letterSpacing: '0.24em', textTransform: 'uppercase', fontSize: '0.72rem', color: '#8f7451' }}>
+      <p style={{ margin: 0, letterSpacing: '0.24em', textTransform: 'uppercase', fontSize: '0.72rem', color: '#C75D6B' }}>
         {CRM_NAME}
       </p>
-      <h2 style={{ margin: '0.45rem 0 0', fontFamily: 'var(--font-editorial)', fontSize: '2rem', color: '#2b241c' }}>
+      <h2 style={{ margin: '0.45rem 0 0', fontFamily: 'var(--font-editorial)', fontSize: '2rem', color: '#2B1F1F' }}>
         {label}
       </h2>
     </div>
@@ -102,7 +102,7 @@ const TitleManager = () => {
   useEffect(() => {
     document.title = pathname.startsWith('/crm') || pathname === '/crm-login'
       ? CRM_NAME
-      : `${SALON_NAME} | Luxury Salon & Spa`;
+      : `${SALON_NAME} | Premium Ladies Salon`;
   }, [pathname]);
 
   return null;

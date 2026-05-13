@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { KeyRound, Menu, X } from 'lucide-react';
-import { SALON_NAME } from '../config/brand';
+import { KeyRound, Menu, Phone, X } from 'lucide-react';
+import { BRAND_WHATSAPP_BOOKING_LINK, SALON_NAME } from '../config/brand';
 import './Navbar.css';
 
 const navItems = [
@@ -78,7 +78,7 @@ const Navbar = () => {
           <Link to="/" className="nav-logo">
             {SALON_NAME}
           </Link>
-          <span className="nav-brand-subtitle">Luxury salon & spa</span>
+          <span className="nav-brand-subtitle">Premium ladies salon in Pakistan</span>
         </div>
         <nav className="nav-links" aria-label="Primary navigation">
           <ul className="nav-links-list">
@@ -92,10 +92,15 @@ const Navbar = () => {
           </ul>
         </nav>
         <div className="nav-actions">
-          <Link to="/crm-login" className="btn btn-secondary nav-staff-link">
-            <KeyRound size={14} />
-            <span>Staff Login</span>
-          </Link>
+          <a
+            href={BRAND_WHATSAPP_BOOKING_LINK}
+            className="btn btn-secondary nav-staff-link"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Phone size={14} />
+            <span>Call / WhatsApp</span>
+          </a>
           <button
             type="button"
             className="nav-menu-toggle"
@@ -107,7 +112,7 @@ const Navbar = () => {
             {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             <span>{isMobileMenuOpen ? 'Close' : 'Menu'}</span>
           </button>
-          <Link to="/booking" className="btn btn-primary nav-cta">Reserve Now</Link>
+          <Link to="/booking" className="btn btn-primary nav-cta">Book Appointment</Link>
         </div>
       </div>
       <div className={`nav-mobile-layer${isMobileMenuOpen ? ' open' : ''}`} aria-hidden={!isMobileMenuOpen}>
@@ -153,9 +158,18 @@ const Navbar = () => {
               <span>Staff Login</span>
             </Link>
             <Link to="/booking" className="btn btn-primary nav-mobile-cta" onClick={closeMobileMenu}>
-              Reserve Now
+              Book Appointment
             </Link>
-            <p>Calm, elegant access to the full Hazel Beauty Saloon experience.</p>
+            <a
+              href={BRAND_WHATSAPP_BOOKING_LINK}
+              className="btn btn-secondary nav-mobile-secondary-cta"
+              target="_blank"
+              rel="noreferrer"
+              onClick={closeMobileMenu}
+            >
+              WhatsApp Booking
+            </a>
+            <p>Bridal, party, Eid, and everyday beauty care in a ladies-friendly environment.</p>
           </div>
         </aside>
       </div>

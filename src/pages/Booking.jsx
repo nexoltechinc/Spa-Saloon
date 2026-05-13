@@ -120,11 +120,11 @@ const Booking = () => {
     <div className="service-booking-page">
       <section className="service-booking-hero">
         <div className="service-booking-hero-copy">
-          <p className="service-booking-kicker">Booking / Treatment Flow</p>
-          <h1>Choose a service, tune the price, and prepare the visit.</h1>
+          <p className="service-booking-kicker">Booking Planner</p>
+          <h1>Select your services and plan your appointment.</h1>
           <p>
-            The booking view now pulls from the same catalog as the CRM, with active treatments only, live add-ons,
-            and staff-based pricing previews.
+            Create your bridal, party, or self-care booking with live service pricing, optional add-ons,
+            and clear duration previews.
           </p>
 
           <div className="service-booking-actions">
@@ -132,13 +132,13 @@ const Booking = () => {
               <Sparkles size={16} />
               <input
                 type="search"
-                placeholder="Search services by name or category..."
+                placeholder="Search bridal, facial, hair, nail, or makeup services..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </label>
             <Link to="/services" className="service-booking-secondary-link">
-              Browse Services
+              View Full Services
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -156,7 +156,7 @@ const Booking = () => {
             <article className="service-booking-hero-visual-copy">
               <span>Selected treatment</span>
               <strong>{heroVisualService?.name || 'Choose a treatment'}</strong>
-              <p>{heroVisualService?.category || 'A calm preview from the Hazel catalog.'}</p>
+              <p>{heroVisualService?.category || 'Choose a service to preview details and pricing.'}</p>
             </article>
           </div>
 
@@ -365,7 +365,7 @@ const Booking = () => {
                 </div>
 
                 <Link to="/crm/appointments" className="service-booking-primary-link">
-                  Send to Appointment Booking
+                  Continue to Appointment Booking
                   <ArrowRight size={16} />
                 </Link>
               </>

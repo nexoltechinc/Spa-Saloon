@@ -10,6 +10,7 @@ const TestimonialsCarousel = ({ testimonials = [] }) => {
     skipSnaps: false,
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const slideCount = emblaApi?.scrollSnapList().length || testimonials.length;
 
   useEffect(() => {
@@ -45,12 +46,37 @@ const TestimonialsCarousel = ({ testimonials = [] }) => {
     [emblaApi],
   );
 
+  useEffect(() => {
+    if (
+      !emblaApi ||
+      isPaused ||
+      testimonials.length < 2 ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return undefined;
+    }
+
+    const autoPlayTimer = window.setInterval(() => {
+      emblaApi.scrollNext();
+    }, 4600);
+
+    return () => window.clearInterval(autoPlayTimer);
+  }, [emblaApi, isPaused, testimonials.length]);
+
   if (!testimonials.length) {
     return null;
   }
 
   return (
-    <div className="home-testimonials-carousel" aria-roledescription="carousel" aria-label="Guest testimonials">
+    <div
+      className="home-testimonials-carousel"
+      aria-roledescription="carousel"
+      aria-label="Guest testimonials"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={() => setIsPaused(false)}
+    >
       <div className="home-testimonials-topline">
         <span>Swipe through guest stories</span>
         <strong>
@@ -60,9 +86,12 @@ const TestimonialsCarousel = ({ testimonials = [] }) => {
 
       <div className="home-testimonials-viewport" ref={emblaRef}>
         <div className="home-testimonials-container">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.name} className="home-testimonials-slide">
-              <article className="home-testimonial-card home-testimonial-card-carousel">
+          {testimonials.map((testimonial, index) => (
+            <div
+              key={testimonial.name}
+              className={`home-testimonials-slide${index === selectedIndex ? ' is-active' : ''}`}
+            >
+              <article className={`home-testimonial-card home-testimonial-card-carousel${index === selectedIndex ? ' is-active' : ''}`}>
                 <div className="home-testimonial-head">
                   <Quote className="home-testimonial-quote-icon" size={64} aria-hidden="true" />
                   <div className="home-stars" aria-hidden="true">

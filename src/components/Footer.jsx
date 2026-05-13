@@ -7,6 +7,7 @@ import {
   BRAND_CONTACT_EMAIL,
   BRAND_MAP_LINK,
   BRAND_PHONE,
+  BRAND_WHATSAPP_BOOKING_LINK,
   SALON_NAME,
 } from '../config/brand';
 import './Footer.css';
@@ -24,7 +25,8 @@ const Footer = () => {
             {SALON_NAME}
           </Link>
           <p className="footer-desc">
-            Luxury beauty, salon, and wellness experiences curated with calm precision and polished care.
+            Bridal, party, Eid, and everyday beauty services designed for Pakistani women who want
+            a confident, graceful, and polished look.
           </p>
           <div className="footer-actions" aria-label="Quick contact actions">
             <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" aria-label="Open the salon location">
@@ -43,11 +45,15 @@ const Footer = () => {
               <CalendarDays size={18} />
               <span>Book</span>
             </a>
+            <a href={BRAND_WHATSAPP_BOOKING_LINK} target="_blank" rel="noreferrer" aria-label="Book through WhatsApp">
+              <Phone size={18} />
+              <span>WhatsApp</span>
+            </a>
           </div>
           <div className="footer-badges">
-            <span>By reservation</span>
-            <span>West Hollywood</span>
-            <span>Luxury salon & spa</span>
+            <span>Ladies-friendly salon</span>
+            <span>Lahore, Pakistan</span>
+            <span>Bridal & party specialists</span>
           </div>
         </div>
 
@@ -56,7 +62,7 @@ const Footer = () => {
           <div className="footer-links-group">
             <Link to="/services">Services</Link>
             <Link to="/packages">Packages &amp; Offers</Link>
-            <Link to="/booking">Reserve Now</Link>
+            <Link to="/booking">Book Appointment</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/wellness">Wellness</Link>
           </div>
@@ -89,7 +95,7 @@ const Footer = () => {
         <p className="footer-copyright">
           Copyright {currentYear} {SALON_NAME}. All rights reserved.
         </p>
-        <p className="footer-bottom-note">Appointments are by reservation and tailored to your pace.</p>
+        <p className="footer-bottom-note">Book by call or WhatsApp for bridal, event, or routine appointments.</p>
       </div>
     </footer>
   );

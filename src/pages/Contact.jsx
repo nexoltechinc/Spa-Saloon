@@ -24,6 +24,7 @@ import {
   BRAND_CONTACT_EMAIL,
   BRAND_MAP_LINK,
   BRAND_PHONE,
+  BRAND_WHATSAPP_BOOKING_LINK,
   SALON_NAME,
 } from '../config/brand';
 import { crmCreate } from '../config/crmApi';
@@ -38,14 +39,16 @@ const SUBJECT_OPTIONS = [
   { value: 'General Inquiry', label: 'General Inquiry' },
   { value: 'Booking Assistance', label: 'Booking Assistance' },
   { value: 'Bridal Consultation', label: 'Bridal Consultation' },
+  { value: 'Nikkah / Mehndi Booking', label: 'Nikkah / Mehndi Booking' },
+  { value: 'Barat / Walima Booking', label: 'Barat / Walima Booking' },
   { value: 'Private Event', label: 'Private Event' },
   { value: 'Feedback', label: 'Feedback' },
 ];
 const SUBJECT_VALUES = SUBJECT_OPTIONS.map((option) => option.value);
 
 const OPENING_HOURS = [
-  { day: 'Monday - Friday', hours: '10:00 AM - 8:00 PM' },
-  { day: 'Saturday', hours: '10:00 AM - 7:00 PM' },
+  { day: 'Monday - Friday', hours: '10:00 AM - 9:00 PM' },
+  { day: 'Saturday', hours: '10:00 AM - 9:00 PM' },
   { day: 'Sunday', hours: 'By Appointment' },
 ];
 
@@ -96,8 +99,8 @@ const createLeadPayload = (values) => {
     ownerName: 'Front Desk',
     owner: 'Front Desk',
     assignedTo: 'Front Desk',
-    branchName: 'West Hollywood',
-    branch: 'West Hollywood',
+    branchName: 'Lahore',
+    branch: 'Lahore',
     serviceInterest: values.subject,
     service: values.subject,
     budget: 0,
@@ -134,7 +137,7 @@ const contactDetails = [
   {
     label: 'Address',
     value: BRAND_ADDRESS,
-    description: 'West Hollywood, California',
+    description: 'Lahore, Pakistan',
     href: BRAND_MAP_LINK,
     icon: MapPin,
     external: true,
@@ -152,6 +155,14 @@ const contactDetails = [
     description: 'Appointments and reservations',
     href: `tel:${BRAND_BOOKING_PHONE.replace(/[^\d+]/g, '')}`,
     icon: CalendarDays,
+  },
+  {
+    label: 'WhatsApp Booking',
+    value: 'Message us now',
+    description: 'Fast replies for event bookings',
+    href: BRAND_WHATSAPP_BOOKING_LINK,
+    icon: Phone,
+    external: true,
   },
   {
     label: 'General Email',
@@ -182,19 +193,19 @@ const heroSummary = [
   },
   {
     label: 'Hours',
-    value: 'Mon - Fri, 10 AM - 8 PM',
+    value: 'Daily, 10 AM - 9 PM',
     icon: Clock3,
   },
   {
     label: 'Location',
-    value: '8422 Melrose Ave',
+    value: 'Gulberg III, Lahore',
     icon: MapPin,
   },
 ];
 
 const quickActions = [
   {
-    label: 'Reserve Now',
+    label: 'Book Appointment',
     description: 'Book your appointment',
     icon: CalendarDays,
     to: BOOKING_ROUTE,
@@ -204,6 +215,13 @@ const quickActions = [
     description: BRAND_PHONE,
     icon: Phone,
     href: `tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`,
+  },
+  {
+    label: 'WhatsApp',
+    description: 'Fast booking support',
+    icon: Phone,
+    href: BRAND_WHATSAPP_BOOKING_LINK,
+    external: true,
   },
   {
     label: 'Email',
@@ -300,16 +318,16 @@ const Contact = () => {
             <p className="contact-kicker">Contact</p>
             <h1>Get in Touch</h1>
             <p className="contact-hero-intro">
-              Have a question or ready to book your visit? Our front desk team is here to help.
+              Planning bridal, party, Eid, or regular beauty care? Our team is ready to help you book quickly.
             </p>
 
             <div className="contact-hero-actions">
               <Link to={BOOKING_ROUTE} className="contact-primary-link">
-                Reserve Now
+                Book Appointment
                 <CalendarDays size={16} />
               </Link>
-              <a href={`tel:${BRAND_PHONE.replace(/[^\d+]/g, '')}`} className="contact-secondary-link">
-                Call Now
+              <a href={BRAND_WHATSAPP_BOOKING_LINK} target="_blank" rel="noreferrer" className="contact-secondary-link">
+                WhatsApp Now
                 <Phone size={16} />
               </a>
               <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" className="contact-secondary-link">
@@ -319,8 +337,7 @@ const Contact = () => {
             </div>
 
             <p className="contact-hero-note">
-              Prefer to write to us? Send a message below and we will get back to you as soon as
-              possible.
+              Share your event date and required services. We will guide you with suitable slots and options.
             </p>
           </div>
 
@@ -328,8 +345,8 @@ const Contact = () => {
             <p className="contact-section-kicker">Front Desk</p>
             <h2>Simple ways to reach us.</h2>
             <p>
-              Call, email, or visit us in West Hollywood. We are happy to help with bookings,
-              questions, and directions.
+              Call, WhatsApp, email, or visit us in Lahore. We are happy to help with bridal,
+              event, and routine bookings.
             </p>
 
             <div className="contact-hero-summary">
@@ -358,8 +375,8 @@ const Contact = () => {
               <p className="contact-section-kicker">Contact Information</p>
               <h2>Visit, call, or email.</h2>
               <p className="contact-copy">
-                Choose the option that feels easiest for you. We are here to help with visits,
-                reservations, and general questions.
+                Choose the easiest contact option for you. We support bridal consultations, event
+                bookings, and regular salon appointments.
               </p>
 
               <div className="contact-info-grid">
@@ -391,7 +408,7 @@ const Contact = () => {
 
             <article className="contact-card contact-hours-card">
               <p className="contact-section-kicker">Opening Hours</p>
-              <h3>When we&rsquo;re available</h3>
+                      <h3>When we&rsquo;re available</h3>
 
               <div className="contact-hours-list">
                 {OPENING_HOURS.map((item) => (
@@ -480,7 +497,7 @@ const Contact = () => {
                       Send another message
                     </button>
                     <Link to={BOOKING_ROUTE} className="contact-primary-link">
-                      Reserve Now
+                      Book Appointment
                       <ArrowRight size={16} />
                     </Link>
                   </div>
@@ -494,18 +511,18 @@ const Contact = () => {
                     </div>
                     <span className="contact-form-eta">
                       <Clock3 size={14} />
-                      We usually reply within one business day
+                      We usually reply the same day
                     </span>
                   </div>
 
                   <p className="contact-form-intro">
-                    Have a question about appointments, services, or a special occasion? Send us a
-                    note and our team will be glad to help.
+                    Send your event details, date, and preferred services. Our team will help you
+                    plan your booking smoothly.
                   </p>
 
                   <div className="contact-form-trust">
                     <ShieldCheck size={16} />
-                    <span>Your message is private. We&rsquo;ll get back to you as soon as possible.</span>
+                    <span>Your message is private. We will respond with booking guidance as soon as possible.</span>
                   </div>
 
                   {submitError ? (
@@ -593,7 +610,7 @@ const Contact = () => {
               <div className="contact-map-header">
                 <div>
                   <p className="contact-section-kicker">Location</p>
-                  <h3>Find us in West Hollywood.</h3>
+                  <h3>Find us in Lahore.</h3>
                 </div>
                 <a href={BRAND_MAP_LINK} target="_blank" rel="noreferrer" className="contact-map-link">
                   Open in Google Maps
@@ -615,7 +632,7 @@ const Contact = () => {
                   allowFullScreen
                 />
                 <div className="contact-map-overlay">
-                  <span>West Hollywood</span>
+                  <span>Lahore</span>
                   <strong>{BRAND_ADDRESS}</strong>
                 </div>
               </div>

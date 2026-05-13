@@ -10,7 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BRAND_ADDRESS, BRAND_BOOKING_PHONE, SALON_NAME } from '../config/brand';
+import { BRAND_ADDRESS, BRAND_BOOKING_PHONE, BRAND_WHATSAPP_BOOKING_LINK, SALON_NAME } from '../config/brand';
 import { resolveHazelImage } from '../config/serviceMedia';
 import './About.css';
 
@@ -21,67 +21,67 @@ const CONTACT_ROUTE = '/contact';
 
 const experiencePoints = [
   {
-    title: 'A calm atmosphere',
+    title: 'Ladies-friendly atmosphere',
     description:
-      'Soft lighting, comfortable surroundings, and an unhurried pace help each appointment feel restorative from the moment you arrive.',
+      'Comfortable surroundings and respectful service standards help every guest feel at ease from the moment she arrives.',
   },
   {
-    title: 'Thoughtful support',
+    title: 'Event-focused guidance',
     description:
-      'Our front desk and service team make booking, arrival, and aftercare feel clear, warm, and easy to follow.',
+      'Our front desk helps with bridal timelines, event schedules, and service planning so your booking stays smooth.',
   },
   {
     title: 'Detail-led beauty care',
     description:
-      'Every treatment is delivered with care, cleanliness, and attention to the details that make the experience feel polished.',
+      'Every treatment is delivered with hygiene, precision, and finish quality suitable for Pakistani events and daily grooming.',
   },
 ];
 
 const featureCards = [
   {
     icon: Sparkles,
-    title: 'Professional Beauty Care',
-    description: 'Thoughtful treatments delivered with precision, comfort, and a polished finish.',
+    title: 'Bridal & Party Expertise',
+    description: 'Specialized looks for Nikkah, Mehndi, Barat, Walima, engagement, and festive events.',
   },
   {
     icon: Leaf,
-    title: 'Relaxing Environment',
-    description: 'A warm, peaceful setting designed to help guests settle in and feel at ease.',
+    title: 'Skin-Friendly Products',
+    description: 'Product selections focused on comfort, tone matching, and long-wear makeup results.',
   },
   {
     icon: ShieldCheck,
-    title: 'Hygienic Tools & Clean Setup',
-    description: 'Cleanliness, organization, and professional care standards guide every appointment.',
+    title: 'Clean & Hygienic Setup',
+    description: 'Professional hygiene and organized tools for safe, trustworthy beauty care.',
   },
   {
     icon: Users,
-    title: 'Friendly Staff',
-    description: 'Helpful guidance and a welcoming tone make every visit feel personal and comfortable.',
+    title: 'Ladies-Friendly Team',
+    description: 'Warm, respectful, and helpful staff for both first-time and regular clients.',
   },
   {
     icon: Heart,
-    title: 'Personalized Service',
-    description: 'Recommendations and treatments are shaped around what feels right for each guest.',
+    title: 'Personalized Looks',
+    description: 'Every service is adjusted to your skin tone, event type, and preferred style.',
   },
   {
     icon: CalendarDays,
-    title: 'Easy Booking Experience',
-    description: 'Simple reservation paths make it easy to plan your visit with confidence.',
+    title: 'Easy WhatsApp Booking',
+    description: 'Quick booking through call or WhatsApp with clear appointment support.',
   },
 ];
 
 const values = [
   {
     title: 'Comfort',
-    description: 'We create a setting that feels calm, welcoming, and easy to settle into.',
+    description: 'A ladies-friendly salon environment where you feel relaxed and respected.',
   },
   {
     title: 'Confidence',
-    description: 'Our goal is for every guest to leave feeling refreshed, cared for, and assured.',
+    description: 'Looks that stay polished through your event so you feel beautiful and confident.',
   },
   {
     title: 'Care',
-    description: 'Every interaction is guided by warmth, cleanliness, and careful attention to detail.',
+    description: 'Every interaction is guided by hygiene, professionalism, and personal attention.',
   },
 ];
 
@@ -89,21 +89,19 @@ const highlights = [
   {
     icon: MapPin,
     label: 'Location',
-    value: 'West Hollywood',
+    value: 'Lahore, Pakistan',
   },
   {
     icon: CalendarDays,
     label: 'Reservations',
-    value: 'By booking',
+    value: 'Call / WhatsApp',
   },
   {
     icon: Star,
     label: 'Experience',
-    value: 'Calm and polished',
+    value: 'Bridal to everyday care',
   },
 ];
-
-const bookingPhoneHref = `tel:${BRAND_BOOKING_PHONE.replace(/[^\d+]/g, '')}`;
 
 const About = () => (
   <div className="about-page">
@@ -123,12 +121,12 @@ const About = () => (
           <p className="about-kicker">About Us</p>
           <h1>About Hazel Beauty Saloon</h1>
           <p className="about-hero-intro">
-            A calm beauty and wellness space designed for comfort, care, and confidence.
+            A premium ladies salon in Pakistan for bridal beauty, party glam, and everyday grooming.
           </p>
 
           <div className="about-hero-actions">
             <Link to={BOOKING_ROUTE} className="about-primary-link">
-              Reserve Now
+              Book Appointment
               <CalendarDays size={16} />
             </Link>
             <Link to={CONTACT_ROUTE} className="about-secondary-link">
@@ -138,8 +136,8 @@ const About = () => (
           </div>
 
           <p className="about-hero-note">
-            Whether you are planning a beauty treatment or a quiet reset, our team is here to make
-            the visit feel smooth and welcoming.
+            Whether you are preparing for Nikkah, Mehndi, Barat, Walima, Eid, or regular self-care,
+            our team is here to make the experience smooth and reliable.
           </p>
         </div>
 
@@ -153,9 +151,9 @@ const About = () => (
             />
             <article className="about-hero-card">
               <span>Hazel Beauty Saloon</span>
-              <strong>Calm beauty care in West Hollywood.</strong>
+              <strong>Trusted beauty care in Lahore.</strong>
               <p>
-                Comfortable surroundings, careful service, and a warm welcome for every guest.
+                Bridal-ready looks, skin-focused care, and ladies-friendly service standards.
               </p>
             </article>
           </div>
@@ -183,20 +181,18 @@ const About = () => (
       <div className="container about-story-grid">
         <div className="about-section-header">
           <p className="about-section-kicker">Our Story</p>
-          <h2>Beauty care that feels personal.</h2>
+          <h2>Beauty care that understands local occasions.</h2>
           <p className="about-section-lead">
-            At Hazel Beauty Saloon, we believe beauty care should feel personal, relaxing, and
-            effortless. Our salon is designed to give every visitor a calm and comfortable
-            experience, whether they are visiting for a quick refresh, a beauty treatment, or a
-            complete self-care session.
+            At Hazel Beauty Saloon, we believe every woman deserves a look that suits her event,
+            personality, and skin tone. We support bridal and party services as well as regular
+            beauty maintenance.
           </p>
         </div>
 
         <article className="about-story-card">
           <p>
-            We focus on thoughtful service, clean surroundings, and a pace that gives every guest
-            room to settle in. The goal is simple: help you feel looked after from booking to
-            finish.
+            We focus on professional beauticians, clean surroundings, and dependable appointment
+            support so every visit feels comfortable from booking to final touch-up.
           </p>
           <div className="about-story-meta">
             <span>{SALON_NAME}</span>
@@ -210,14 +206,13 @@ const About = () => (
       <div className="container about-experience-grid">
         <div className="about-section-header">
           <p className="about-section-kicker">Guest Experience</p>
-          <h2>A Salon Experience Made for You</h2>
+          <h2>A salon experience made for Pakistani women.</h2>
           <p className="about-section-lead">
-            From the first message to the final mirror check, every part of the experience is
-            shaped to feel easy, attentive, and reassuring.
+            From first inquiry to final mirror check, every step is designed to feel clear,
+            friendly, and event-ready.
           </p>
           <p className="about-section-copy">
-            We keep the environment calm, the setup clean and comfortable, and the service journey
-            clear so guests can focus on enjoying the appointment.
+            We keep service flow organized so you can focus on your function, not last-minute salon stress.
           </p>
         </div>
 
@@ -236,10 +231,9 @@ const About = () => (
       <div className="container">
         <div className="about-section-header about-section-header-centered">
           <p className="about-section-kicker">Why Choose Us</p>
-          <h2>Carefully designed for comfort and ease.</h2>
+          <h2>Trusted for bridal, event, and routine beauty services.</h2>
           <p className="about-section-lead">
-            Every detail is intended to make appointments feel more comfortable, more polished, and
-            easier to enjoy.
+            Every detail is intended to deliver confidence, comfort, and reliable finishing quality.
           </p>
         </div>
 
@@ -265,7 +259,7 @@ const About = () => (
       <div className="container">
         <div className="about-section-header about-section-header-centered">
           <p className="about-section-kicker">What We Care About</p>
-          <h2>Comfort, confidence, and care.</h2>
+          <h2>Comfort, confidence, and trust.</h2>
         </div>
 
         <div className="about-values-grid">
@@ -283,17 +277,17 @@ const About = () => (
       <div className="container about-team-card">
         <div className="about-team-copy">
           <p className="about-section-kicker">Experienced Beauty Professionals</p>
-          <h2>Thoughtful service, delivered with warmth.</h2>
+          <h2>Skilled service, delivered with warmth and professionalism.</h2>
           <p className="about-section-lead">
-            Our team focuses on delivering thoughtful beauty care with attention, cleanliness, and a
-            warm customer experience.
+            Our team focuses on bridal finishing, party glam, facial glow, and everyday grooming in
+            a clean, ladies-friendly setting.
           </p>
         </div>
 
         <div className="about-team-aside">
           <span>Booking support</span>
           <strong>{BRAND_BOOKING_PHONE}</strong>
-          <a href={bookingPhoneHref}>Call the front desk</a>
+          <a href={BRAND_WHATSAPP_BOOKING_LINK} target="_blank" rel="noreferrer">Call / WhatsApp now</a>
         </div>
       </div>
     </section>
@@ -301,17 +295,16 @@ const About = () => (
     <section className="about-cta">
       <div className="container about-cta-card">
         <div className="about-cta-copy">
-          <p className="about-section-kicker about-section-kicker-light">Ready to Visit Hazel Beauty Saloon?</p>
-          <h2>Book your appointment today and enjoy a calm, professional beauty experience.</h2>
+          <p className="about-section-kicker about-section-kicker-light">Ready to visit Hazel Beauty Saloon?</p>
+          <h2>Book your appointment today for bridal, party, or everyday beauty care.</h2>
           <p>
-            Reserve your visit when you are ready, or contact us if you would like help choosing the
-            right appointment.
+            Share your event details and let our team guide you to the right service package.
           </p>
         </div>
 
         <div className="about-cta-actions">
           <Link to={BOOKING_ROUTE} className="about-primary-link">
-            Reserve Now
+            Book Appointment
             <CalendarDays size={16} />
           </Link>
           <Link to={CONTACT_ROUTE} className="about-secondary-link about-secondary-link-light">
